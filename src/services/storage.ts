@@ -180,6 +180,105 @@ export const StorageService = {
     return isBookmarked;
   },
 
+  // Reading Progress: Marked as Completed/Read
+  getCompletedResources(): string[] {
+    try {
+      const stored = localStorage.getItem('ikl_completed_resources_v1');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  toggleCompletedResource(id: string): boolean {
+    const current = this.getCompletedResources();
+    let updated: string[];
+    let isCompleted = false;
+    if (current.includes(id)) {
+      updated = current.filter(item => item !== id);
+      isCompleted = false;
+    } else {
+      updated = [...current, id];
+      isCompleted = true;
+    }
+    try {
+      localStorage.setItem('ikl_completed_resources_v1', JSON.stringify(updated));
+    } catch (e) {
+      console.warn(e);
+    }
+    return isCompleted;
+  },
+
+  // Last Read Resource Tracker for "Resume Where You Left Off"
+  getLastReadResource(): { id: string; title: string; titleBn: string; timestamp: number } | null {
+    try {
+      const stored = localStorage.getItem('ikl_last_read_v1');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  setLastReadResource(id: string, title: string, titleBn: string): void {
+    try {
+      localStorage.setItem('ikl_last_read_v1', JSON.stringify({
+        id,
+        title,
+        titleBn,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.warn(e);
+    }
+  },
+
+  // Reader Preferences: Theme & Font Size
+  getTheme(): 'light' | 'sepia' | 'dark' {
+    try {
+      const theme = localStorage.getItem('ikl_reader_theme');
+      if (theme === 'sepia' || theme === 'dark' || theme === 'light') return theme;
+    } catch {
+      // fallback
+    }
+    return 'light';
+  },
+
+  setTheme(theme: 'light' | 'sepia' | 'dark'): void {
+    try {
+      localStorage.setItem('ikl_reader_theme', theme);
+      if (theme === 'sepia') {
+        document.documentElement.setAttribute('data-theme', 'sepia');
+        document.documentElement.classList.remove('dark');
+      } else if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  },
+
+  getFontSize(): 'sm' | 'base' | 'lg' | 'xl' {
+    try {
+      const size = localStorage.getItem('ikl_reader_font_size');
+      if (size === 'sm' || size === 'base' || size === 'lg' || size === 'xl') return size;
+    } catch {
+      // fallback
+    }
+    return 'base';
+  },
+
+  setFontSize(size: 'sm' | 'base' | 'lg' | 'xl'): void {
+    try {
+      localStorage.setItem('ikl_reader_font_size', size);
+    } catch (e) {
+      console.warn(e);
+    }
+  },
+
   exportDatabaseBackup(): string {
     const data = {
       exportVersion: '1.0',

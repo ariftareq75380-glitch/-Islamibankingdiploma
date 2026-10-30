@@ -106,8 +106,12 @@ export type ActiveTab =
   | 'fiqh-fatwa' 
   | 'pdf-library' 
   | 'articles' 
+  | 'mock-test'
+  | 'faq'
+  | 'bookmarks-view'
   | 'about' 
   | 'contact' 
   | 'privacy' 
   | 'disclaimer'
   | 'wp-blueprint';
+

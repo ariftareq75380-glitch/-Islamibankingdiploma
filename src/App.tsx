@@ -11,9 +11,14 @@ import { categoriesList } from './data/mockData';
 
 // Components
 import { Navbar } from './components/Navbar';
+import { PrayerAndDateStrip } from './components/PrayerAndDateStrip';
 import { HeroSection } from './components/HeroSection';
+import { ResumeStudyBanner } from './components/ResumeStudyBanner';
 import { FeaturedCategories } from './components/FeaturedCategories';
 import { DiplomaExamSection } from './components/DiplomaExamSection';
+import { PracticeMockTest } from './components/PracticeMockTest';
+import { BookmarksView } from './components/BookmarksView';
+import { FaqSection } from './components/FaqSection';
 import { ResourceFilters } from './components/ResourceFilters';
 import { PdfCard } from './components/PdfCard';
 import { PdfViewerModal } from './components/PdfViewerModal';
@@ -24,7 +29,6 @@ import { WordPressArchitectureModal } from './components/WordPressArchitectureMo
 import { InformationalPages } from './components/InformationalPages';
 import { AdPlacement } from './components/AdPlacement';
 import { Footer } from './components/Footer';
-import { IslamicDateBar } from './components/IslamicDateBar';
 import { IslamicCalendarModal } from './components/IslamicCalendarModal';
 import { PrayerTimesModal } from './components/PrayerTimesModal';
 
@@ -49,6 +53,12 @@ export default function App() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(StorageService.getSettings());
   const [bookmarks, setBookmarks] = useState<string[]>([]);
+  const [completedIds, setCompletedIds] = useState<string[]>([]);
+  const [lastRead, setLastRead] = useState<{ id: string; title: string; titleBn: string; timestamp: number } | null>(null);
+
+  // Reading Experience: Theme & Font Size
+  const [theme, setThemeState] = useState<'light' | 'sepia' | 'dark'>(() => StorageService.getTheme());
+  const [fontSize, setFontSizeState] = useState<'sm' | 'base' | 'lg' | 'xl'>(() => StorageService.getFontSize());
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,6 +112,11 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Sync initial theme
+  useEffect(() => {
+    StorageService.setTheme(theme);
+  }, [theme]);
+
   // Load initial data
   useEffect(() => {
     loadAllData();
@@ -112,6 +127,18 @@ export default function App() {
     setArticles(StorageService.getArticles());
     setSettings(StorageService.getSettings());
     setBookmarks(StorageService.getBookmarks());
+    setCompletedIds(StorageService.getCompletedResources());
+    setLastRead(StorageService.getLastReadResource());
+  };
+
+  const handleThemeChange = (newTheme: 'light' | 'sepia' | 'dark') => {
+    setThemeState(newTheme);
+    StorageService.setTheme(newTheme);
+  };
+
+  const handleFontSizeChange = (newSize: 'sm' | 'base' | 'lg' | 'xl') => {
+    setFontSizeState(newSize);
+    StorageService.setFontSize(newSize);
   };
 
   const handleDownloadIncrement = (id: string) => {
@@ -122,6 +149,26 @@ export default function App() {
   const handleToggleBookmark = (id: string) => {
     StorageService.toggleBookmark(id);
     setBookmarks(StorageService.getBookmarks());
+  };
+
+  const handleToggleComplete = (id: string) => {
+    StorageService.toggleCompletedResource(id);
+    setCompletedIds(StorageService.getCompletedResources());
+  };
+
+  const handlePreviewResource = (res: PdfResource) => {
+    setSelectedPdfForPreview(res);
+    StorageService.setLastReadResource(res.id, res.title, res.titleBn);
+    setLastRead(StorageService.getLastReadResource());
+  };
+
+  const handleResumeLastRead = (resourceId: string) => {
+    const target = resources.find(r => r.id === resourceId);
+    if (target) {
+      setSelectedPdfForPreview(target);
+    } else {
+      setActiveTab('diploma');
+    }
   };
 
   // Scroll helper
@@ -159,69 +206,82 @@ export default function App() {
   // Handle Tab changes that map to courses
   const handleSelectTabWithFilter = (tab: ActiveTab) => {
     setActiveTab(tab);
-    handleResetFilters();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    if (tab === 'diploma') {
-      setSelectedCourse('DIB-1');
-    } else if (tab === 'banking') {
+    // Auto preset filters according to top nav tabs
+    if (tab === 'banking') {
       setSelectedCourse('Islamic-Banking');
+      setSelectedSubject('ALL');
+    } else if (tab === 'diploma') {
+      setSelectedCourse('DIB-General');
+      setSelectedSubject('ALL');
+    } else if (tab === 'previous-questions') {
+      setSelectedCategory('Question-Paper');
     } else if (tab === 'islamic-studies') {
       setSelectedCourse('Islamic-Studies');
+      setSelectedSubject('ALL');
     } else if (tab === 'quran-hadith') {
       setSelectedCourse('Quran-Hadith');
+      setSelectedSubject('ALL');
     } else if (tab === 'fiqh-fatwa') {
       setSelectedCourse('Fiqh-Fatwa');
+      setSelectedSubject('ALL');
+    } else if (tab === 'home' || tab === 'pdf-library') {
+      // Keep existing
     }
   };
 
-  // Filtering Resources
+  // Multi-facet filtering engine for all PDF resources
   const filteredResources = useMemo(() => {
-    return resources.filter((res) => {
-      // 1. Text Search across Title, Description, Subject, Tags & Key Topics
+    return resources.filter((item) => {
+      // 1. Text Search Query
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesTitle = res.title.toLowerCase().includes(q) || res.titleBn.toLowerCase().includes(q);
-        const matchesSubject = res.subject.toLowerCase().includes(q) || res.subjectBn.toLowerCase().includes(q);
-        const matchesDesc = res.description.toLowerCase().includes(q) || res.descriptionBn.toLowerCase().includes(q);
-        const matchesYear = res.examYear.includes(q);
-        const matchesTags = res.tags.some(t => t.toLowerCase().includes(q));
-        const matchesTopics = (res.keyTopics || []).some(t => t.toLowerCase().includes(q));
+        const query = searchQuery.toLowerCase().trim();
+        const titleBnMatch = item.titleBn.toLowerCase().includes(query);
+        const titleEnMatch = item.title.toLowerCase().includes(query);
+        const descMatch = item.description.toLowerCase().includes(query) || item.descriptionBn.toLowerCase().includes(query);
+        const subjectMatch = item.subject.toLowerCase().includes(query) || item.subjectBn.toLowerCase().includes(query);
+        const tagMatch = item.tags.some(t => t.toLowerCase().includes(query));
+        const keyTopicMatch = item.keyTopics?.some(k => k.toLowerCase().includes(query));
+        const yearMatch = item.examYear.includes(query);
 
-        if (!matchesTitle && !matchesSubject && !matchesDesc && !matchesYear && !matchesTags && !matchesTopics) {
+        if (!titleBnMatch && !titleEnMatch && !descMatch && !subjectMatch && !tagMatch && !keyTopicMatch && !yearMatch) {
           return false;
         }
       }
 
-      // 2. Course
-      if (selectedCourse !== 'ALL' && res.course !== selectedCourse) {
+      // 2. Course / Level Filter
+      if (selectedCourse !== 'ALL') {
+        if (selectedCourse === 'DIB-General') {
+          if (item.course !== 'DIB-1' && item.course !== 'DIB-2' && item.course !== 'DIB-General') return false;
+        } else if (item.course !== selectedCourse) {
+          return false;
+        }
+      }
+
+      // 3. Subject Filter
+      if (selectedSubject !== 'ALL' && item.subject !== selectedSubject) {
         return false;
       }
 
-      // 3. Subject
-      if (selectedSubject !== 'ALL' && res.subject !== selectedSubject) {
+      // 4. Exam Year Filter
+      if (selectedYear !== 'ALL' && item.examYear !== selectedYear) {
         return false;
       }
 
-      // 4. Exam Year
-      if (selectedYear !== 'ALL' && res.examYear !== selectedYear) {
+      // 5. Exam Session Filter
+      if (selectedSession !== 'ALL' && item.examSession !== selectedSession) {
         return false;
       }
 
-      // 5. Session
-      if (selectedSession !== 'ALL' && res.examSession !== selectedSession) {
+      // 6. Category Type Filter
+      if (selectedCategory !== 'ALL' && item.category !== selectedCategory) {
         return false;
       }
 
-      // 6. Category
-      if (selectedCategory !== 'ALL' && res.category !== selectedCategory) {
+      // 7. Language Filter
+      if (selectedLanguage !== 'ALL' && item.language !== selectedLanguage && item.language !== 'bilingual') {
         return false;
-      }
-
-      // 7. Language
-      if (selectedLanguage !== 'ALL') {
-        if (selectedLanguage === 'bilingual' && res.language !== 'bilingual') return false;
-        if (selectedLanguage === 'bn' && res.language === 'en') return false;
-        if (selectedLanguage === 'en' && res.language === 'bn') return false;
       }
 
       return true;
@@ -242,9 +302,17 @@ export default function App() {
     return resources.filter(r => bookmarks.includes(r.id));
   }, [resources, bookmarks]);
 
+  // Font size class mapping
+  const fontSizeClass = {
+    sm: 'reader-size-sm',
+    base: 'reader-size-base',
+    lg: 'reader-size-lg',
+    xl: 'reader-size-xl'
+  }[fontSize];
+
   return (
-    <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-100 selection:text-emerald-900 font-sans">
-      {/* Navigation */}
+    <div className={`min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-100 selection:text-emerald-900 font-sans ${fontSizeClass}`}>
+      {/* Navigation Header with Reading Mode Tools & Organized Categories */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={handleSelectTabWithFilter}
@@ -252,18 +320,20 @@ export default function App() {
         setLang={setLang}
         openAdminModal={() => setIsAdminOpen(true)}
         openBlueprintModal={() => setIsBlueprintOpen(true)}
-        openCalendarModal={() => setIsCalendarModalOpen(true)}
-        openPrayerModal={() => setIsPrayerModalOpen(true)}
         bookmarkedCount={bookmarks.length}
         openBookmarks={() => setIsBookmarksDrawerOpen(true)}
         siteName={settings.siteName}
         siteNameBn={settings.siteNameBn}
         isAdminVisible={isAdminVisible}
         onHideAdmin={handleHideAdmin}
+        theme={theme}
+        onThemeChange={handleThemeChange}
+        fontSize={fontSize}
+        onFontSizeChange={handleFontSizeChange}
       />
 
-      {/* Islamic & Bengali Date Bar (Cultural & Banking Utility) */}
-      <IslamicDateBar
+      {/* Neat Information Strip below Header: Hijri Date, Bengali Date & District-wise Prayer Times */}
+      <PrayerAndDateStrip
         onOpenCalendarModal={() => setIsCalendarModalOpen(true)}
         onOpenPrayerTimesModal={() => setIsPrayerModalOpen(true)}
         lang={lang}
@@ -271,10 +341,10 @@ export default function App() {
 
       {/* Main View Router */}
       <main className="flex-1">
-        {/* HOMEPAGE VIEW */}
+        {/* 1. HOMEPAGE VIEW */}
         {activeTab === 'home' && (
           <>
-            {/* Hero Section with prominent search */}
+            {/* Hero Section with concise placeholder & instant autocomplete suggestions */}
             <HeroSection
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
@@ -286,14 +356,26 @@ export default function App() {
               totalResourcesCount={resources.length}
               totalArticlesCount={articles.length}
               lang={lang}
+              resources={resources}
             />
 
-            {/* Ad Placement: Safe Header Leaderboard */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              {/* Resume where you left off banner */}
+              <ResumeStudyBanner
+                lastRead={lastRead}
+                completedCount={completedIds.length}
+                totalCount={resources.length}
+                onResume={handleResumeLastRead}
+                lang={lang}
+              />
+            </div>
+
+            {/* Ad Placement: Clean, hidden if no live AdSense code */}
             {settings.enableAdPlacements && (
               <AdPlacement slotType="header-banner" lang={lang} />
             )}
 
-            {/* Featured Categories Division */}
+            {/* Featured Subject Divisions with bespoke colors and symbols */}
             <FeaturedCategories
               categories={categoriesList}
               onSelectCategory={(courseType) => {
@@ -303,14 +385,16 @@ export default function App() {
               lang={lang}
             />
 
-            {/* Dedicated DIB Exam Papers organized by year */}
+            {/* Dedicated DIB Exam Papers organized by year with Mark as Read */}
             <DiplomaExamSection
               resources={resources}
-              onPreview={(res) => setSelectedPdfForPreview(res)}
+              onPreview={handlePreviewResource}
               onDownloadIncrement={handleDownloadIncrement}
               bookmarks={bookmarks}
               onToggleBookmark={handleToggleBookmark}
               lang={lang}
+              completedIds={completedIds}
+              onToggleComplete={handleToggleComplete}
             />
 
             {/* Bilingual Banking Articles Section */}
@@ -361,52 +445,84 @@ export default function App() {
                   />
                 </div>
 
-                {/* Resource Cards Grid */}
+                {/* Grid */}
                 {filteredResources.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredResources.map((res) => (
                       <PdfCard
                         key={res.id}
                         resource={res}
-                        onPreview={(item) => setSelectedPdfForPreview(item)}
+                        onPreview={handlePreviewResource}
                         onDownloadIncrement={handleDownloadIncrement}
                         isBookmarked={bookmarks.includes(res.id)}
                         onToggleBookmark={handleToggleBookmark}
                         lang={lang}
+                        isCompleted={completedIds.includes(res.id)}
+                        onToggleComplete={handleToggleComplete}
                       />
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-white rounded-xl border border-stone-200 p-12 text-center max-w-lg mx-auto">
+                  <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center max-w-lg mx-auto shadow-xs">
                     <Search className="w-10 h-10 text-stone-300 mx-auto mb-3" />
                     <h3 className="text-base font-bold text-stone-900 mb-1">
-                      {lang === 'bn' ? 'কোনো রিসোর্স পাওয়া যায়নি' : 'No Matching Resources Found'}
+                      {lang === 'bn' ? 'কোনো রিসোর্স পাওয়া যায়নি' : 'No Resources Found'}
                     </h3>
-                    <p className="text-xs text-stone-500 mb-4 leading-relaxed font-bengali">
+                    <p className="text-xs text-stone-500 mb-4 font-bengali">
                       {lang === 'bn'
-                        ? 'আপনার দেওয়া সার্চ কি-ওয়ার্ড বা ফিল্টারের সাথে কোনো নথি মেলেনি। ফিল্টার রিসেট করে আবার চেষ্টা করুন।'
-                        : 'No PDF documents match your search criteria. Try clearing some filters or searching with a different term.'}
+                        ? 'আপনার বর্তমান ফিল্টারের সাথে মিলে এমন কোনো ফাইল নেই। ফিল্টার রিসেট করে আবার চেষ্টা করুন।'
+                        : 'No files match your current filter settings. Try resetting your filters.'}
                     </p>
                     <button
                       onClick={handleResetFilters}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                      className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>{lang === 'bn' ? 'সকল ফিল্টার রিসেট করুন' : 'Reset All Filters'}</span>
+                      {lang === 'bn' ? 'ফিল্টার রিসেট করুন' : 'Reset Filters'}
                     </button>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Ad Placement: Bottom Wide */}
+            {/* Bottom Ad Placement: Clean */}
             {settings.enableAdPlacements && (
               <AdPlacement slotType="bottom-wide" lang={lang} />
             )}
           </>
         )}
 
-        {/* PDF LIBRARY / SPECIFIC CATEGORY TAB VIEWS */}
+        {/* 2. DEDICATED PRACTICE & MOCK TEST MODE */}
+        {activeTab === 'mock-test' && (
+          <PracticeMockTest
+            lang={lang}
+            onBackToLibrary={() => setActiveTab('pdf-library')}
+          />
+        )}
+
+        {/* 3. DEDICATED BOOKMARKS VIEW */}
+        {activeTab === 'bookmarks-view' && (
+          <BookmarksView
+            resources={resources}
+            bookmarks={bookmarks}
+            onToggleBookmark={handleToggleBookmark}
+            onPreview={handlePreviewResource}
+            onDownloadIncrement={handleDownloadIncrement}
+            completedIds={completedIds}
+            onToggleComplete={handleToggleComplete}
+            onBackToLibrary={() => setActiveTab('pdf-library')}
+            lang={lang}
+          />
+        )}
+
+        {/* 4. DEDICATED FAQ SECTION */}
+        {activeTab === 'faq' && (
+          <FaqSection
+            lang={lang}
+            onContactClick={() => setActiveTab('contact')}
+          />
+        )}
+
+        {/* 5. PDF LIBRARY / SPECIFIC CATEGORY TAB VIEWS */}
         {(activeTab === 'diploma' || 
           activeTab === 'banking' || 
           activeTab === 'previous-questions' || 
@@ -414,7 +530,7 @@ export default function App() {
           activeTab === 'quran-hadith' || 
           activeTab === 'fiqh-fatwa' || 
           activeTab === 'pdf-library') && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-bengali">
             {/* Header info */}
             <div className="mb-6 border-b border-stone-200 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -470,16 +586,18 @@ export default function App() {
                   <PdfCard
                     key={res.id}
                     resource={res}
-                    onPreview={(item) => setSelectedPdfForPreview(item)}
+                    onPreview={handlePreviewResource}
                     onDownloadIncrement={handleDownloadIncrement}
                     isBookmarked={bookmarks.includes(res.id)}
                     onToggleBookmark={handleToggleBookmark}
                     lang={lang}
+                    isCompleted={completedIds.includes(res.id)}
+                    onToggleComplete={handleToggleComplete}
                   />
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-stone-200 p-12 text-center max-w-lg mx-auto">
+              <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center max-w-lg mx-auto shadow-xs">
                 <Search className="w-10 h-10 text-stone-300 mx-auto mb-3" />
                 <h3 className="text-base font-bold text-stone-900 mb-1">
                   {lang === 'bn' ? 'কোনো রিসোর্স পাওয়া যায়নি' : 'No Resources Found'}
@@ -491,7 +609,7 @@ export default function App() {
                 </p>
                 <button
                   onClick={handleResetFilters}
-                  className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg"
+                  className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl"
                 >
                   {lang === 'bn' ? 'ফিল্টার রিসেট করুন' : 'Reset Filters'}
                 </button>
@@ -500,9 +618,9 @@ export default function App() {
           </div>
         )}
 
-        {/* ARTICLES STANDALONE VIEW */}
+        {/* 6. ARTICLES STANDALONE VIEW */}
         {activeTab === 'articles' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-bengali">
             <ArticlesSection
               articles={articles}
               resources={resources}
@@ -512,7 +630,7 @@ export default function App() {
           </div>
         )}
 
-        {/* INFORMATIONAL & LEGAL PAGES */}
+        {/* 7. INFORMATIONAL & LEGAL PAGES */}
         {(activeTab === 'about' || activeTab === 'contact' || activeTab === 'privacy' || activeTab === 'disclaimer') && (
           <InformationalPages
             page={activeTab}
@@ -522,9 +640,9 @@ export default function App() {
         )}
       </main>
 
-      {/* Bookmarks Drawer Modal */}
+      {/* Bookmarks Quick Drawer Modal */}
       {isBookmarksDrawerOpen && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs flex items-center justify-end">
+        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs flex items-center justify-end font-bengali">
           <div 
             className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl p-6 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -538,7 +656,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => setIsBookmarksDrawerOpen(false)}
-                className="p-1.5 text-stone-400 hover:text-stone-700"
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -546,6 +664,18 @@ export default function App() {
 
             {bookmarkedResources.length > 0 ? (
               <div className="space-y-3 flex-1 overflow-y-auto">
+                <div className="flex items-center justify-between text-xs text-stone-500 pb-2">
+                  <span>{bookmarkedResources.length} {lang === 'bn' ? 'টি আইটেম সংরক্ষিত' : 'items saved'}</span>
+                  <button
+                    onClick={() => {
+                      setIsBookmarksDrawerOpen(false);
+                      setActiveTab('bookmarks-view');
+                    }}
+                    className="text-emerald-800 font-semibold hover:underline"
+                  >
+                    {lang === 'bn' ? 'পূর্ণাঙ্গ পেজে দেখুন' : 'Open Full Page'} →
+                  </button>
+                </div>
                 {bookmarkedResources.map(res => (
                   <div
                     key={res.id}
@@ -561,7 +691,7 @@ export default function App() {
                       <button
                         onClick={() => {
                           setIsBookmarksDrawerOpen(false);
-                          setSelectedPdfForPreview(res);
+                          handlePreviewResource(res);
                         }}
                         className="text-emerald-800 font-semibold hover:underline"
                       >
@@ -578,8 +708,8 @@ export default function App() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-stone-400 text-xs">
-                <Bookmark className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <div className="text-center py-12 text-stone-400 text-xs flex-1 flex flex-col items-center justify-center">
+                <Bookmark className="w-10 h-10 mb-2 opacity-40 text-stone-400" />
                 <p>{lang === 'bn' ? 'আপনার কোনো বুকমার্ক সংরক্ষিত নেই।' : 'No resources bookmarked yet.'}</p>
               </div>
             )}
@@ -597,7 +727,7 @@ export default function App() {
           isBookmarked={bookmarks.includes(selectedPdfForPreview.id)}
           onToggleBookmark={handleToggleBookmark}
           allResources={resources}
-          onSelectRelated={(r) => setSelectedPdfForPreview(r)}
+          onSelectRelated={(r) => handlePreviewResource(r)}
           lang={lang}
         />
       )}
@@ -608,12 +738,12 @@ export default function App() {
           article={selectedArticleForRead}
           onClose={() => setSelectedArticleForRead(null)}
           allResources={resources}
-          onOpenResource={(r) => setSelectedPdfForPreview(r)}
+          onOpenResource={(r) => handlePreviewResource(r)}
           initialLang={lang}
         />
       )}
 
-      {/* 3. Admin Panel Modal */}
+      {/* 3. Admin Panel Modal (PIN Protected, secret) */}
       {isAdminOpen && (
         <AdminPanel
           resources={resources}

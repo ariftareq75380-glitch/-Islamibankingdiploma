@@ -7,10 +7,11 @@ import {
   ExternalLink, 
   AlertCircle,
   Share2,
-  Check
+  Check,
+  CheckCircle2
 } from 'lucide-react';
 import { PdfResource } from '../types';
-import { generateStudyDocumentBlob, triggerDownload, isGoogleDriveUrl } from '../utils/pdfUtils';
+import { generateStudyDocumentBlob, triggerDownload } from '../utils/pdfUtils';
 
 interface PdfCardProps {
   resource: PdfResource;
@@ -19,6 +20,8 @@ interface PdfCardProps {
   isBookmarked: boolean;
   onToggleBookmark: (id: string) => void;
   lang: 'bn' | 'en';
+  isCompleted?: boolean;
+  onToggleComplete?: (id: string) => void;
 }
 
 export const PdfCard: React.FC<PdfCardProps> = ({
@@ -27,7 +30,9 @@ export const PdfCard: React.FC<PdfCardProps> = ({
   onDownloadIncrement,
   isBookmarked,
   onToggleBookmark,
-  lang
+  lang,
+  isCompleted = false,
+  onToggleComplete
 }) => {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -48,7 +53,7 @@ export const PdfCard: React.FC<PdfCardProps> = ({
 
     onDownloadIncrement(resource.id);
 
-    // If external Google Drive URL is provided and preferred, open it or generate document
+    // If external Google Drive URL is provided and preferred
     if (resource.googleDriveUrl && !resource.pdfFileUrl) {
       window.open(resource.googleDriveUrl, '_blank', 'noopener,noreferrer');
       return;
@@ -68,7 +73,7 @@ export const PdfCard: React.FC<PdfCardProps> = ({
       const filename = `${resource.title.replace(/[^a-zA-Z0-9]/g, '_')}_DIB_Study.html`;
       triggerDownload(blob, filename);
     } catch {
-      // Fallback: window open
+      // Fallback
       if (resource.pdfFileUrl) {
         window.open(resource.pdfFileUrl, '_blank');
       }
@@ -83,9 +88,13 @@ export const PdfCard: React.FC<PdfCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 hover:border-emerald-700/50 hover:shadow-md transition-all duration-200 p-5 flex flex-col justify-between">
+    <div className={`rounded-2xl border transition-all duration-200 p-5 flex flex-col justify-between ${
+      isCompleted 
+        ? 'bg-emerald-50/40 border-emerald-300 shadow-xs' 
+        : 'bg-white border-stone-200 hover:border-emerald-700/50 hover:shadow-md'
+    }`}>
       <div>
-        {/* Unboxed Metadata Header (Anti-Slop: clean inline text with separators) */}
+        {/* Unboxed Metadata Header */}
         <div className="flex items-center justify-between gap-2 text-xs text-stone-500 mb-2.5">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-emerald-800">
@@ -101,42 +110,65 @@ export const PdfCard: React.FC<PdfCardProps> = ({
             <span>{resource.fileSize}</span>
           </div>
 
-          {/* Bookmark Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleBookmark(resource.id);
-            }}
-            title={isBookmarked ? 'Remove bookmark' : 'Bookmark this PDF'}
-            className={`p-1.5 rounded transition-colors ${
-              isBookmarked ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-700'
-            }`}
-          >
-            <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Mark as Completed / Read Tracker */}
+            {onToggleComplete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleComplete(resource.id);
+                }}
+                title={isCompleted ? (lang === 'bn' ? 'পড়া সম্পন্ন হয়েছে (আনমার্ক করুন)' : 'Completed (Click to unmark)') : (lang === 'bn' ? 'পড়া সম্পন্ন হিসেবে চিহ্নিত করুন' : 'Mark as Read')}
+                className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-medium ${
+                  isCompleted 
+                    ? 'text-emerald-800 bg-emerald-100/80 font-semibold' 
+                    : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
+                }`}
+              >
+                <CheckCircle2 className={`w-4 h-4 ${isCompleted ? 'text-emerald-700' : ''}`} />
+                <span className="hidden sm:inline">
+                  {isCompleted ? (lang === 'bn' ? 'পড়া শেষ' : 'Read') : (lang === 'bn' ? 'চিহ্নিত করুন' : 'Mark')}
+                </span>
+              </button>
+            )}
+
+            {/* Bookmark Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleBookmark(resource.id);
+              }}
+              title={isBookmarked ? (lang === 'bn' ? 'বুকমার্ক মুছুন' : 'Remove bookmark') : (lang === 'bn' ? 'বুকমার্ক করুন' : 'Bookmark this PDF')}
+              className={`p-1.5 rounded-lg transition-colors ${
+                isBookmarked ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
+              }`}
+            >
+              <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Resource Title */}
         <h3 
           onClick={() => onPreview(resource)}
-          className="text-base sm:text-lg font-bold text-stone-900 hover:text-emerald-800 cursor-pointer transition-colors leading-snug mb-2"
+          className="text-base sm:text-lg font-bold text-stone-900 hover:text-emerald-800 cursor-pointer transition-colors leading-snug mb-1.5 font-bengali"
         >
           {lang === 'bn' ? resource.titleBn : resource.title}
         </h3>
 
-        {/* Secondary Title (Show English subtitle if viewing in Bengali, or vice versa) */}
+        {/* Secondary Title */}
         <p className="text-xs text-stone-500 italic mb-3">
           {lang === 'bn' ? resource.title : resource.titleBn}
         </p>
 
         {/* Description */}
-        <p className="text-xs sm:text-sm text-stone-600 leading-relaxed mb-4 line-clamp-3">
+        <p className="text-xs sm:text-sm text-stone-600 leading-relaxed mb-4 line-clamp-3 font-bengali">
           {lang === 'bn' ? resource.descriptionBn : resource.description}
         </p>
 
         {/* High-yield exam topics preview */}
         {resource.keyTopics && resource.keyTopics.length > 0 && (
-          <div className="mb-4 bg-stone-50 rounded-lg p-2.5 border border-stone-200/60 text-xs">
+          <div className="mb-4 bg-stone-50/80 rounded-xl p-3 border border-stone-200/60 text-xs font-bengali">
             <span className="font-semibold text-stone-700 block mb-1">
               {lang === 'bn' ? 'পরীক্ষার প্রধান টপিক:' : 'Key Exam Topics:'}
             </span>
@@ -182,7 +214,7 @@ export const PdfCard: React.FC<PdfCardProps> = ({
           {/* Quick Preview Button */}
           <button
             onClick={() => onPreview(resource)}
-            className="flex-1 py-2 px-3 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2 px-3 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-xl transition-colors flex items-center justify-center gap-1.5"
           >
             <Eye className="w-3.5 h-3.5" />
             <span>{lang === 'bn' ? 'প্রিভিউ দেখুন' : 'Quick Preview'}</span>
@@ -191,7 +223,7 @@ export const PdfCard: React.FC<PdfCardProps> = ({
           {/* Download Button */}
           <button
             onClick={handleDownload}
-            className="flex-1 py-2 px-3 text-xs font-semibold text-white bg-emerald-800 hover:bg-emerald-700 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+            className="flex-1 py-2 px-3 text-xs font-semibold text-white bg-emerald-800 hover:bg-emerald-700 rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-xs"
           >
             <Download className="w-3.5 h-3.5" />
             <span>{lang === 'bn' ? 'পিডিএফ ডাউনলোড' : 'Download PDF'}</span>

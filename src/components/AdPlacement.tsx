@@ -3,14 +3,25 @@ import React from 'react';
 interface AdPlacementProps {
   slotType: 'header-banner' | 'sidebar-rect' | 'in-feed-horizontal' | 'bottom-wide';
   lang: 'bn' | 'en';
+  /**
+   * By default, placeholder banners are hidden unless live AdSense code is active,
+   * avoiding "raw" or unfinished look on production.
+   */
+  forceShowPlaceholder?: boolean;
 }
 
-/**
- * AdSense-compliant ethical ad container.
- * Clearly labeled as "Advertisement / বিজ্ঞাপন" and strictly isolated
- * from download or navigation buttons to prevent accidental/deceptive clicks.
- */
-export const AdPlacement: React.FC<AdPlacementProps> = ({ slotType, lang }) => {
+export const AdPlacement: React.FC<AdPlacementProps> = ({ 
+  slotType, 
+  lang, 
+  forceShowPlaceholder = false 
+}) => {
+  // If no live ad script is injected and not explicitly forced in debug mode, hide the space
+  const hasLiveAdSense = typeof window !== 'undefined' && Boolean((window as unknown as { adsbygoogle?: unknown }).adsbygoogle);
+
+  if (!hasLiveAdSense && !forceShowPlaceholder) {
+    return null;
+  }
+
   const getDimensions = () => {
     switch (slotType) {
       case 'header-banner':
@@ -25,24 +36,24 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({ slotType, lang }) => {
   };
 
   return (
-    <div className={`mx-auto flex flex-col items-center justify-center ${getDimensions()}`}>
-      {/* Required clear AdSense label */}
+    <aside 
+      aria-label={lang === 'bn' ? 'বিজ্ঞাপন' : 'Advertisement'} 
+      className={`mx-auto flex flex-col items-center justify-center ${getDimensions()}`}
+    >
       <span className="text-[10px] uppercase tracking-wider text-stone-400 font-medium mb-1">
-        {lang === 'bn' ? 'বিজ্ঞাপন (নন-ইনট্রুসিভ)' : 'Sponsored Advertisement'}
+        {lang === 'bn' ? 'বিজ্ঞাপন' : 'Advertisement'}
       </span>
-
-      {/* Styled placeholder matching Google Display Network standards */}
-      <div className="w-full h-full bg-stone-100/90 border border-dashed border-stone-300 rounded-lg flex flex-col items-center justify-center p-3 text-center">
-        <span className="text-xs font-semibold text-stone-500">
-          {lang === 'bn' ? 'অ্যাডসেন্স প্লেসমেন্ট জোন' : 'Google AdSense Placement Zone'}
-        </span>
-        <span className="text-[11px] text-stone-400 mt-0.5">
-          {slotType === 'header-banner' && '728x90 Leaderboard / Responsive Banner'}
-          {slotType === 'sidebar-rect' && '300x250 Medium Rectangle'}
-          {slotType === 'in-feed-horizontal' && 'Responsive Native In-Feed Unit'}
-          {slotType === 'bottom-wide' && '970x90 Large Leaderboard Slot'}
-        </span>
+      <div className="w-full h-full bg-stone-100/60 border border-stone-200/80 rounded-lg flex flex-col items-center justify-center p-3 text-center">
+        {/* Live ins element when AdSense is active */}
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-client="ca-pub-9876543210123456"
+          data-ad-slot="1234567890"
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
       </div>
-    </div>
+    </aside>
   );
 };

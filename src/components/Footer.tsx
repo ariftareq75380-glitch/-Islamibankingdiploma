@@ -138,10 +138,18 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button 
-                  onClick={openBlueprintModal} 
-                  className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+                  onClick={() => setActiveTab('mock-test')} 
+                  className="hover:text-emerald-400 transition-colors"
                 >
-                  {lang === 'bn' ? '★ ওয়ার্ডপ্রেস সিএমএস গাইড' : '★ WordPress Architecture'}
+                  {lang === 'bn' ? 'মডেল টেস্ট ও MCQ কুইজ' : 'DIB Mock Test & Quiz'}
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setActiveTab('faq')} 
+                  className="hover:text-emerald-400 transition-colors"
+                >
+                  {lang === 'bn' ? 'সচরাচর জিজ্ঞাসা (FAQ)' : 'Exam FAQs & Tips'}
                 </button>
               </li>
             </ul>

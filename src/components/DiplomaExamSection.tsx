@@ -11,6 +11,8 @@ interface DiplomaExamSectionProps {
   bookmarks: string[];
   onToggleBookmark: (id: string) => void;
   lang: 'bn' | 'en';
+  completedIds?: string[];
+  onToggleComplete?: (id: string) => void;
 }
 
 export const DiplomaExamSection: React.FC<DiplomaExamSectionProps> = ({
@@ -19,7 +21,9 @@ export const DiplomaExamSection: React.FC<DiplomaExamSectionProps> = ({
   onDownloadIncrement,
   bookmarks,
   onToggleBookmark,
-  lang
+  lang,
+  completedIds = [],
+  onToggleComplete
 }) => {
   const [selectedPart, setSelectedPart] = useState<'ALL' | 'DIB-1' | 'DIB-2'>('ALL');
   const [selectedYear, setSelectedYear] = useState<string>('ALL');
@@ -133,6 +137,8 @@ export const DiplomaExamSection: React.FC<DiplomaExamSectionProps> = ({
                 isBookmarked={bookmarks.includes(res.id)}
                 onToggleBookmark={onToggleBookmark}
                 lang={lang}
+                isCompleted={completedIds.includes(res.id)}
+                onToggleComplete={onToggleComplete}
               />
             ))}
           </div>
