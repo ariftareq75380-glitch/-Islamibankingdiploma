@@ -37,7 +37,8 @@ import {
   BookOpen, 
   Bookmark, 
   ArrowRight,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function App() {
@@ -62,12 +63,44 @@ export default function App() {
   const [selectedPdfForPreview, setSelectedPdfForPreview] = useState<PdfResource | null>(null);
   const [selectedArticleForRead, setSelectedArticleForRead] = useState<Article | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminVisible, setIsAdminVisible] = useState<boolean>(() => {
+    return localStorage.getItem('dib_admin_visible') === 'true';
+  });
   const [isBlueprintOpen, setIsBlueprintOpen] = useState(false);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isPrayerModalOpen, setIsPrayerModalOpen] = useState(false);
 
   const librarySectionRef = useRef<HTMLDivElement>(null);
+
+  const handleSecretAdminTrigger = () => {
+    setIsAdminVisible(true);
+    localStorage.setItem('dib_admin_visible', 'true');
+    setIsAdminOpen(true);
+  };
+
+  const handleHideAdmin = () => {
+    setIsAdminVisible(false);
+    localStorage.removeItem('dib_admin_visible');
+  };
+
+  // Secret admin access triggers (Keyboard: Ctrl+Shift+A or Alt+A, or URL query: ?admin=1 / #admin)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) || (e.altKey && (e.key === 'a' || e.key === 'A'))) {
+        e.preventDefault();
+        handleSecretAdminTrigger();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === '1' || params.get('admin') === 'true' || window.location.hash === '#admin') {
+      handleSecretAdminTrigger();
+    }
+
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Load initial data
   useEffect(() => {
@@ -225,6 +258,8 @@ export default function App() {
         openBookmarks={() => setIsBookmarksDrawerOpen(true)}
         siteName={settings.siteName}
         siteNameBn={settings.siteNameBn}
+        isAdminVisible={isAdminVisible}
+        onHideAdmin={handleHideAdmin}
       />
 
       {/* Islamic & Bengali Date Bar (Cultural & Banking Utility) */}
@@ -587,6 +622,7 @@ export default function App() {
           onRefreshData={loadAllData}
           onClose={() => setIsAdminOpen(false)}
           lang={lang}
+          onHideAdmin={handleHideAdmin}
         />
       )}
 
@@ -620,6 +656,7 @@ export default function App() {
         openBlueprintModal={() => setIsBlueprintOpen(true)}
         settings={settings}
         lang={lang}
+        onSecretAdminTrigger={handleSecretAdminTrigger}
       />
     </div>
   );

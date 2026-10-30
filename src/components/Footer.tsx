@@ -1,5 +1,5 @@
-import React from 'react';
-import { BookOpen, ShieldCheck, Mail, MapPin, Phone, Heart } from 'lucide-react';
+import React, { useRef } from 'react';
+import { BookOpen, ShieldCheck, Mail, MapPin, Phone, Heart, Lock } from 'lucide-react';
 import { ActiveTab, SiteSettings } from '../types';
 
 interface FooterProps {
@@ -7,14 +7,31 @@ interface FooterProps {
   openBlueprintModal: () => void;
   settings: SiteSettings;
   lang: 'bn' | 'en';
+  onSecretAdminTrigger?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   setActiveTab,
   openBlueprintModal,
   settings,
-  lang
+  lang,
+  onSecretAdminTrigger
 }) => {
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<any>(null);
+
+  const handleSecretTap = () => {
+    tapCountRef.current += 1;
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    if (tapCountRef.current >= 3) {
+      tapCountRef.current = 0;
+      onSecretAdminTrigger?.();
+    } else {
+      tapTimerRef.current = setTimeout(() => {
+        tapCountRef.current = 0;
+      }, 1500);
+    }
+  };
   return (
     <footer className="bg-stone-900 text-stone-300 border-t border-stone-800 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
@@ -174,8 +191,23 @@ export const Footer: React.FC<FooterProps> = ({
 
         {/* Bottom Strip */}
         <div className="pt-8 border-t border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-500 text-[11px]">
-          <div>
-            © {new Date().getFullYear()} {settings.siteNameBn} ({settings.siteName}). All rights reserved.
+          <div className="flex items-center gap-2">
+            <span 
+              onClick={handleSecretTap} 
+              className="cursor-default select-none"
+              title=""
+            >
+              © {new Date().getFullYear()} {settings.siteNameBn} ({settings.siteName}). All rights reserved.
+            </span>
+            <button
+              type="button"
+              onClick={() => onSecretAdminTrigger?.()}
+              aria-label="Admin Control Gateway"
+              title={lang === 'bn' ? 'অ্যাডমিন সিকিউরিটি পোর্টাল' : 'Admin Security Gateway'}
+              className="opacity-20 hover:opacity-100 text-stone-600 hover:text-emerald-400 p-0.5 rounded transition-all focus:outline-none cursor-pointer"
+            >
+              <Lock className="w-3 h-3" />
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <span>Non-profit Islamic Educational Initiative</span>

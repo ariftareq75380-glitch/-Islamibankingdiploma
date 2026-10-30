@@ -36,6 +36,7 @@ interface AdminPanelProps {
   onRefreshData: () => void;
   onClose: () => void;
   lang: 'bn' | 'en';
+  onHideAdmin?: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -44,7 +45,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   settings,
   onRefreshData,
   onClose,
-  lang
+  lang,
+  onHideAdmin
 }) => {
   // Authentication state - protected by PIN code (Default PIN: 7538)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -63,7 +65,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const correctPin = getSavedPin();
-    if (pinInput.trim() === correctPin || pinInput.trim() === '7538' || pinInput.trim() === '1234') {
+    if (pinInput.trim() === correctPin || pinInput.trim() === '7538') {
       setIsAuthenticated(true);
       sessionStorage.setItem('dib_admin_auth', 'true');
       setAuthError(false);
@@ -376,7 +378,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               : 'Restricted area. Please provide your admin PIN code to access the management hub.'}
           </p>
 
-          <form onSubmit={handlePinSubmit} className="space-y-4 text-left">
+          <form onSubmit={handlePinSubmit} className="space-y-4 text-left" autoComplete="off">
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5">
                 <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
@@ -384,7 +386,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </label>
               <div className="relative">
                 <input
-                  type={showPin ? 'text' : 'password'}
+                  type="text"
+                  name="dib_security_code"
+                  id="dib_security_code"
+                  autoComplete="one-time-code"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-form-type="other"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   required
                   autoFocus
                   value={pinInput}
@@ -392,8 +405,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     setPinInput(e.target.value);
                     if (authError) setAuthError(false);
                   }}
-                  placeholder="যেমন: 7538"
-                  className={`w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-900 font-mono text-center text-lg tracking-widest focus:outline-none focus:ring-2 ${
+                  placeholder="••••"
+                  style={{
+                    WebkitTextSecurity: showPin ? 'none' : 'disc'
+                  } as React.CSSProperties}
+                  className={`w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-900 font-mono text-center text-xl tracking-[0.25em] focus:outline-none focus:ring-2 ${
                     authError 
                       ? 'border-red-500 focus:ring-red-300 bg-red-50/30' 
                       : 'border-stone-200 focus:ring-emerald-700/20 focus:border-emerald-700'
@@ -402,6 +418,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowPin(!showPin)}
+                  tabIndex={-1}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1"
                 >
                   {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -424,9 +441,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </button>
           </form>
 
-          <div className="mt-5 pt-4 border-t border-stone-100 text-[11px] text-stone-400 flex items-center justify-center gap-1">
-            <Lock className="w-3 h-3 text-stone-400" />
-            <span>{lang === 'bn' ? 'ডিফল্ট পিন: 7538 (ভিতর থেকে পরিবর্তনযোগ্য)' : 'Default PIN: 7538 (customizable)'}</span>
+          <div className="mt-5 pt-4 border-t border-stone-100 text-[11px] text-stone-500 flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+            <span>{lang === 'bn' ? 'সাইট অ্যাডমিনিস্ট্রেটর সিকিউরিটি পোর্টাল' : 'Secure Administrator Portal'}</span>
           </div>
         </div>
       </div>
@@ -455,9 +472,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {onHideAdmin && (
+              <button
+                onClick={() => {
+                  onHideAdmin();
+                  onClose();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white rounded-lg transition-colors text-xs font-semibold cursor-pointer border border-stone-700/60"
+                title={lang === 'bn' ? 'অ্যাডমিন বাটন সাইট থেকে লুকিয়ে ফেলুন' : 'Hide admin trigger from site view'}
+              >
+                <EyeOff className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">{lang === 'bn' ? 'বাটন লুকান' : 'Hide Button'}</span>
+              </button>
+            )}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 hover:bg-red-900/40 text-stone-300 hover:text-red-300 rounded-lg transition-colors text-xs font-semibold"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 hover:bg-red-900/40 text-stone-300 hover:text-red-300 rounded-lg transition-colors text-xs font-semibold cursor-pointer"
               title={lang === 'bn' ? 'অ্যাডমিন সেশন লক করুন' : 'Lock Admin Session'}
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -1095,8 +1125,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
                 <p className="text-stone-600">
                   {lang === 'bn' 
-                    ? 'আপনার অ্যাডমিন পিন পরিবর্তন করুন। বর্তমান ডিফল্ট পিন: 7538।'
-                    : 'Update your personal master PIN. Current default is 7538.'}
+                    ? `আপনার অ্যাডমিন সিকিউরিটি পিন আপডেট করুন। বর্তমান সক্রিয় পিন: ${getSavedPin()}`
+                    : `Update your personal security PIN. Current active PIN: ${getSavedPin()}`}
                 </p>
 
                 {pinChangeMsg && (
@@ -1106,15 +1136,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 )}
 
-                <form onSubmit={handleChangePin} className="flex flex-wrap items-center gap-3">
+                <form onSubmit={handleChangePin} className="flex flex-wrap items-center gap-3" autoComplete="off">
                   <input
                     type="text"
+                    name="dib_update_code"
+                    id="dib_update_code"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     required
                     minLength={4}
                     value={newPinInput}
                     onChange={(e) => setNewPinInput(e.target.value)}
-                    placeholder={lang === 'bn' ? 'নতুন ৪ বা ৬ ডিজিটের পিন দিন' : 'Enter new 4+ digit PIN'}
-                    className="p-2 bg-white border border-stone-300 rounded-lg font-mono text-xs w-56 text-stone-900"
+                    placeholder={lang === 'bn' ? 'নতুন ৪ বা ৬ ডিজিটের পিন' : 'New 4+ digit PIN'}
+                    className="p-2 bg-white border border-stone-300 rounded-lg font-mono text-xs w-56 text-stone-900 tracking-wider"
                   />
                   <button
                     type="submit"

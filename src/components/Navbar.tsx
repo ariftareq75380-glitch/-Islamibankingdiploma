@@ -11,7 +11,8 @@ import {
   Moon,
   Calendar,
   Clock,
-  Lock
+  Lock,
+  EyeOff
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 
@@ -29,6 +30,8 @@ interface NavbarProps {
   onSearchFocus?: () => void;
   siteName: string;
   siteNameBn: string;
+  isAdminVisible?: boolean;
+  onHideAdmin?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -43,7 +46,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   bookmarkedCount,
   openBookmarks,
   siteName,
-  siteNameBn
+  siteNameBn,
+  isAdminVisible,
+  onHideAdmin
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -175,15 +180,28 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* Admin Management Button (PIN Protected) */}
-            <button
-              onClick={openAdminModal}
-              title={lang === 'bn' ? 'অ্যাডমিন পোর্টাল (পিন সুরক্ষিত)' : 'Admin Portal (PIN Protected)'}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-900 rounded-md hover:bg-emerald-800 transition-colors whitespace-nowrap shadow-xs cursor-pointer border border-emerald-800/60"
-            >
-              <Lock className="w-3 h-3 text-emerald-300" />
-              <span>{lang === 'bn' ? 'অ্যাডমিন' : 'Admin'}</span>
-            </button>
+            {/* Admin Management Button (PIN Protected) - Only visible when revealed by site owner */}
+            {isAdminVisible && (
+              <div className="flex items-center gap-1 bg-emerald-950/20 p-0.5 rounded-md border border-emerald-800/40 animate-in fade-in duration-200">
+                <button
+                  onClick={openAdminModal}
+                  title={lang === 'bn' ? 'অ্যাডমিন পোর্টাল (পিন সুরক্ষিত)' : 'Admin Portal (PIN Protected)'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-900 rounded-md hover:bg-emerald-800 transition-colors whitespace-nowrap shadow-xs cursor-pointer border border-emerald-800/60"
+                >
+                  <Lock className="w-3 h-3 text-emerald-300" />
+                  <span>{lang === 'bn' ? 'অ্যাডমিন' : 'Admin'}</span>
+                </button>
+                {onHideAdmin && (
+                  <button
+                    onClick={onHideAdmin}
+                    title={lang === 'bn' ? 'অ্যাডমিন বাটন আবার লুকিয়ে ফেলুন' : 'Hide admin button on site'}
+                    className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded transition-colors"
+                  >
+                    <EyeOff className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Mobile menu trigger */}
             <button
@@ -270,6 +288,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>{lang === 'bn' ? 'Switch to English' : 'বাংলা ভাষায় দেখুন'}</span>
               <Languages className="w-4 h-4" />
             </button>
+
+            {isAdminVisible && (
+              <div className="pt-2 border-t border-stone-200 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    openAdminModal();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-3 py-2 rounded-md text-xs font-semibold text-emerald-950 bg-emerald-100 hover:bg-emerald-200 flex items-center gap-1.5 flex-1"
+                >
+                  <Lock className="w-3.5 h-3.5 text-emerald-800" />
+                  <span>{lang === 'bn' ? 'অ্যাডমিন পোর্টাল খুলুন' : 'Open Admin Portal'}</span>
+                </button>
+                {onHideAdmin && (
+                  <button
+                    onClick={() => {
+                      onHideAdmin();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="ml-2 px-2.5 py-2 text-[11px] text-stone-500 hover:text-stone-800 underline"
+                  >
+                    {lang === 'bn' ? 'লুকান' : 'Hide'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
