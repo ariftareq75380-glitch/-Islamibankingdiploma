@@ -46,6 +46,9 @@ export interface PdfResource {
   previewSupported: boolean;
   curatorNote?: string;
   keyTopics?: string[];
+  slug?: string;
+  thumbnailUrl?: string;
+  keywords?: string[];
 }
 
 export interface Article {
@@ -64,6 +67,7 @@ export interface Article {
   contentMarkdownEn: string;
   contentMarkdownBn: string;
   tags: string[];
+  keywords?: string[];
   coverImage?: string;
   featured?: boolean;
   relatedResourceIds?: string[];

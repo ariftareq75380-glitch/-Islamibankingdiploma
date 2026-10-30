@@ -13,7 +13,16 @@ export const StorageService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.RESOURCES);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed: PdfResource[] = JSON.parse(stored);
+        // Merge missing sample items (by id) and preserve user items
+        const existingIds = new Set(parsed.map(r => r.id));
+        const missingSamples = samplePdfResources.filter(s => !existingIds.has(s.id));
+        if (missingSamples.length > 0) {
+          const merged = [...parsed, ...missingSamples];
+          this.saveResources(merged);
+          return merged;
+        }
+        return parsed;
       }
     } catch {
       // Fallback to sample data
@@ -80,7 +89,15 @@ export const StorageService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.ARTICLES);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed: Article[] = JSON.parse(stored);
+        const existingIds = new Set(parsed.map(a => a.id));
+        const missingSamples = sampleArticles.filter(s => !existingIds.has(s.id));
+        if (missingSamples.length > 0) {
+          const merged = [...missingSamples, ...parsed];
+          this.saveArticles(merged);
+          return merged;
+        }
+        return parsed;
       }
     } catch {
       // Fallback

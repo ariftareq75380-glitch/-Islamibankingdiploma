@@ -24,6 +24,8 @@ import { PdfCard } from './components/PdfCard';
 import { PdfViewerModal } from './components/PdfViewerModal';
 import { ArticlesSection } from './components/ArticlesSection';
 import { ArticleModal } from './components/ArticleModal';
+import { ArticleDetailView } from './components/ArticleDetailView';
+import { ContentEditorModal } from './components/ContentEditorModal';
 import { AdminPanel } from './components/AdminPanel';
 import { WordPressArchitectureModal } from './components/WordPressArchitectureModal';
 import { InformationalPages } from './components/InformationalPages';
@@ -31,6 +33,7 @@ import { AdPlacement } from './components/AdPlacement';
 import { Footer } from './components/Footer';
 import { IslamicCalendarModal } from './components/IslamicCalendarModal';
 import { PrayerTimesModal } from './components/PrayerTimesModal';
+import { updateSEOMetadata } from './utils/seo';
 
 import { 
   FileText, 
@@ -80,6 +83,8 @@ export default function App() {
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isPrayerModalOpen, setIsPrayerModalOpen] = useState(false);
+  const [isContentEditorOpen, setIsContentEditorOpen] = useState(false);
+  const [editingArticleForEditor, setEditingArticleForEditor] = useState<Article | null>(null);
 
   const librarySectionRef = useRef<HTMLDivElement>(null);
 
@@ -203,9 +208,108 @@ export default function App() {
     setSearchQuery('');
   };
 
+  // URL routing synchronization (HTML5 History API)
+  const syncRouteFromLocation = (articlesList: Article[] = articles, resourcesList: PdfResource[] = resources) => {
+    if (typeof window === 'undefined') return;
+    const pathname = window.location.pathname.replace(/^\/+|\/+$/g, '');
+
+    if (!pathname || pathname === 'home') {
+      setActiveTab('home');
+      setSelectedArticleForRead(null);
+      updateSEOMetadata({
+        title: 'ইসলামী ব্যাংকিং ডিপ্লোমা | Islami Banking Diploma (DIB)',
+        canonicalPath: '/'
+      });
+      return;
+    }
+
+    const segments = pathname.split('/');
+    if (segments.length >= 2) {
+      const [section, slug] = segments;
+      if (section === 'diploma' || section === 'articles') {
+        const matched = articlesList.find(a => a.slug === slug || a.id === slug);
+        if (matched) {
+          setSelectedArticleForRead(matched);
+          setActiveTab(section === 'articles' ? 'articles' : 'diploma');
+          return;
+        }
+        const matchedRes = resourcesList.find(r => r.slug === slug || r.id === slug);
+        if (matchedRes) {
+          setSelectedPdfForPreview(matchedRes);
+          setActiveTab('diploma');
+          return;
+        }
+      } else if (section === 'questions') {
+        const matchedRes = resourcesList.find(r => r.slug === slug || r.id === slug);
+        if (matchedRes) {
+          setSelectedPdfForPreview(matchedRes);
+          setActiveTab('previous-questions');
+          return;
+        }
+      }
+    }
+
+    const validTabs: ActiveTab[] = [
+      'home', 'banking', 'diploma', 'previous-questions', 'islamic-studies',
+      'quran-hadith', 'fiqh-fatwa', 'pdf-library', 'articles', 'mock-test',
+      'faq', 'bookmarks-view', 'about', 'contact', 'privacy', 'disclaimer', 'wp-blueprint'
+    ];
+    if (validTabs.includes(pathname as ActiveTab)) {
+      setActiveTab(pathname as ActiveTab);
+      setSelectedArticleForRead(null);
+      updateSEOMetadata({
+        title: `${pathname.toUpperCase()} | ইসলামী ব্যাংকিং ডিপ্লোমা`,
+        canonicalPath: `/${pathname}`
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      syncRouteFromLocation();
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [articles, resources]);
+
+  useEffect(() => {
+    if (articles.length > 0 || resources.length > 0) {
+      syncRouteFromLocation(articles, resources);
+    }
+  }, [articles, resources]);
+
+  const handleOpenArticle = (art: Article) => {
+    setSelectedArticleForRead(art);
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', `/diploma/${art.slug}`);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCloseArticle = () => {
+    setSelectedArticleForRead(null);
+    if (typeof window !== 'undefined') {
+      const fallbackPath = activeTab === 'articles' ? '/articles' : (activeTab === 'home' ? '/' : `/${activeTab}`);
+      window.history.pushState(null, '', fallbackPath);
+    }
+    updateSEOMetadata({
+      title: 'ইসলামী ব্যাংকিং ডিপ্লোমা | Islami Banking Diploma (DIB)',
+      canonicalPath: activeTab === 'articles' ? '/articles' : (activeTab === 'home' ? '/' : `/${activeTab}`)
+    });
+  };
+
   // Handle Tab changes that map to courses
   const handleSelectTabWithFilter = (tab: ActiveTab) => {
     setActiveTab(tab);
+    setSelectedArticleForRead(null);
+    if (typeof window !== 'undefined') {
+      const targetPath = tab === 'home' ? '/' : `/${tab}`;
+      window.history.pushState(null, '', targetPath);
+    }
+    updateSEOMetadata({
+      title: `${tab.toUpperCase()} | ইসলামী ব্যাংকিং ডিপ্লোমা`,
+      canonicalPath: tab === 'home' ? '/' : `/${tab}`
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Auto preset filters according to top nav tabs
@@ -341,69 +445,88 @@ export default function App() {
 
       {/* Main View Router */}
       <main className="flex-1">
-        {/* 1. HOMEPAGE VIEW */}
-        {activeTab === 'home' && (
+        {/* STANDALONE ARTICLE / STUDY GUIDE VIEW WITH DISTINCT PERMANENT URL */}
+        {selectedArticleForRead ? (
+          <ArticleDetailView
+            article={selectedArticleForRead}
+            onBack={handleCloseArticle}
+            allResources={resources}
+            onOpenResource={handlePreviewResource}
+            onEditArticle={(art) => {
+              setEditingArticleForEditor(art);
+              setIsContentEditorOpen(true);
+            }}
+            lang={lang}
+          />
+        ) : (
           <>
-            {/* Hero Section with concise placeholder & instant autocomplete suggestions */}
-            <HeroSection
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              selectedYear={selectedYear}
-              setSelectedYear={setSelectedYear}
-              selectedCourse={selectedCourse}
-              setSelectedCourse={setSelectedCourse}
-              onExploreClick={scrollToLibrary}
-              totalResourcesCount={resources.length}
-              totalArticlesCount={articles.length}
-              lang={lang}
-              resources={resources}
-            />
+            {/* 1. HOMEPAGE VIEW */}
+            {activeTab === 'home' && (
+              <>
+                {/* Hero Section with concise placeholder & instant autocomplete suggestions */}
+                <HeroSection
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  selectedYear={selectedYear}
+                  setSelectedYear={setSelectedYear}
+                  selectedCourse={selectedCourse}
+                  setSelectedCourse={setSelectedCourse}
+                  onExploreClick={scrollToLibrary}
+                  totalResourcesCount={resources.length}
+                  totalArticlesCount={articles.length}
+                  lang={lang}
+                  resources={resources}
+                />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              {/* Resume where you left off banner */}
-              <ResumeStudyBanner
-                lastRead={lastRead}
-                completedCount={completedIds.length}
-                totalCount={resources.length}
-                onResume={handleResumeLastRead}
-                lang={lang}
-              />
-            </div>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  {/* Resume where you left off banner */}
+                  <ResumeStudyBanner
+                    lastRead={lastRead}
+                    completedCount={completedIds.length}
+                    totalCount={resources.length}
+                    onResume={handleResumeLastRead}
+                    lang={lang}
+                  />
+                </div>
 
-            {/* Ad Placement: Clean, hidden if no live AdSense code */}
-            {settings.enableAdPlacements && (
-              <AdPlacement slotType="header-banner" lang={lang} />
-            )}
+                {/* Ad Placement: Clean, hidden if no live AdSense code */}
+                {settings.enableAdPlacements && (
+                  <AdPlacement slotType="header-banner" lang={lang} />
+                )}
 
-            {/* Featured Subject Divisions with bespoke colors and symbols */}
-            <FeaturedCategories
-              categories={categoriesList}
-              onSelectCategory={(courseType) => {
-                if (courseType) setSelectedCourse(courseType);
-                scrollToLibrary();
-              }}
-              lang={lang}
-            />
+                {/* Featured Subject Divisions with bespoke colors and symbols */}
+                <FeaturedCategories
+                  categories={categoriesList}
+                  onSelectCategory={(courseType) => {
+                    if (courseType) setSelectedCourse(courseType);
+                    scrollToLibrary();
+                  }}
+                  lang={lang}
+                />
 
-            {/* Dedicated DIB Exam Papers organized by year with Mark as Read */}
-            <DiplomaExamSection
-              resources={resources}
-              onPreview={handlePreviewResource}
-              onDownloadIncrement={handleDownloadIncrement}
-              bookmarks={bookmarks}
-              onToggleBookmark={handleToggleBookmark}
-              lang={lang}
-              completedIds={completedIds}
-              onToggleComplete={handleToggleComplete}
-            />
+                {/* Dedicated DIB Exam Papers organized by year with Mark as Read */}
+                <DiplomaExamSection
+                  resources={resources}
+                  onPreview={handlePreviewResource}
+                  onDownloadIncrement={handleDownloadIncrement}
+                  bookmarks={bookmarks}
+                  onToggleBookmark={handleToggleBookmark}
+                  lang={lang}
+                  completedIds={completedIds}
+                  onToggleComplete={handleToggleComplete}
+                />
 
-            {/* Bilingual Banking Articles Section */}
-            <ArticlesSection
-              articles={articles}
-              resources={resources}
-              onOpenArticle={(art) => setSelectedArticleForRead(art)}
-              lang={lang}
-            />
+                {/* Bilingual Banking Articles Section with distinct URLs & keywords */}
+                <ArticlesSection
+                  articles={articles}
+                  resources={resources}
+                  onOpenArticle={handleOpenArticle}
+                  onWriteArticle={() => {
+                    setEditingArticleForEditor(null);
+                    setIsContentEditorOpen(true);
+                  }}
+                  lang={lang}
+                />
 
             {/* Complete Interactive PDF Library Section */}
             <div ref={librarySectionRef} className="py-12 sm:py-16 bg-stone-50 border-t border-stone-200">
@@ -624,7 +747,11 @@ export default function App() {
             <ArticlesSection
               articles={articles}
               resources={resources}
-              onOpenArticle={(art) => setSelectedArticleForRead(art)}
+              onOpenArticle={handleOpenArticle}
+              onWriteArticle={() => {
+                setEditingArticleForEditor(null);
+                setIsContentEditorOpen(true);
+              }}
               lang={lang}
             />
           </div>
@@ -637,6 +764,8 @@ export default function App() {
             settings={settings}
             lang={lang}
           />
+        )}
+          </>
         )}
       </main>
 
@@ -732,16 +861,17 @@ export default function App() {
         />
       )}
 
-      {/* 2. Article Reader Modal */}
-      {selectedArticleForRead && (
-        <ArticleModal
-          article={selectedArticleForRead}
-          onClose={() => setSelectedArticleForRead(null)}
-          allResources={resources}
-          onOpenResource={(r) => handlePreviewResource(r)}
-          initialLang={lang}
-        />
-      )}
+      {/* 2. Content Writer / Editor Modal (Keywords, Thumbnails & Distinct Slug URL) */}
+      <ContentEditorModal
+        isOpen={isContentEditorOpen}
+        onClose={() => setIsContentEditorOpen(false)}
+        onArticleSaved={(savedArticle) => {
+          loadAllData();
+          handleOpenArticle(savedArticle);
+        }}
+        existingArticle={editingArticleForEditor}
+        lang={lang}
+      />
 
       {/* 3. Admin Panel Modal (PIN Protected, secret) */}
       {isAdminOpen && (

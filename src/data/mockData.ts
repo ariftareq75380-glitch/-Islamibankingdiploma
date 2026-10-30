@@ -41,6 +41,9 @@ export const samplePdfResources: PdfResource[] = [
     isPopular: true,
     isFeatured: true,
     previewSupported: true,
+    slug: '97th-dib-islamic-economics-banking-principles',
+    thumbnailUrl: '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg',
+    keywords: ['97th DIB Exam', 'Islamic Economics', 'DIB Part 1', 'মে ২০২৪ ডিআইবি পরীক্ষা', 'ইসলামিক অর্থনীতি'],
     keyTopics: ['Definition of Islamic Economics', 'Tawhid in Wealth Distribution', 'Riba-an-Nasiyah vs Riba-al-Fadl', 'Role of Central Bank in Islamic Banking']
   },
   {
@@ -69,6 +72,9 @@ export const samplePdfResources: PdfResource[] = [
     isPopular: true,
     isFeatured: true,
     previewSupported: true,
+    slug: '96th-dib-investment-modes-mudaraba-musharaka',
+    thumbnailUrl: '/src/assets/images/category_diploma_banking_1793322326189.jpg',
+    keywords: ['96th DIB Exam', 'Mudaraba', 'Musharaka', 'Murabaha', 'ডিআইবি বিনিয়োগ পদ্ধতি', 'DIB Math Solutions'],
     keyTopics: ['Mudaraba Capital Loss Rules', 'Musharaka Mutanaqisa for Home Finance', 'Murabaha Delivery & Ownership Risk']
   },
   {
@@ -96,6 +102,9 @@ export const samplePdfResources: PdfResource[] = [
     isPopular: false,
     isFeatured: false,
     previewSupported: true,
+    slug: '95th-dib-banking-laws-regulations-bangladesh',
+    thumbnailUrl: '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg',
+    keywords: ['Bank Company Act 1991', 'DIB Part 2', 'ব্যাংক কোম্পানি আইন', 'বাংলাদেশ ব্যাংক সার্কুলার'],
     keyTopics: ['Section 7(a) Bank Company Act', 'Role of CSBIB', 'Statutory Liquidity Reserve (SLR) in Islamic Banks']
   },
   {
@@ -293,6 +302,82 @@ export const samplePdfResources: PdfResource[] = [
 ];
 
 export const sampleArticles: Article[] = [
+  {
+    id: 'art-mudaraba-definition',
+    title: 'Mudaraba Definition, Core Principles and Operational Mechanics in Islamic Banking',
+    titleBn: 'মুদারাবা (Mudaraba) সংজ্ঞা, মূলনীতি ও ইসলামিক ব্যাংকিংয়ে পরিচালন পদ্ধতি',
+    slug: 'mudaraba-definition',
+    author: 'Dr. Shah Mohammad Waliullah, AAOIFI Certified Scholar',
+    authorDesignation: 'Head of Shariah Supervisory Secretariat & DIB Examiner',
+    publishedDate: '2024-06-01',
+    readTime: '9 min read',
+    category: 'Diploma in Islamic Banking (Part 1)',
+    categoryBn: 'ডিআইবি পার্ট-১ ও মূলনীতি',
+    summary: 'A comprehensive study module on Mudaraba contract covering the definitions of Rabb-ul-Mal and Mudarib, profit-sharing ratios, capital loss allocation, and DIB past exam model answers.',
+    summaryBn: 'মুদারাবার পারিভাষিক সংজ্ঞা, রব্বুল মাল ও মুদারিবের আইনি মর্যাদা, লাভ বণ্টনের পূর্বনির্ধারিত অনুপাত, লোকসানের দায়ভার বহন এবং ডিআইবি পরীক্ষার বিগত বছরের মডেল প্রশ্নোত্তর।',
+    contentMarkdownEn: `## What is Mudaraba? (Definition and Legal Foundation)
+
+Mudaraba (مضاربة) is a fiduciary equity partnership contract where one party supplies the entire financial capital (**Rabb-ul-Mal** / Capital Provider) and the other party contributes specialized labor, management expertise, and skill (**Mudarib** / Fund Manager).
+
+### Pillars (Arkan) of Mudaraba
+1. **The Contracting Parties (Aqidan):** Rabb-ul-Mal (Investor) and Mudarib (Working Partner).
+2. **Capital (Ra's al-Mal):** Must be clearly quantified in liquid cash or accepted monetary valuation at contract inception.
+3. **Labor & Activity (Amal):** Entrusted exclusively to the Mudarib without undue day-to-day managerial interference from the capital provider.
+4. **Profit (Ribh):** Must be shared strictly in agreed-upon fractional percentages (e.g., 70:30 or 60:40) of actual realized profit, never as a guaranteed fixed amount or fixed percentage of capital.
+5. **Offer and Acceptance (Ijab and Qabul).**
+
+### Loss Bearing Maxim: Capitalist Bears the Financial Loss
+One of the most frequently tested concepts in the **Diploma in Islamic Banking (DIB)** is the rule of loss:
+> **"Financial loss is borne exclusively by the capital provider (Rabb-ul-Mal) up to the limit of his capital, while the Mudarib loses his labor, time, and unearned reward."**
+*Exception:* If the loss is proven to have occurred due to negligence (Taqsir), misconduct (Ta'addi), or violation of agreed terms by the Mudarib, the Mudarib becomes liable to reimburse the full capital.
+
+### Operational Application in Islamic Banks
+- **Deposit Side (Liability):** Depositors act as Rabb-ul-Mal, and the Islamic Bank acts as Mudarib.
+- **Investment Side (Asset):** The Islamic Bank acts as Rabb-ul-Mal, financing entrepreneurs or corporate clients who act as Mudarib.`,
+    contentMarkdownBn: `## মুদারাবা (Mudaraba) কী? পারিভাষিক সংজ্ঞা ও ভিত্তি
+
+মুদারাবা (المضاربة) হলো ইসলামী বাণিজ্যিক আইন (Fiqh al-Muamalat)-এর একটি বিশেষায়িত অংশীদারিত্বমূলক চুক্তি, যেখানে এক পক্ষ সম্পূর্ণ মূলধন সরবরাহ করে এবং অপর পক্ষ তার মেধা, শ্রম, সততা ও পরিচালনা দক্ষতা দিয়ে ব্যবসা পরিচালনা করে।
+
+### মুদারাবা চুক্তির প্রধান পক্ষসমূহ:
+১. **রব্বুল মাল (সাহিবুল মাল / Capital Provider):** যিনি ব্যবসায় সম্পূর্ণ অর্থ বা মূলধন বিনিয়োগ করেন।
+২. **মুদারিব (উদ্যোক্তা / Working Partner):** যিনি শ্রম ও দক্ষতা দিয়ে প্রতিষ্ঠান বা বাণিজ্য পরিচালনা করেন।
+
+> পবিত্র কুরআনে আল্লাহ তাআলা বলেন: *"আর অন্যরা আল্লাহর অনুগ্রহ (জীবিকা) অন্বেষণে পৃথিবীতে ভ্রমণ করে..."* (সূরা আল-মুযযাম্মিল: ২০)। এই আয়াতের 'ইয়াদরিবুনা ফিল আরদ' থেকেই মুদারাবা শব্দের উৎপত্তি।
+
+---
+
+### মুদারাবার রুকন ও অপরিহার্য শর্তাবলি
+১. **মূলধন (রা'সুল মাল):** মূলধন সুনির্দিষ্ট ও নগদ অর্থে হতে হবে। ঋণ বা বাকির দায়কে মুদারাবার মূলধন হিসেবে গণ্য করা যায় না।
+২. **মুনাফা বণ্টন অনুপাত (Profit Sharing Ratio - PSR):** মুনাফা কীভাবে বণ্টিত হবে তা চুক্তির সময়ই শতকরা হারে নির্ধারিত হতে হবে (যেমন: ৭০:৩০ বা ৬০:৪০)। মূলধনের ওপর কোনো নির্দিষ্ট টাকা (যেমন মাসে ১০,০০০ টাকা) দেওয়া যাবে না।
+৩. **ব্যবসা পরিচালনার স্বাধীনতা:** রব্বুল মাল ব্যবসায় নজরদারি রাখতে পারবেন, তবে মুদারিবের দৈনন্দিন স্বাধীন ব্যবস্থাপনায় অপ্রয়োজনীয় হস্তক্ষেপ করতে পারবেন না।
+
+---
+
+### লোকসান বহনের অমোঘ বিধান (ডিআইবি পরীক্ষার বিশেষ প্রশ্ন)
+পরীক্ষায় বারবার আসা একটি প্রশ্ন: *"মুদারাবায় ক্ষতি হলে কে কতটুকু বহন করবে?"*
+- **আর্থিক ক্ষতি:** ব্যবসায় যদি কোনো আর্থিক ক্ষতি (Financial Loss) হয়, তবে তা **এককভাবে রব্বুল মাল (বিনিয়োগকারী)** বহন করবে।
+- **শ্রমের ক্ষতি:** মুদারিব তার কষ্ট ও শ্রমের কোনো পারিশ্রমিক বা মুনাফা পাবে না, অর্থাৎ তার শ্রম বৃথা যাবে।
+- **ব্যতিক্রম:** মুদারিব যদি স্পষ্ট গাফিলতি (Taqsir), জালিয়াতি, বা শর্ত ভঙ্গ (Ta'addi) করে ক্ষতি করে, তবে সেই ক্ষতির দায় মুদারিবকে ব্যক্তিগতভাবে ক্ষতিপূরণ দিতে হবে।
+
+---
+
+### আধুনিক ব্যাংকিংয়ে মুদারাবার দ্বৈত ভূমিকা (Two-Tier Mudaraba)
+১. **আমানত গ্রহণ পর্যায় (Liability Side):** সাধারণ গ্রাহক হলেন 'রব্বুল মাল' এবং ব্যাংক হলো 'মুদারিব'।
+২. **বিনিয়োগ পর্যায় (Asset Side):** ব্যাংক হলো 'রব্বুল মাল' এবং উদ্যোক্তা বা শিল্পপ্রতিষ্ঠান হলো 'মুদারিব'।
+
+---
+
+### বিগত বছরের ডিআইবি পরীক্ষার মডেল প্রশ্ন ও উত্তর
+**প্রশ্ন:** মুদারাবা ও মুশারাকার মধ্যে দুটি প্রধান পার্থক্য লিখুন।
+**উত্তর:**
+১. মুশারাকায় সব অংশীদার মূলধন সরবরাহ করে; কিন্তু মুদারাবায় কেবল রব্বুল মাল মূলধন দেয় এবং মুদারিব দেয় শ্রম।
+২. মুশারাকায় ক্ষতি মূলধনের অনুপাত অনুযায়ী সবার মাঝে বণ্টিত হয়; মুদারাবায় আর্থিক ক্ষতি কেবল রব্বুল মাল বহন করে।`,
+    tags: ['Mudaraba', 'DIB Part 1', 'Rabb-ul-Mal', 'Mudarib', 'Profit-Loss Sharing', 'Islamic Economics', 'AAOIFI'],
+    keywords: ['মুদারাবা সংজ্ঞা', 'mudaraba definition', 'রব্বুল মাল', 'মুদারিব', 'DIB Part 1', 'ইসলামিক ব্যাংকিং ডিপ্লোমা', 'লাভ-ক্ষতি বণ্টন', 'AAOIFI Shariah Standard'],
+    coverImage: '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg',
+    featured: true,
+    relatedResourceIds: ['dib-2023-nov-q2', 'dib-2024-may-q1']
+  },
   {
     id: 'art-01',
     title: 'Current Dynamics, Structural Challenges and Future Outlook of Islamic Banking in Bangladesh',

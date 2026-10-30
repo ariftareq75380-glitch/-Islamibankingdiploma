@@ -130,6 +130,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [artContentEn, setArtContentEn] = useState('');
   const [artContentBn, setArtContentBn] = useState('');
   const [artTags, setArtTags] = useState('Islamic Banking, Bangladesh Economy, DIB');
+  const [artKeywords, setArtKeywords] = useState('মুদারাবা সংজ্ঞা, রব্বুল মাল, DIB Part 1, ইসলামিক ব্যাংকিং');
+  const [artSlug, setArtSlug] = useState('');
+  const [artCoverImage, setArtCoverImage] = useState('/src/assets/images/banner_bangladesh_banking_1793322325377.jpg');
 
   // Backup state
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
@@ -281,6 +284,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
 
     const tagsArray = artTags.split(',').map(s => s.trim()).filter(Boolean);
+    const keywordsArray = artKeywords.split(',').map(s => s.trim()).filter(Boolean);
+    const cleanSlug = (artSlug || artTitle.toLowerCase())
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'article-note';
 
     if (editingArticleId) {
       const existing = articles.find(a => a.id === editingArticleId);
@@ -289,6 +296,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           ...existing,
           title: artTitle,
           titleBn: artTitleBn || artTitle,
+          slug: cleanSlug,
           author: artAuthor,
           authorDesignation: artAuthorDesignation,
           category: artCategory,
@@ -297,14 +305,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           summaryBn: artSummaryBn,
           contentMarkdownEn: artContentEn || artSummary,
           contentMarkdownBn: artContentBn || artSummaryBn,
-          tags: tagsArray
+          tags: tagsArray,
+          keywords: keywordsArray,
+          coverImage: artCoverImage
         });
       }
     } else {
       StorageService.addArticle({
         title: artTitle,
         titleBn: artTitleBn || artTitle,
-        slug: artTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: cleanSlug,
         author: artAuthor,
         authorDesignation: artAuthorDesignation,
         readTime: '6 min read',
@@ -315,12 +325,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         contentMarkdownEn: artContentEn || artSummary,
         contentMarkdownBn: artContentBn || artSummaryBn,
         tags: tagsArray,
+        keywords: keywordsArray,
+        coverImage: artCoverImage,
         featured: false
       });
     }
 
     onRefreshData();
-    alert('Article saved successfully!');
+    alert('Article saved successfully with distinct URL: /diploma/' + cleanSlug);
     setEditingArticleId(null);
     setActiveTab('articles');
   };
@@ -928,11 +940,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               setEditingArticleId(art.id);
                               setArtTitle(art.title);
                               setArtTitleBn(art.titleBn);
+                              setArtSlug(art.slug || '');
                               setArtAuthor(art.author);
+                              setArtAuthorDesignation(art.authorDesignation || '');
                               setArtSummary(art.summary);
                               setArtSummaryBn(art.summaryBn);
                               setArtContentEn(art.contentMarkdownEn);
                               setArtContentBn(art.contentMarkdownBn);
+                              setArtTags((art.tags || []).join(', '));
+                              setArtKeywords((art.keywords || art.tags || []).join(', '));
+                              setArtCoverImage(art.coverImage || '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg');
                               setActiveTab('new-article');
                             }}
                             className="p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100"
@@ -1004,6 +1021,79 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     onChange={(e) => setArtAuthorDesignation(e.target.value)}
                     className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-900"
                   />
+                </div>
+              </div>
+
+              {/* Distinct URL Slug & Keywords */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-stone-50 p-3 rounded-xl border border-stone-200">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-stone-700">Permanent URL Slug *</label>
+                    <span className="text-[10px] text-emerald-800 font-medium">/{artSlug || 'mudaraba-definition'}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="bg-stone-200 text-stone-600 px-2 py-2 rounded-l-lg border border-r-0 border-stone-300 font-mono text-[11px]">
+                      /diploma/
+                    </span>
+                    <input
+                      type="text"
+                      value={artSlug}
+                      onChange={(e) => setArtSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                      placeholder="mudaraba-definition"
+                      className="w-full p-2 bg-white border border-stone-300 rounded-r-lg text-stone-900 font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">
+                    এসইও কি-ওয়ার্ড (Keywords - Comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={artKeywords}
+                    onChange={(e) => setArtKeywords(e.target.value)}
+                    placeholder="মুদারাবা সংজ্ঞা, রব্বুল মাল, DIB Part 1, AAOIFI"
+                    className="w-full p-2 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Thumbnail / Cover Image */}
+              <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 space-y-2">
+                <label className="block font-semibold text-stone-700">
+                  কন্টেন্ট থাম্বনেল / কভার ছবি (Thumbnail URL)
+                </label>
+                <input
+                  type="text"
+                  value={artCoverImage}
+                  onChange={(e) => setArtCoverImage(e.target.value)}
+                  placeholder="/src/assets/images/banner_bangladesh_banking_1793322325377.jpg"
+                  className="w-full p-2 bg-white border border-stone-300 rounded-lg text-stone-900 font-mono text-xs"
+                />
+                <div className="flex items-center gap-2 pt-1 text-[11px]">
+                  <span className="text-stone-500">প্রিসেট থাম্বনেল পছন্দ:</span>
+                  <button
+                    type="button"
+                    onClick={() => setArtCoverImage('/src/assets/images/banner_bangladesh_banking_1793322325377.jpg')}
+                    className="px-2 py-0.5 bg-white border border-stone-300 hover:border-emerald-600 rounded text-stone-700"
+                  >
+                    ব্যাংকিং ব্যানার
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setArtCoverImage('/src/assets/images/category_diploma_banking_1793322326189.jpg')}
+                    className="px-2 py-0.5 bg-white border border-stone-300 hover:border-emerald-600 rounded text-stone-700"
+                  >
+                    ডিআইবি পাঠাগার
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setArtCoverImage('/src/assets/images/category_quran_hadith_1793322326327.jpg')}
+                    className="px-2 py-0.5 bg-white border border-stone-300 hover:border-emerald-600 rounded text-stone-700"
+                  >
+                    কুরআন ও হাদিস
+                  </button>
                 </div>
               </div>
 
