@@ -1,0 +1,6 @@
+{
+  "name": "Islamic Knowledge & Banking Library",
+  "description": "Professional bilingual educational PDF library for Diploma in Islamic Banking (DIB), past exam questions, solutions, study guides, and Shariah finance articles in Bangladesh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

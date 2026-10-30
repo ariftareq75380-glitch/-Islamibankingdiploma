@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://islamicknowledge.example.com/sitemap.xml
