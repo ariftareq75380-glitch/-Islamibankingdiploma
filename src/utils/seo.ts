@@ -84,7 +84,7 @@ export const updateSEOMetadata = (options: SeoMetadataOptions): void => {
   setMeta('property', 'og:type', options.ogType || 'website');
   setMeta('property', 'og:site_name', 'Islami Banking Diploma');
 
-  const ogImage = options.ogImage || `${currentOrigin}/src/assets/images/hero_islamic_library_1793322325013.jpg`;
+  const ogImage = options.ogImage || `${currentOrigin}/images/hero_islamic_library_1793322325013.webp`;
   setMeta('property', 'og:image', ogImage);
   setMeta('name', 'twitter:card', 'summary_large_image');
   setMeta('name', 'twitter:title', fullTitle);

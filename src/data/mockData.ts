@@ -42,7 +42,7 @@ export const samplePdfResources: PdfResource[] = [
     isFeatured: true,
     previewSupported: true,
     slug: '97th-dib-islamic-economics-banking-principles',
-    thumbnailUrl: '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg',
+    thumbnailUrl: '/images/banner_bangladesh_banking_1793322325377.webp',
     keywords: ['97th DIB Exam', 'Islamic Economics', 'DIB Part 1', 'মে ২০২৪ ডিআইবি পরীক্ষা', 'ইসলামিক অর্থনীতি'],
     keyTopics: ['Definition of Islamic Economics', 'Tawhid in Wealth Distribution', 'Riba-an-Nasiyah vs Riba-al-Fadl', 'Role of Central Bank in Islamic Banking']
   },
@@ -73,7 +73,7 @@ export const samplePdfResources: PdfResource[] = [
     isFeatured: true,
     previewSupported: true,
     slug: '96th-dib-investment-modes-mudaraba-musharaka',
-    thumbnailUrl: '/src/assets/images/category_diploma_banking_1793322326189.jpg',
+    thumbnailUrl: '/images/category_diploma_banking_1793322326189.webp',
     keywords: ['96th DIB Exam', 'Mudaraba', 'Musharaka', 'Murabaha', 'ডিআইবি বিনিয়োগ পদ্ধতি', 'DIB Math Solutions'],
     keyTopics: ['Mudaraba Capital Loss Rules', 'Musharaka Mutanaqisa for Home Finance', 'Murabaha Delivery & Ownership Risk']
   },
@@ -103,7 +103,7 @@ export const samplePdfResources: PdfResource[] = [
     isFeatured: false,
     previewSupported: true,
     slug: '95th-dib-banking-laws-regulations-bangladesh',
-    thumbnailUrl: '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg',
+    thumbnailUrl: '/images/banner_bangladesh_banking_1793322325377.webp',
     keywords: ['Bank Company Act 1991', 'DIB Part 2', 'ব্যাংক কোম্পানি আইন', 'বাংলাদেশ ব্যাংক সার্কুলার'],
     keyTopics: ['Section 7(a) Bank Company Act', 'Role of CSBIB', 'Statutory Liquidity Reserve (SLR) in Islamic Banks']
   },
@@ -526,7 +526,7 @@ Exam questions follow structured patterns. Over 65% of the syllabus repeats acro
 - **অপারেশনাল ফ্লো-চার্ট:** লেখা বড় না করে একটি স্পষ্ট তীরচিহ্ন সংবলিত চার্ট দিন।
 - **বাংলাদেশ ব্যাংকের সার্কুলার:** সাম্প্রতিক সার্কুলারের উল্লেখ পরীক্ষককে আশ্বস্ত করে যে আপনি সমকালীন বাস্তবতায় সচেতন।`,
     tags: ['DIB Preparation', 'Exam Tips', 'IBB Guidelines', 'Study Routine'],
-    coverImage: '/src/assets/images/category_quran_hadith_1793322326327.jpg',
+    coverImage: '/images/category_quran_hadith_1793322326327.webp',
     featured: false,
     relatedResourceIds: ['dib-study-guide-complete']
   }
@@ -542,7 +542,7 @@ export const categoriesList: CategoryInfo[] = [
     description: 'Past examination question papers, solved model answers, and syllabus guides for IBB DIB Part 1 & Part 2.',
     descriptionBn: 'আইবিবি ডিআইবি পার্ট-১ ও পার্ট-২ এর বিগত বছরের প্রশ্ন, সমাধানকৃত মডেল উত্তর এবং সিলেবাস সহায়িকা।',
     iconName: 'GraduationCap',
-    image: '/src/assets/images/category_diploma_banking_1793322326189.jpg',
+    image: '/images/category_diploma_banking_1793322326189.webp',
     itemCount: 42
   },
   {
@@ -554,7 +554,7 @@ export const categoriesList: CategoryInfo[] = [
     description: 'Principles of Mudaraba, Musharaka, Murabaha, Sukuk bonds, and central banking Shariah governance.',
     descriptionBn: 'মুদারাবা, মুশারাকা, মুরাবাহা, সুকুক এবং কেন্দ্রীয় ব্যাংকের শরীয়াহ গভর্ন্যান্স বিষয়ক প্রামাণ্য বই ও নোটস।',
     iconName: 'Building2',
-    image: '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg',
+    image: '/images/banner_bangladesh_banking_1793322325377.webp',
     itemCount: 38
   },
   {
@@ -566,7 +566,7 @@ export const categoriesList: CategoryInfo[] = [
     description: 'Authentic Ayats, Hadith compilations, and classical commentaries on commercial integrity, wealth distribution, and prohibition of Riba.',
     descriptionBn: 'বাণিজ্যিক সততা, সম্পদ বণ্টন এবং রিবা বর্জনের ওপর প্রামাণ্য আয়াত ও হাদিসের অনুবাদসহ ব্যাখ্যা।',
     iconName: 'BookOpen',
-    image: '/src/assets/images/category_quran_hadith_1793322326327.jpg',
+    image: '/images/category_quran_hadith_1793322326327.webp',
     itemCount: 26
   },
   {
@@ -578,7 +578,7 @@ export const categoriesList: CategoryInfo[] = [
     description: 'Jurisprudential resolutions, Islamic commercial contracts, and official fatwas of Central Shariah Board for Islamic Banks of Bangladesh.',
     descriptionBn: 'মুআমালাতের মাসআলা, শরয়ী চুক্তি এবং বাংলাদেশের সেন্ট্রাল শরীয়াহ বোর্ডের ফতোয়া সংকলন।',
     iconName: 'Scale',
-    image: '/src/assets/images/hero_islamic_library_1793322325013.jpg',
+    image: '/images/hero_islamic_library_1793322325013.webp',
     itemCount: 19
   }
 ];

@@ -121,5 +121,6 @@ export type ActiveTab =
   | 'contact' 
   | 'privacy' 
   | 'disclaimer'
-  | 'wp-blueprint';
+  | 'wp-blueprint'
+  | 'not-found';
 

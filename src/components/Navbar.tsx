@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   BookOpen, 
@@ -66,6 +66,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   onFontSizeChange
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile drawer on Escape key for accessibility
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
 
   // Grouped navigation links: 1. Exam Preparation, 2. Study Resources, 3. Help & Information
   const menuGroups = [
@@ -209,8 +220,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Left Menu Button (Bringing menu bar to the left side as requested) */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 sm:p-2 text-stone-700 hover:text-[#14532D] rounded-lg border border-stone-200 hover:bg-emerald-50 transition-colors shrink-0"
-              aria-label="Toggle menu"
+              className="p-1.5 sm:p-2 text-stone-700 hover:text-[#14532D] rounded-lg border border-stone-200 hover:bg-emerald-50 transition-colors shrink-0 cursor-pointer"
+              aria-label={lang === 'bn' ? (mobileMenuOpen ? 'মেনু বন্ধ করুন' : 'মেনু বার খুলুন') : (mobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu')}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation-drawer"
               title={lang === 'bn' ? 'মেনু বার খুলুন' : 'Open Navigation Menu'}
             >
               {mobileMenuOpen ? <X className="w-5 h-5 text-[#14532D]" /> : <Menu className="w-5 h-5 text-[#14532D]" />}
@@ -365,7 +378,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           />
 
           {/* Left-side Drawer Panel */}
-          <div className="relative w-80 max-w-[85vw] bg-white h-screen shadow-2xl flex flex-col z-[10000] animate-in slide-in-from-left duration-250 border-r border-stone-200">
+          <div 
+            id="mobile-navigation-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label={lang === 'bn' ? 'প্রধান ন্যাভিগেশন মেনু' : 'Main Navigation'}
+            className="relative w-80 max-w-[85vw] bg-white h-screen shadow-2xl flex flex-col z-[10000] animate-in slide-in-from-left duration-250 border-r border-stone-200"
+          >
             {/* Drawer Header */}
             <div className="px-5 py-4 bg-gradient-to-r from-[#14532D] to-[#047857] text-white flex items-center justify-between border-b border-emerald-900 shadow-xs shrink-0">
               <div className="flex items-center gap-2.5">

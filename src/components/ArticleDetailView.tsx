@@ -158,6 +158,10 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
           <img 
             src={article.coverImage} 
             alt={article.titleBn} 
+            loading="lazy"
+            decoding="async"
+            width={800}
+            height={400}
             className="w-full h-64 sm:h-80 object-cover opacity-90"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/30 to-transparent" />

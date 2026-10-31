@@ -1,45 +1,144 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- 1. Primary Hub & Homepage -->
   <url>
-    <loc>https://islamicknowledge.example.com/</loc>
-    <lastmod>2026-10-30</lastmod>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/</loc>
+    <lastmod>2026-10-31</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
+
+  <!-- 2. Academic & Exam Preparation Tracks -->
   <url>
-    <loc>https://islamicknowledge.example.com/#diploma</loc>
-    <lastmod>2026-10-30</lastmod>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/diploma</loc>
+    <lastmod>2026-10-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
+
   <url>
-    <loc>https://islamicknowledge.example.com/#previous-questions</loc>
-    <lastmod>2026-10-30</lastmod>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/previous-questions</loc>
+    <lastmod>2026-10-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
+
   <url>
-    <loc>https://islamicknowledge.example.com/#banking</loc>
-    <lastmod>2026-10-30</lastmod>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/pdf-library</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/mock-test</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/banking</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/islamic-studies</loc>
+    <lastmod>2026-10-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+
   <url>
-    <loc>https://islamicknowledge.example.com/#articles</loc>
-    <lastmod>2026-10-30</lastmod>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/quran-hadith</loc>
+    <lastmod>2026-10-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+
   <url>
-    <loc>https://islamicknowledge.example.com/#about</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/fiqh-fatwa</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
+
+  <!-- 3. Research Articles & Permanent URLs -->
   <url>
-    <loc>https://islamicknowledge.example.com/#contact</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/articles</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
   </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/diploma/mudaraba-definition</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/diploma/dynamics-and-challenges-of-islamic-banking-bangladesh</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/diploma/riba-vs-profit-fundamental-distinctions</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/diploma/strategic-roadmap-to-ace-dib-examination</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- 4. General & Institutional Pages -->
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/faq</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/about</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/contact</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/privacy</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/disclaimer</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
 </urlset>

@@ -79,6 +79,10 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({
                     <img
                       src={art.coverImage}
                       alt={art.titleBn || art.title}
+                      loading="lazy"
+                      decoding="async"
+                      width={400}
+                      height={200}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />

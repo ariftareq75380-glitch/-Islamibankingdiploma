@@ -264,6 +264,13 @@ export default function App() {
         title: `${pathname.toUpperCase()} | ইসলামী ব্যাংকিং ডিপ্লোমা`,
         canonicalPath: `/${pathname}`
       });
+    } else {
+      setActiveTab('not-found');
+      setSelectedArticleForRead(null);
+      updateSEOMetadata({
+        title: 'পৃষ্ঠাটি পাওয়া যায়নি (৪০৪) | ইসলামী ব্যাংকিং ডিপ্লোমা',
+        canonicalPath: `/${pathname}`
+      });
     }
   };
 
@@ -489,6 +496,12 @@ export default function App() {
                   selectedCourse={selectedCourse}
                   setSelectedCourse={setSelectedCourse}
                   onExploreClick={scrollToLibrary}
+                  onNavigateTab={(tab) => {
+                    setActiveTab(tab);
+                    if (typeof window !== 'undefined') {
+                      window.history.pushState(null, '', `/${tab}`);
+                    }
+                  }}
                   totalResourcesCount={publishedResources.length}
                   totalArticlesCount={publishedArticles.length}
                   lang={lang}
@@ -781,6 +794,79 @@ export default function App() {
             settings={settings}
             lang={lang}
           />
+        )}
+
+        {/* 8. 404 NOT FOUND VIEW */}
+        {activeTab === 'not-found' && (
+          <div className="max-w-2xl mx-auto px-4 py-16 text-center font-bengali">
+            <div className="bg-white rounded-2xl border border-stone-200 p-8 sm:p-12 shadow-sm">
+              <div className="text-4xl sm:text-5xl font-extrabold text-[#047857] mb-2 tracking-tight">৪০৪</div>
+              <span className="inline-block px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold mb-4">
+                {lang === 'bn' ? 'পৃষ্ঠাটি পাওয়া যায়নি' : 'Page Not Found'}
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 mb-2">
+                {lang === 'bn' ? 'দুঃখিত! এই পেজটি খুঁজে পাওয়া যায়নি' : 'Sorry! This page could not be found'}
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-500 mb-6 max-w-md mx-auto">
+                {lang === 'bn'
+                  ? 'আপনি যে লিংকটি অনুসন্ধান করছেন তা পরিবর্তিত হয়েছে অথবা পৃষ্ঠাটির অস্তিত্ব নেই। নিচের লিংকগুলো থেকে কাঙ্ক্ষিত তথ্য খুঁজে নিন।'
+                  : 'The link you visited might be broken or removed. Please explore our library using the links below.'}
+              </p>
+
+              <button
+                onClick={() => {
+                  setActiveTab('home');
+                  if (typeof window !== 'undefined') window.history.pushState(null, '', '/');
+                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#047857] hover:bg-[#065f46] text-white text-sm font-semibold transition-colors shadow-sm cursor-pointer"
+              >
+                ← {lang === 'bn' ? 'মূল হোমপেজে ফিরে যান' : 'Back to Home'}
+              </button>
+
+              <div className="mt-8 pt-6 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+                <button
+                  onClick={() => {
+                    setActiveTab('diploma');
+                    if (typeof window !== 'undefined') window.history.pushState(null, '', '/diploma');
+                  }}
+                  className="p-3 rounded-xl bg-stone-50 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 text-xs font-medium text-stone-800 transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>{lang === 'bn' ? 'ডিআইবি সিলেবাস ও নোট' : 'DIB Syllabus & Notes'}</span>
+                  <span>→</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('previous-questions');
+                    if (typeof window !== 'undefined') window.history.pushState(null, '', '/previous-questions');
+                  }}
+                  className="p-3 rounded-xl bg-stone-50 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 text-xs font-medium text-stone-800 transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>{lang === 'bn' ? 'বিগত প্রশ্নব্যাংক (২০১৮–২৪)' : 'Past Question Bank'}</span>
+                  <span>→</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('pdf-library');
+                    if (typeof window !== 'undefined') window.history.pushState(null, '', '/pdf-library');
+                  }}
+                  className="p-3 rounded-xl bg-stone-50 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 text-xs font-medium text-stone-800 transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>{lang === 'bn' ? 'উন্মুক্ত পিডিএফ লাইব্রেরি' : 'Open PDF Library'}</span>
+                  <span>→</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('banking');
+                    if (typeof window !== 'undefined') window.history.pushState(null, '', '/banking');
+                  }}
+                  className="p-3 rounded-xl bg-stone-50 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 text-xs font-medium text-stone-800 transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>{lang === 'bn' ? 'ইসলামিক ব্যাংকিং ও অর্থায়ন' : 'Islamic Banking & Finance'}</span>
+                  <span>→</span>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
           </>
         )}
