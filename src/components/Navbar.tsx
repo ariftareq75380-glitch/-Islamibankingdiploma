@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   BookOpen, 
   Menu, 
@@ -197,33 +198,47 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-2xs">
+    <>
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-2xs">
       {/* Main Top Navigation Header */}
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between gap-2 sm:gap-4 h-15 sm:h-16">
           
-          {/* Logo & Brand Wordmark Area */}
-          <button 
-            onClick={() => setActiveTab('home')}
-            className="flex items-center gap-2 sm:gap-3 text-left shrink-0 group focus:outline-none"
-          >
-            {/* Islamic Emblem Icon with restrained gold accent */}
-            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#14532D] via-[#047857] to-[#064e3b] text-white flex items-center justify-center shadow-xs border border-[#D4AF37]/40 group-hover:border-[#D4AF37] transition-all">
-              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-100" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#D4AF37] ring-1 ring-white" />
-            </div>
+          {/* Left: Menu Button + Logo & Brand Wordmark Area */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Left Menu Button (Bringing menu bar to the left side as requested) */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-1.5 sm:p-2 text-stone-700 hover:text-[#14532D] rounded-lg border border-stone-200 hover:bg-emerald-50 transition-colors shrink-0"
+              aria-label="Toggle menu"
+              title={lang === 'bn' ? 'মেনু বার খুলুন' : 'Open Navigation Menu'}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5 text-[#14532D]" /> : <Menu className="w-5 h-5 text-[#14532D]" />}
+            </button>
 
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm sm:text-base md:text-lg font-bold tracking-tight text-[#14532D] group-hover:text-[#047857] transition-colors whitespace-nowrap font-bengali">
-                  {lang === 'bn' ? siteNameBn : siteName}
+            {/* Logo & Brand Wordmark Area */}
+            <button 
+              onClick={() => setActiveTab('home')}
+              className="flex items-center gap-2 sm:gap-3 text-left shrink-0 group focus:outline-none"
+            >
+              {/* Islamic Emblem Icon with restrained gold accent */}
+              <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#14532D] via-[#047857] to-[#064e3b] text-white flex items-center justify-center shadow-xs border border-[#D4AF37]/40 group-hover:border-[#D4AF37] transition-all">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-100" />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#D4AF37] ring-1 ring-white" />
+              </div>
+
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs sm:text-base md:text-lg font-bold tracking-tight text-[#14532D] group-hover:text-[#047857] transition-colors whitespace-nowrap font-bengali">
+                    {lang === 'bn' ? siteNameBn : siteName}
+                  </span>
+                </div>
+                <span className="text-[10px] sm:text-[11px] text-stone-500 font-medium tracking-wide hidden sm:block font-bengali">
+                  {lang === 'bn' ? 'ডিআইবি পরীক্ষা ও উন্মুক্ত জ্ঞান পাঠাগার' : 'Islamic Banking Diploma Academic Hub'}
                 </span>
               </div>
-              <span className="text-[10px] sm:text-[11px] text-stone-500 font-medium tracking-wide hidden sm:block font-bengali">
-                {lang === 'bn' ? 'ডিআইবি পরীক্ষা ও উন্মুক্ত জ্ঞান পাঠাগার' : 'Islamic Banking Diploma Academic Hub'}
-              </span>
-            </div>
-          </button>
+            </button>
+          </div>
 
           {/* Desktop Primary Nav */}
           <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-stone-600">
@@ -333,116 +348,130 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </div>
             )}
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-stone-700 hover:text-[#14532D] rounded-lg border border-stone-200 hover:bg-emerald-50 transition-colors"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5 text-[#14532D]" /> : <Menu className="w-5 h-5 text-[#14532D]" />}
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Drawer Navigation (Grouped under Exam Preparation, Study Resources, and Help & Information) */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-x-0 top-15 sm:top-16 bg-white/98 backdrop-blur-lg border-b border-stone-200 shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto px-4 py-4 space-y-5 animate-in slide-in-from-top-2 duration-200 z-50 font-bengali">
-          {/* Quick Header inside Drawer */}
-          <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-            <span className="text-xs font-bold text-[#14532D] uppercase tracking-wider">
-              {lang === 'bn' ? 'নেভিগেশন মেনু' : 'Portal Navigation'}
-            </span>
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-1 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+      </header>
 
-          {menuGroups.map((group, groupIdx) => (
-            <div key={groupIdx} className="space-y-1.5">
-              {/* Group Title with Gold Accent Indicator */}
-              <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 px-2 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
-                <span className="text-stone-700">{lang === 'bn' ? group.titleBn : group.titleEn}</span>
+      {/* Left Sidebar Navigation Drawer (Rendered via Portal to avoid header backdrop-blur clipping) */}
+      {typeof document !== 'undefined' && mobileMenuOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex font-bengali">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs transition-opacity cursor-pointer"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Left-side Drawer Panel */}
+          <div className="relative w-80 max-w-[85vw] bg-white h-screen shadow-2xl flex flex-col z-[10000] animate-in slide-in-from-left duration-250 border-r border-stone-200">
+            {/* Drawer Header */}
+            <div className="px-5 py-4 bg-gradient-to-r from-[#14532D] to-[#047857] text-white flex items-center justify-between border-b border-emerald-900 shadow-xs shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-800 text-[#D4AF37] border border-[#D4AF37]/30 flex items-center justify-center font-bold">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold leading-tight">{lang === 'bn' ? siteNameBn : siteName}</div>
+                  <div className="text-[10px] text-emerald-200">{lang === 'bn' ? 'বাম পাশের প্রধান মেনু' : 'Portal Navigation'}</div>
+                </div>
               </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title={lang === 'bn' ? 'মেনু বন্ধ করুন' : 'Close Menu'}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              {/* Group Items */}
-              <div className="grid grid-cols-1 gap-1">
-                {group.items.map((item) => (
+            {/* Scrollable menu links */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 bg-white min-h-0">
+              {menuGroups.map((group, groupIdx) => (
+                <div key={groupIdx} className="space-y-1.5">
+                  {/* Group Title with Gold Accent Indicator */}
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 px-2 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
+                    <span className="text-stone-700">{lang === 'bn' ? group.titleBn : group.titleEn}</span>
+                  </div>
+
+                  {/* Group Items */}
+                  <div className="grid grid-cols-1 gap-1">
+                    {group.items.map((item) => (
+                      <button
+                        key={item.tab}
+                        onClick={() => {
+                          setActiveTab(item.tab);
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-between min-h-[44px] cursor-pointer ${
+                          activeTab === item.tab
+                            ? 'bg-emerald-50 text-[#14532D] font-bold border border-emerald-300 shadow-2xs'
+                            : 'text-stone-700 hover:bg-stone-50 border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`p-1.5 rounded-lg shrink-0 ${activeTab === item.tab ? 'bg-emerald-100 text-[#047857]' : 'bg-stone-100 text-stone-600'}`}>
+                            {item.icon}
+                          </div>
+                          <div className="truncate">
+                            <div className="font-semibold truncate leading-snug">
+                              {lang === 'bn' ? item.labelBn : item.labelEn}
+                            </div>
+                            {item.descBn && (
+                              <div className="text-[10px] text-stone-500 font-normal truncate">
+                                {lang === 'bn' ? item.descBn : ''}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                          {item.isHighlight && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#14532D] border border-[#D4AF37]/40">
+                              {lang === 'bn' ? 'কুইজ' : 'Quiz'}
+                            </span>
+                          )}
+                          <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Mobile Admin Link if visible */}
+              {isAdminVisible && (
+                <div className="pt-3 border-t border-stone-200 flex items-center justify-between">
                   <button
-                    key={item.tab}
                     onClick={() => {
-                      setActiveTab(item.tab);
+                      openAdminModal();
                       setMobileMenuOpen(false);
                     }}
-                    className={`text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-between min-h-[44px] ${
-                      activeTab === item.tab
-                        ? 'bg-emerald-50 text-[#14532D] font-bold border border-emerald-300 shadow-2xs'
-                        : 'text-stone-700 hover:bg-stone-50 border border-transparent'
-                    }`}
+                    className="px-3 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#14532D] hover:bg-[#047857] flex items-center justify-center gap-2 flex-1 shadow-xs cursor-pointer"
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={`p-1.5 rounded-lg shrink-0 ${activeTab === item.tab ? 'bg-emerald-100 text-[#047857]' : 'bg-stone-100 text-stone-600'}`}>
-                        {item.icon}
-                      </div>
-                      <div className="truncate">
-                        <div className="font-semibold truncate leading-snug">
-                          {lang === 'bn' ? item.labelBn : item.labelEn}
-                        </div>
-                        {item.descBn && (
-                          <div className="text-[10px] text-stone-500 font-normal truncate">
-                            {lang === 'bn' ? item.descBn : ''}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      {item.isHighlight && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#14532D] border border-[#D4AF37]/40">
-                          {lang === 'bn' ? 'কুইজ' : 'Quiz'}
-                        </span>
-                      )}
-                      <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
-                    </div>
+                    <Lock className="w-4 h-4 text-[#D4AF37]" />
+                    <span>{lang === 'bn' ? 'অ্যাডমিন পোর্টাল খুলুন' : 'Open Admin Portal'}</span>
                   </button>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Mobile Admin Link if visible */}
-          {isAdminVisible && (
-            <div className="pt-3 border-t border-stone-200 flex items-center justify-between">
-              <button
-                onClick={() => {
-                  openAdminModal();
-                  setMobileMenuOpen(false);
-                }}
-                className="px-3 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#14532D] hover:bg-[#047857] flex items-center justify-center gap-2 flex-1 shadow-xs"
-              >
-                <Lock className="w-4 h-4 text-[#D4AF37]" />
-                <span>{lang === 'bn' ? 'অ্যাডমিন পোর্টাল খুলুন' : 'Open Admin Portal'}</span>
-              </button>
-              {onHideAdmin && (
-                <button
-                  onClick={() => {
-                    onHideAdmin();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="ml-2 px-3 py-2 text-xs text-stone-500 hover:text-stone-800 underline"
-                >
-                  {lang === 'bn' ? 'লুকান' : 'Hide'}
-                </button>
+                  {onHideAdmin && (
+                    <button
+                      onClick={() => {
+                        onHideAdmin();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="ml-2 px-3 py-2 text-xs text-stone-500 hover:text-stone-800 underline cursor-pointer"
+                    >
+                      {lang === 'bn' ? 'লুকান' : 'Hide'}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        </div>,
+        document.body
       )}
-    </header>
+    </>
   );
 };

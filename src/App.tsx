@@ -79,6 +79,9 @@ export default function App() {
   const [isAdminVisible, setIsAdminVisible] = useState<boolean>(() => {
     return localStorage.getItem('dib_admin_visible') === 'true';
   });
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('dib_admin_auth') === 'true';
+  });
   const [isBlueprintOpen, setIsBlueprintOpen] = useState(false);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
@@ -388,6 +391,11 @@ export default function App() {
         return false;
       }
 
+      // 8. Publication Status: Hide drafts from public visitors
+      if (item.status === 'draft' || item.isDraft) {
+        return false;
+      }
+
       return true;
     });
   }, [
@@ -401,9 +409,18 @@ export default function App() {
     selectedLanguage
   ]);
 
+  // Published resources & articles (Drafts excluded for public views)
+  const publishedResources = useMemo(() => {
+    return resources.filter(r => r.status !== 'draft' && !r.isDraft);
+  }, [resources]);
+
+  const publishedArticles = useMemo(() => {
+    return articles.filter(a => a.status !== 'draft' && !a.isDraft);
+  }, [articles]);
+
   // Bookmarked Resources
   const bookmarkedResources = useMemo(() => {
-    return resources.filter(r => bookmarks.includes(r.id));
+    return resources.filter(r => bookmarks.includes(r.id) && r.status !== 'draft' && !r.isDraft);
   }, [resources, bookmarks]);
 
   // Font size class mapping
@@ -450,12 +467,12 @@ export default function App() {
           <ArticleDetailView
             article={selectedArticleForRead}
             onBack={handleCloseArticle}
-            allResources={resources}
+            allResources={publishedResources}
             onOpenResource={handlePreviewResource}
-            onEditArticle={(art) => {
+            onEditArticle={isAdminAuthenticated ? (art) => {
               setEditingArticleForEditor(art);
               setIsContentEditorOpen(true);
-            }}
+            } : undefined}
             lang={lang}
           />
         ) : (
@@ -472,10 +489,10 @@ export default function App() {
                   selectedCourse={selectedCourse}
                   setSelectedCourse={setSelectedCourse}
                   onExploreClick={scrollToLibrary}
-                  totalResourcesCount={resources.length}
-                  totalArticlesCount={articles.length}
+                  totalResourcesCount={publishedResources.length}
+                  totalArticlesCount={publishedArticles.length}
                   lang={lang}
-                  resources={resources}
+                  resources={publishedResources}
                 />
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -483,7 +500,7 @@ export default function App() {
                   <ResumeStudyBanner
                     lastRead={lastRead}
                     completedCount={completedIds.length}
-                    totalCount={resources.length}
+                    totalCount={publishedResources.length}
                     onResume={handleResumeLastRead}
                     lang={lang}
                   />
@@ -506,7 +523,7 @@ export default function App() {
 
                 {/* Dedicated DIB Exam Papers organized by year with Mark as Read */}
                 <DiplomaExamSection
-                  resources={resources}
+                  resources={publishedResources}
                   onPreview={handlePreviewResource}
                   onDownloadIncrement={handleDownloadIncrement}
                   bookmarks={bookmarks}
@@ -518,13 +535,13 @@ export default function App() {
 
                 {/* Bilingual Banking Articles Section with distinct URLs & keywords */}
                 <ArticlesSection
-                  articles={articles}
-                  resources={resources}
+                  articles={publishedArticles}
+                  resources={publishedResources}
                   onOpenArticle={handleOpenArticle}
-                  onWriteArticle={() => {
+                  onWriteArticle={isAdminAuthenticated ? () => {
                     setEditingArticleForEditor(null);
                     setIsContentEditorOpen(true);
-                  }}
+                  } : undefined}
                   lang={lang}
                 />
 
@@ -745,13 +762,13 @@ export default function App() {
         {activeTab === 'articles' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-bengali">
             <ArticlesSection
-              articles={articles}
-              resources={resources}
+              articles={publishedArticles}
+              resources={publishedResources}
               onOpenArticle={handleOpenArticle}
-              onWriteArticle={() => {
+              onWriteArticle={isAdminAuthenticated ? () => {
                 setEditingArticleForEditor(null);
                 setIsContentEditorOpen(true);
-              }}
+              } : undefined}
               lang={lang}
             />
           </div>
@@ -883,6 +900,8 @@ export default function App() {
           onClose={() => setIsAdminOpen(false)}
           lang={lang}
           onHideAdmin={handleHideAdmin}
+          onAuthChange={(auth) => setIsAdminAuthenticated(auth)}
+          onPreviewResource={handlePreviewResource}
         />
       )}
 

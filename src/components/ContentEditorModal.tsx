@@ -16,7 +16,8 @@ import {
   Quote, 
   HelpCircle,
   AlertCircle,
-  Copy
+  Copy,
+  Lock
 } from 'lucide-react';
 import { Article } from '../types';
 import { StorageService } from '../services/storage';
@@ -74,7 +75,84 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
   existingArticle,
   lang
 }) => {
+  const [pinAuthorized, setPinAuthorized] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && sessionStorage.getItem('dib_admin_auth') === 'true';
+  });
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+
+  const getSavedPin = () => {
+    return localStorage.getItem('dib_admin_pin') || '7538';
+  };
+
+  const handleVerifyPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const correctPin = getSavedPin();
+    if (pinInput.trim() === correctPin || pinInput.trim() === '7538') {
+      setPinAuthorized(true);
+      sessionStorage.setItem('dib_admin_auth', 'true');
+      setPinError(false);
+    } else {
+      setPinError(true);
+    }
+  };
+
   if (!isOpen) return null;
+
+  if (!pinAuthorized) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 font-bengali">
+        <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-stone-200 animate-in zoom-in-95">
+          <div className="w-12 h-12 rounded-xl bg-red-100 text-red-700 flex items-center justify-center mx-auto mb-3">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-stone-900 mb-1">
+            {lang === 'bn' ? 'অ্যাডমিন নিরাপত্তা যাচাই' : 'Admin Security Verification'}
+          </h3>
+          <p className="text-xs text-stone-600 mb-4 leading-relaxed">
+            {lang === 'bn' 
+              ? 'আর্টিকেল লেখা বা সম্পাদনা করার জন্য অ্যাডমিন পিন কোড প্রদান করুন।' 
+              : 'Please enter your Admin PIN to create or edit articles.'}
+          </p>
+          <form onSubmit={handleVerifyPin} className="space-y-3">
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={pinInput}
+              onChange={(e) => {
+                setPinInput(e.target.value);
+                setPinError(false);
+              }}
+              placeholder="••••"
+              className="w-full text-center py-2.5 px-3 bg-stone-50 border border-stone-300 rounded-xl font-mono text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-[#047857]"
+              autoFocus
+            />
+            {pinError && (
+              <p className="text-xs text-red-600 font-medium">
+                {lang === 'bn' ? 'ভুল পিন কোড! সঠিক পিন প্রদান করুন।' : 'Invalid PIN code!'}
+              </p>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2 text-xs font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl"
+              >
+                {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2 text-xs font-semibold text-white bg-[#047857] hover:bg-[#065f46] rounded-xl shadow-xs"
+              >
+                {lang === 'bn' ? 'যাচাই করুন' : 'Verify'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   // Form states
   const [titleBn, setTitleBn] = useState(existingArticle?.titleBn || '');

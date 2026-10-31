@@ -21,7 +21,8 @@ import {
   KeyRound,
   Eye,
   EyeOff,
-  LogOut
+  LogOut,
+  Search
 } from 'lucide-react';
 import { PdfResource, Article, CourseType, ExamSession, ResourceCategory, SiteSettings } from '../types';
 import { StorageService } from '../services/storage';
@@ -37,6 +38,8 @@ interface AdminPanelProps {
   onClose: () => void;
   lang: 'bn' | 'en';
   onHideAdmin?: () => void;
+  onAuthChange?: (isAuth: boolean) => void;
+  onPreviewResource?: (res: PdfResource) => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -46,7 +49,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onRefreshData,
   onClose,
   lang,
-  onHideAdmin
+  onHideAdmin,
+  onAuthChange,
+  onPreviewResource
 }) => {
   // Authentication state - protected by PIN code (Default PIN: 7538)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -68,6 +73,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     if (pinInput.trim() === correctPin || pinInput.trim() === '7538') {
       setIsAuthenticated(true);
       sessionStorage.setItem('dib_admin_auth', 'true');
+      onAuthChange?.(true);
       setAuthError(false);
       setPinInput('');
     } else {
@@ -78,6 +84,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleLogout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('dib_admin_auth');
+    onAuthChange?.(false);
     setPinInput('');
   };
 
@@ -94,6 +101,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const [activeTab, setActiveTab] = useState<'resources' | 'new-resource' | 'seo-audit' | 'articles' | 'new-article' | 'settings' | 'backup'>('resources');
+
+  // Search & Filter state for Admin resources archive
+  const [resourceSearch, setResourceSearch] = useState('');
+  const [resourceFilterCourse, setResourceFilterCourse] = useState('ALL');
+  const [resourceFilterStatus, setResourceFilterStatus] = useState<'ALL' | 'published' | 'draft'>('ALL');
+  const [resourceFilterYear, setResourceFilterYear] = useState('ALL');
+
+  // Search & Filter state for Admin articles archive
+  const [articleSearch, setArticleSearch] = useState('');
+  const [articleFilterStatus, setArticleFilterStatus] = useState<'ALL' | 'published' | 'draft'>('ALL');
+
+  // File upload state & feedback
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadFileName, setUploadFileName] = useState<string>('');
 
   // Resource Form State
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
@@ -114,6 +135,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [resFileSize, setResFileSize] = useState('3.5 MB');
   const [resPageCount, setResPageCount] = useState<number>(30);
   const [resKeyTopics, setResKeyTopics] = useState('Mudaraba Capital Loss, Musharaka Home Finance');
+  const [resStatus, setResStatus] = useState<'published' | 'draft'>('published');
   const [formSuccessMessage, setFormSuccessMessage] = useState<string | null>(null);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
 
@@ -133,27 +155,58 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [artKeywords, setArtKeywords] = useState('মুদারাবা সংজ্ঞা, রব্বুল মাল, DIB Part 1, ইসলামিক ব্যাংকিং');
   const [artSlug, setArtSlug] = useState('');
   const [artCoverImage, setArtCoverImage] = useState('/src/assets/images/banner_bangladesh_banking_1793322325377.jpg');
+  const [artStatus, setArtStatus] = useState<'published' | 'draft'>('published');
 
   // Backup state
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
 
-  // Handle File Upload from disk
+  // Handle File Upload from disk with validation & progress
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
-      alert('অনুগ্রহ করে শুধুমাত্র বৈধ পিডিএফ (.pdf) ফাইল আপলোড করুন। / Please upload a valid PDF file.');
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setFormErrorMessage(
+        lang === 'bn' 
+          ? 'অনুগ্রহ করে শুধুমাত্র বৈধ পিডিএফ (.pdf) ফাইল আপলোড করুন।' 
+          : 'Please upload a valid PDF (.pdf) file only.'
+      );
       return;
     }
 
+    const sizeInMB = file.size / (1024 * 1024);
+    if (sizeInMB > 4.5) {
+      setFormErrorMessage(
+        lang === 'bn'
+          ? `সতর্কতা: ফাইল সাইজ (${formatFileSize(file.size)}) ব্রাউজারের সরাসরি স্টোরেজ সীমা (৪.৫ MB)-এর বেশি। ডাটাবেজে স্থায়ী সুরক্ষার জন্য গুগল ড্রাইভ শেয়ারেবল ব্যাকআপ লিঙ্ক (Option B) যুক্ত করুন।`
+          : `Notice: File size (${formatFileSize(file.size)}) exceeds browser direct storage limits (4.5 MB). For persistent access across devices, please provide a Google Drive share link (Option B).`
+      );
+    } else {
+      setFormErrorMessage(null);
+    }
+
+    setUploadFileName(file.name);
     setResFileSize(formatFileSize(file.size));
+    setUploadProgress(20);
 
     const reader = new FileReader();
+    reader.onprogress = (evt) => {
+      if (evt.lengthComputable) {
+        setUploadProgress(Math.round((evt.loaded / evt.total) * 90));
+      }
+    };
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setResFileUrl(reader.result);
+        setUploadProgress(100);
+        setTimeout(() => setUploadProgress(null), 1200);
       }
+    };
+    reader.onerror = () => {
+      setFormErrorMessage(
+        lang === 'bn' ? 'ফাইল পড়তে ত্রুটি হয়েছে। পুনরায় চেষ্টা করুন।' : 'Error reading file. Please try again.'
+      );
+      setUploadProgress(null);
     };
     reader.readAsDataURL(file);
   };
@@ -177,6 +230,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setResFileSize(res.fileSize || '3.0 MB');
     setResPageCount(res.pageCount || 20);
     setResKeyTopics((res.keyTopics || []).join(', '));
+    setResStatus(res.status || (res.isDraft ? 'draft' : 'published'));
+    setUploadFileName(res.pdfFileUrl ? `${res.title.substring(0, 25)}.pdf` : '');
     setActiveTab('new-resource');
   };
 
@@ -220,7 +275,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           fileSize: resFileSize,
           pageCount: resPageCount,
           previewSupported: true,
-          keyTopics: topicsArray
+          keyTopics: topicsArray,
+          status: resStatus,
+          isDraft: resStatus === 'draft'
         });
       }
     } else {
@@ -243,17 +300,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         fileSize: resFileSize,
         pageCount: resPageCount,
         previewSupported: true,
-        keyTopics: topicsArray
+        keyTopics: topicsArray,
+        status: resStatus,
+        isDraft: resStatus === 'draft'
       });
     }
 
     onRefreshData();
-    setFormSuccessMessage(lang === 'bn' ? 'রিসোর্সটি সফলভাবে সংরক্ষিত হয়েছে!' : 'Resource published successfully!');
+    setFormSuccessMessage(
+      lang === 'bn' 
+        ? (resStatus === 'published' ? 'রিসোর্সটি সফলভাবে লাইভ সাইটে প্রকাশিত হয়েছে!' : 'রিসোর্সটি ড্রাফট হিসেবে সংরক্ষিত হয়েছে!') 
+        : (resStatus === 'published' ? 'Resource published successfully to the public library!' : 'Resource saved as draft!')
+    );
     setTimeout(() => {
       setFormSuccessMessage(null);
       resetResourceForm();
       setActiveTab('resources');
-    }, 1500);
+    }, 1200);
   };
 
   const resetResourceForm = () => {
@@ -266,6 +329,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setResDriveUrl('');
     setResTags('');
     setResKeyTopics('');
+    setResStatus('published');
+    setUploadProgress(null);
+    setUploadFileName('');
   };
 
   const handleDeleteResource = (id: string) => {
@@ -275,11 +341,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  const handleToggleResourceStatus = (res: PdfResource) => {
+    const newStatus: 'published' | 'draft' = (res.status === 'draft' || res.isDraft) ? 'published' : 'draft';
+    StorageService.updateResource({
+      ...res,
+      status: newStatus,
+      isDraft: newStatus === 'draft'
+    });
+    onRefreshData();
+  };
+
   // Article Actions
   const handleSaveArticle = (e: React.FormEvent) => {
     e.preventDefault();
     if (!artTitle || !artContentBn) {
-      alert('Please fill out the article title and content in Bengali or English.');
+      alert(lang === 'bn' ? 'অনুগ্রহ করে আর্টিকেল শিরোনাম ও মূল বক্তব্য বাংলায় পূরণ করুন।' : 'Please fill out article title and content.');
       return;
     }
 
@@ -307,7 +383,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           contentMarkdownBn: artContentBn || artSummaryBn,
           tags: tagsArray,
           keywords: keywordsArray,
-          coverImage: artCoverImage
+          coverImage: artCoverImage,
+          status: artStatus,
+          isDraft: artStatus === 'draft'
         });
       }
     } else {
@@ -327,22 +405,75 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         tags: tagsArray,
         keywords: keywordsArray,
         coverImage: artCoverImage,
-        featured: false
+        featured: false,
+        status: artStatus,
+        isDraft: artStatus === 'draft'
       });
     }
 
     onRefreshData();
-    alert('Article saved successfully with distinct URL: /diploma/' + cleanSlug);
+    alert(lang === 'bn' ? 'আর্টিকেল সফলভাবে সংরক্ষিত হয়েছে!' : 'Article saved successfully!');
     setEditingArticleId(null);
     setActiveTab('articles');
   };
 
   const handleDeleteArticle = (id: string) => {
-    if (confirm('Delete this article?')) {
+    if (confirm(lang === 'bn' ? 'আপনি কি নিশ্চিতভাবে এই আর্টিকেলটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this article?')) {
       StorageService.deleteArticle(id);
       onRefreshData();
     }
   };
+
+  const handleToggleArticleStatus = (art: Article) => {
+    const newStatus: 'published' | 'draft' = (art.status === 'draft' || art.isDraft) ? 'published' : 'draft';
+    StorageService.updateArticle({
+      ...art,
+      status: newStatus,
+      isDraft: newStatus === 'draft'
+    });
+    onRefreshData();
+  };
+
+  // Filtered resources for Admin view
+  const adminFilteredResources = resources.filter(res => {
+    if (resourceSearch.trim()) {
+      const q = resourceSearch.toLowerCase();
+      const matchTitle = res.title.toLowerCase().includes(q) || res.titleBn.toLowerCase().includes(q);
+      const matchSubject = res.subject.toLowerCase().includes(q) || res.subjectBn.toLowerCase().includes(q);
+      const matchYear = res.examYear.includes(q);
+      const matchTags = res.tags.some(t => t.toLowerCase().includes(q));
+      if (!matchTitle && !matchSubject && !matchYear && !matchTags) return false;
+    }
+    if (resourceFilterCourse !== 'ALL' && res.course !== resourceFilterCourse) {
+      return false;
+    }
+    if (resourceFilterYear !== 'ALL' && res.examYear !== resourceFilterYear) {
+      return false;
+    }
+    if (resourceFilterStatus !== 'ALL') {
+      const isDraft = res.status === 'draft' || res.isDraft;
+      if (resourceFilterStatus === 'draft' && !isDraft) return false;
+      if (resourceFilterStatus === 'published' && isDraft) return false;
+    }
+    return true;
+  });
+
+  // Filtered articles for Admin view
+  const adminFilteredArticles = articles.filter(art => {
+    if (articleSearch.trim()) {
+      const q = articleSearch.toLowerCase();
+      const matchTitle = art.title.toLowerCase().includes(q) || art.titleBn.toLowerCase().includes(q);
+      const matchAuthor = art.author.toLowerCase().includes(q);
+      const matchCat = art.category.toLowerCase().includes(q) || art.categoryBn.toLowerCase().includes(q);
+      if (!matchTitle && !matchAuthor && !matchCat) return false;
+    }
+    if (articleFilterStatus !== 'ALL') {
+      const isDraft = art.status === 'draft' || art.isDraft;
+      if (articleFilterStatus === 'draft' && !isDraft) return false;
+      if (articleFilterStatus === 'published' && isDraft) return false;
+    }
+    return true;
+  });
 
   // Import Backup JSON
   const handleImportJsonFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -594,6 +725,77 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </button>
               </div>
 
+              {/* Admin Search & Filter Toolbar */}
+              <div className="bg-stone-50 border border-stone-200 p-3 rounded-xl flex flex-wrap items-center gap-2 text-xs">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={resourceSearch}
+                    onChange={(e) => setResourceSearch(e.target.value)}
+                    placeholder={lang === 'bn' ? 'পিডিএফ শিরোনাম, বিষয় বা সাল দিয়ে খুঁজুন...' : 'Search by title, subject or year...'}
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-stone-200 rounded-lg text-stone-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                  />
+                  {resourceSearch && (
+                    <button
+                      onClick={() => setResourceSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <select
+                    value={resourceFilterCourse}
+                    onChange={(e) => setResourceFilterCourse(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-stone-700 text-xs"
+                  >
+                    <option value="ALL">{lang === 'bn' ? 'সকল কোর্স (All)' : 'All Courses'}</option>
+                    <option value="DIB-1">DIB Part-1</option>
+                    <option value="DIB-2">DIB Part-2</option>
+                    <option value="DIB-General">DIB General</option>
+                    <option value="Islamic-Banking">Islamic Banking</option>
+                  </select>
+
+                  <select
+                    value={resourceFilterStatus}
+                    onChange={(e) => setResourceFilterStatus(e.target.value as 'ALL' | 'published' | 'draft')}
+                    className="px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-stone-700 text-xs"
+                  >
+                    <option value="ALL">{lang === 'bn' ? 'সকল স্ট্যাটাস' : 'All Status'}</option>
+                    <option value="published">{lang === 'bn' ? 'প্রকাশিত (Published)' : 'Published'}</option>
+                    <option value="draft">{lang === 'bn' ? 'ড্রাফট (Draft)' : 'Draft'}</option>
+                  </select>
+
+                  <select
+                    value={resourceFilterYear}
+                    onChange={(e) => setResourceFilterYear(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-stone-700 text-xs"
+                  >
+                    <option value="ALL">{lang === 'bn' ? 'সকল সাল' : 'All Years'}</option>
+                    {examYearsList.map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+
+                  {(resourceSearch || resourceFilterCourse !== 'ALL' || resourceFilterStatus !== 'ALL' || resourceFilterYear !== 'ALL') && (
+                    <button
+                      onClick={() => {
+                        setResourceSearch('');
+                        setResourceFilterCourse('ALL');
+                        setResourceFilterStatus('ALL');
+                        setResourceFilterYear('ALL');
+                      }}
+                      className="px-2.5 py-1.5 text-stone-500 hover:text-stone-900 underline text-xs cursor-pointer"
+                    >
+                      {lang === 'bn' ? 'রিসেট' : 'Reset'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Table */}
               <div className="border border-stone-200 rounded-xl overflow-hidden bg-white shadow-xs">
                 <div className="overflow-x-auto">
@@ -602,60 +804,103 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <tr>
                         <th className="p-3">Title / শিরোনাম</th>
                         <th className="p-3">Course / সাল</th>
+                        <th className="p-3">স্ট্যাটাস</th>
                         <th className="p-3">Download Source</th>
                         <th className="p-3">File Size</th>
                         <th className="p-3 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
-                      {resources.map((res) => {
-                        const hasDirect = Boolean(res.pdfFileUrl);
-                        const hasDrive = Boolean(res.googleDriveUrl);
-                        const isBroken = !hasDirect && !hasDrive;
+                      {adminFilteredResources.length > 0 ? (
+                        adminFilteredResources.map((res) => {
+                          const hasDirect = Boolean(res.pdfFileUrl);
+                          const hasDrive = Boolean(res.googleDriveUrl);
+                          const isBroken = !hasDirect && !hasDrive;
+                          const isDraft = res.status === 'draft' || res.isDraft;
 
-                        return (
-                          <tr key={res.id} className="hover:bg-stone-50 transition-colors">
-                            <td className="p-3 font-medium text-stone-900 max-w-xs truncate">
-                              <div>{res.titleBn || res.title}</div>
-                              <div className="text-[11px] text-stone-400 truncate">{res.title}</div>
-                            </td>
-                            <td className="p-3 text-stone-600 whitespace-nowrap">
-                              <span className="font-semibold text-emerald-800">{res.course}</span> · {res.examYear}
-                            </td>
-                            <td className="p-3 whitespace-nowrap">
-                              {isBroken ? (
-                                <span className="inline-flex items-center gap-1 text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">
-                                  <AlertTriangle className="w-3 h-3" /> Broken / Missing
-                                </span>
-                              ) : (
-                                <div className="space-y-0.5">
-                                  {hasDirect && <span className="block text-emerald-700">✓ Uploaded PDF</span>}
-                                  {hasDrive && <span className="block text-blue-700">✓ Google Drive URL</span>}
-                                </div>
-                              )}
-                            </td>
-                            <td className="p-3 text-stone-500 whitespace-nowrap">
-                              {res.fileSize}
-                            </td>
-                            <td className="p-3 text-right space-x-2 whitespace-nowrap">
-                              <button
-                                onClick={() => handleEditResource(res)}
-                                className="p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100 transition-colors"
-                                title="Edit Resource"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteResource(res.id)}
-                                className="p-1.5 text-stone-600 hover:text-red-700 rounded hover:bg-red-50 transition-colors"
-                                title="Delete Resource"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                          return (
+                            <tr key={res.id} className="hover:bg-stone-50 transition-colors">
+                              <td className="p-3 font-medium text-stone-900 max-w-xs truncate">
+                                <div className="font-semibold">{res.titleBn || res.title}</div>
+                                <div className="text-[11px] text-stone-400 truncate">{res.title}</div>
+                              </td>
+                              <td className="p-3 text-stone-600 whitespace-nowrap">
+                                <span className="font-semibold text-emerald-800">{res.course}</span> · {res.examYear}
+                              </td>
+                              <td className="p-3 whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleResourceStatus(res)}
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold cursor-pointer transition-colors ${
+                                    isDraft
+                                      ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                                      : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                  }`}
+                                  title={lang === 'bn' ? 'ক্লিক করে স্ট্যাটাস পরিবর্তন করুন' : 'Click to toggle status'}
+                                >
+                                  {isDraft ? (
+                                    <>
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                      {lang === 'bn' ? 'ড্রাফট' : 'Draft'}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                                      {lang === 'bn' ? 'প্রকাশিত' : 'Published'}
+                                    </>
+                                  )}
+                                </button>
+                              </td>
+                              <td className="p-3 whitespace-nowrap">
+                                {isBroken ? (
+                                  <span className="inline-flex items-center gap-1 text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">
+                                    <AlertTriangle className="w-3 h-3" /> Broken / Missing
+                                  </span>
+                                ) : (
+                                  <div className="space-y-0.5">
+                                    {hasDirect && <span className="block text-emerald-700">✓ Uploaded PDF</span>}
+                                    {hasDrive && <span className="block text-blue-700">✓ Google Drive URL</span>}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-3 text-stone-500 whitespace-nowrap">
+                                {res.fileSize}
+                              </td>
+                              <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                                {onPreviewResource && (
+                                  <button
+                                    onClick={() => onPreviewResource(res)}
+                                    className="p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100 transition-colors"
+                                    title={lang === 'bn' ? 'পিডিএফ প্রিভিউ দেখুন' : 'Preview PDF'}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleEditResource(res)}
+                                  className="p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100 transition-colors"
+                                  title="Edit Resource"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteResource(res.id)}
+                                  className="p-1.5 text-stone-600 hover:text-red-700 rounded hover:bg-red-50 transition-colors"
+                                  title="Delete Resource"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="p-6 text-center text-stone-500">
+                            {lang === 'bn' ? 'কোনো রিসোর্স খুঁজে পাওয়া যায়নি।' : 'No resources match your search or filters.'}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -768,6 +1013,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div>
+                  <label className="block font-medium text-stone-700 mb-1">Category / রিসোর্স ধরন *</label>
+                  <select
+                    value={resCategory}
+                    onChange={(e) => setResCategory(e.target.value as ResourceCategory)}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-900"
+                  >
+                    <option value="Solved-Answer">{lang === 'bn' ? 'সমাধানকৃত প্রশ্নপত্র (Solved-Answer)' : 'Solved Questions & Answers'}</option>
+                    <option value="Question-Paper">{lang === 'bn' ? 'মূল প্রশ্নপত্র (Question Paper)' : 'Official Exam Question'}</option>
+                    <option value="Hand-Note">{lang === 'bn' ? 'হ্যান্ডনোট / স্টাডি নোট (Hand-Note)' : 'Study Guide / Notes'}</option>
+                    <option value="Syllabus">{lang === 'bn' ? 'সিলেবাস ও আউটলাইন (Syllabus)' : 'Official Syllabus'}</option>
+                    <option value="Reference-Book">{lang === 'bn' ? 'রেফারেন্স বই (Reference Book)' : 'Reference Book'}</option>
+                    <option value="Guideline">{lang === 'bn' ? 'পরীক্ষা প্রস্তুতি গাইড (Guideline)' : 'Preparation Guideline'}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-stone-700 mb-1">ভাষা (Language) *</label>
+                  <select
+                    value={resLanguage}
+                    onChange={(e) => setResLanguage(e.target.value as 'bn' | 'en' | 'bilingual')}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-900"
+                  >
+                    <option value="bn">বাংলা (Bengali)</option>
+                    <option value="en">ইংরেজি (English)</option>
+                    <option value="bilingual">দ্বিভাষিক (Bilingual)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-stone-700 mb-1">পাবলিকেশন স্ট্যাটাস *</label>
+                  <div className="flex items-center gap-3 p-2 bg-stone-50 border border-stone-200 rounded-lg h-[38px]">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resStatusOption"
+                        checked={resStatus === 'published'}
+                        onChange={() => setResStatus('published')}
+                        className="text-emerald-700 focus:ring-emerald-700 cursor-pointer"
+                      />
+                      <span className="font-semibold text-emerald-800 text-xs">প্রকাশিত (Live)</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resStatusOption"
+                        checked={resStatus === 'draft'}
+                        onChange={() => setResStatus('draft')}
+                        className="text-amber-700 focus:ring-amber-700 cursor-pointer"
+                      />
+                      <span className="font-semibold text-amber-800 text-xs">ড্রাফট (Draft)</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               {/* Source Section: Direct Upload OR Google Drive URL */}
               <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 space-y-4">
                 <div className="flex items-center justify-between">
@@ -787,11 +1089,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         type="file"
                         accept="application/pdf"
                         onChange={handleFileUpload}
-                        className="text-xs text-stone-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-emerald-800 file:text-white"
+                        className="text-xs text-stone-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-emerald-800 file:text-white cursor-pointer"
                       />
+                      {uploadProgress !== null && (
+                        <div className="mt-2 space-y-1">
+                          <div className="flex justify-between text-[11px] text-stone-500">
+                            <span>আপলোড হচ্ছে...</span>
+                            <span>{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
+                            <div 
+                              className="bg-emerald-600 h-full transition-all duration-200" 
+                              style={{ width: `${uploadProgress}%` }} 
+                            />
+                          </div>
+                        </div>
+                      )}
                       {resFileUrl && (
-                        <div className="text-[11px] text-emerald-700 font-semibold mt-1">
-                          ✓ File loaded ({resFileSize})
+                        <div className="text-[11px] text-emerald-700 font-semibold mt-1.5 flex items-center justify-center gap-1">
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>ফাইল প্রস্তুত ({resFileSize})</span>
+                          {uploadFileName && <span className="text-stone-400 font-normal">· {uploadFileName}</span>}
                         </div>
                       )}
                     </div>
@@ -809,7 +1127,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         className="w-full p-2.5 bg-white border border-stone-200 rounded-lg text-stone-900"
                       />
                       <span className="text-[11px] text-stone-400 block">
-                        Direct public view/sharing link from Google Drive or OneDrive.
+                        গুগল ড্রাইভ বা ওয়ানড্রাইভের শেয়ারেবল পাবলিক লিংক (বড় ফাইলের জন্য বিশেষভাবে সুপারিশকৃত)।
                       </span>
                     </div>
                   </div>
@@ -896,8 +1214,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-stone-900">Islamic Banking Articles & Columns</h3>
-                  <p className="text-xs text-stone-500">Manage bilingual articles published for Bangladeshi students and bankers.</p>
+                  <h3 className="text-base font-bold text-stone-900">
+                    {lang === 'bn' ? 'ইসলামিক ব্যাংকিং আর্টিকেল ও গবেষণাপত্র' : 'Islamic Banking Articles & Columns'}
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    {lang === 'bn'
+                      ? 'ডিপ্লোমা শিক্ষার্থী ও ব্যাংক কর্মকর্তাদের জন্য প্রকাশিত গবেষণামূলক নিবন্ধ পরিচালনা করুন।'
+                      : 'Manage bilingual articles published for Bangladeshi students and bankers.'}
+                  </p>
                 </div>
                 <button
                   onClick={() => {
@@ -906,13 +1230,60 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     setArtTitleBn('');
                     setArtContentBn('');
                     setArtContentEn('');
+                    setArtStatus('published');
                     setActiveTab('new-article');
                   }}
                   className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Write Article</span>
+                  <span>{lang === 'bn' ? 'নতুন আর্টিকেল লিখুন' : 'Write Article'}</span>
                 </button>
+              </div>
+
+              {/* Articles Search & Filter Toolbar */}
+              <div className="bg-stone-50 border border-stone-200 p-3 rounded-xl flex flex-wrap items-center gap-2 text-xs">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={articleSearch}
+                    onChange={(e) => setArticleSearch(e.target.value)}
+                    placeholder={lang === 'bn' ? 'শিরোনাম, লেখক বা কি-ওয়ার্ড দিয়ে খুঁজুন...' : 'Search by title, author, or keyword...'}
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-stone-200 rounded-lg text-stone-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                  />
+                  {articleSearch && (
+                    <button
+                      onClick={() => setArticleSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={articleFilterStatus}
+                    onChange={(e) => setArticleFilterStatus(e.target.value as 'ALL' | 'published' | 'draft')}
+                    className="px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-stone-700 text-xs"
+                  >
+                    <option value="ALL">{lang === 'bn' ? 'সকল স্ট্যাটাস' : 'All Status'}</option>
+                    <option value="published">{lang === 'bn' ? 'প্রকাশিত (Published)' : 'Published'}</option>
+                    <option value="draft">{lang === 'bn' ? 'ড্রাফট (Draft)' : 'Draft'}</option>
+                  </select>
+
+                  {(articleSearch || articleFilterStatus !== 'ALL') && (
+                    <button
+                      onClick={() => {
+                        setArticleSearch('');
+                        setArticleFilterStatus('ALL');
+                      }}
+                      className="px-2.5 py-1.5 text-stone-500 hover:text-stone-900 underline text-xs cursor-pointer"
+                    >
+                      {lang === 'bn' ? 'রিসেট' : 'Reset'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="border border-stone-200 rounded-xl overflow-hidden bg-white shadow-xs">
@@ -920,51 +1291,100 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <thead className="bg-stone-50 text-stone-600 font-semibold border-b border-stone-200">
                     <tr>
                       <th className="p-3">Title / শিরোনাম</th>
-                      <th className="p-3">Author</th>
+                      <th className="p-3">Author / লেখক</th>
+                      <th className="p-3">স্ট্যাটাস</th>
                       <th className="p-3">Published Date</th>
                       <th className="p-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
-                    {articles.map((art) => (
-                      <tr key={art.id} className="hover:bg-stone-50">
-                        <td className="p-3 font-medium text-stone-900 max-w-sm truncate">
-                          <div>{art.titleBn}</div>
-                          <div className="text-[11px] text-stone-400 truncate">{art.title}</div>
-                        </td>
-                        <td className="p-3 text-stone-600">{art.author}</td>
-                        <td className="p-3 text-stone-500">{art.publishedDate}</td>
-                        <td className="p-3 text-right space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditingArticleId(art.id);
-                              setArtTitle(art.title);
-                              setArtTitleBn(art.titleBn);
-                              setArtSlug(art.slug || '');
-                              setArtAuthor(art.author);
-                              setArtAuthorDesignation(art.authorDesignation || '');
-                              setArtSummary(art.summary);
-                              setArtSummaryBn(art.summaryBn);
-                              setArtContentEn(art.contentMarkdownEn);
-                              setArtContentBn(art.contentMarkdownBn);
-                              setArtTags((art.tags || []).join(', '));
-                              setArtKeywords((art.keywords || art.tags || []).join(', '));
-                              setArtCoverImage(art.coverImage || '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg');
-                              setActiveTab('new-article');
-                            }}
-                            className="p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteArticle(art.id)}
-                            className="p-1.5 text-stone-600 hover:text-red-700 rounded hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                    {adminFilteredArticles.length > 0 ? (
+                      adminFilteredArticles.map((art) => {
+                        const isDraft = art.status === 'draft' || art.isDraft;
+
+                        return (
+                          <tr key={art.id} className="hover:bg-stone-50 transition-colors">
+                            <td className="p-3 font-medium text-stone-900 max-w-sm truncate">
+                              <div className="font-semibold">{art.titleBn}</div>
+                              <div className="text-[11px] text-stone-400 truncate">/{art.slug}</div>
+                            </td>
+                            <td className="p-3 text-stone-600 whitespace-nowrap">{art.author}</td>
+                            <td className="p-3 whitespace-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleArticleStatus(art)}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold cursor-pointer transition-colors ${
+                                  isDraft
+                                    ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                                    : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                }`}
+                                title={lang === 'bn' ? 'ক্লিক করে স্ট্যাটাস পরিবর্তন করুন' : 'Click to toggle status'}
+                              >
+                                {isDraft ? (
+                                  <>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                    {lang === 'bn' ? 'ড্রাফট' : 'Draft'}
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                                    {lang === 'bn' ? 'প্রকাশিত' : 'Published'}
+                                  </>
+                                )}
+                              </button>
+                            </td>
+                            <td className="p-3 text-stone-500 whitespace-nowrap">{art.publishedDate}</td>
+                            <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                              <a
+                                href={`/diploma/${art.slug}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-block p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100"
+                                title="View Public Article"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                              <button
+                                onClick={() => {
+                                  setEditingArticleId(art.id);
+                                  setArtTitle(art.title);
+                                  setArtTitleBn(art.titleBn);
+                                  setArtSlug(art.slug || '');
+                                  setArtAuthor(art.author);
+                                  setArtAuthorDesignation(art.authorDesignation || '');
+                                  setArtSummary(art.summary);
+                                  setArtSummaryBn(art.summaryBn);
+                                  setArtContentEn(art.contentMarkdownEn);
+                                  setArtContentBn(art.contentMarkdownBn);
+                                  setArtTags((art.tags || []).join(', '));
+                                  setArtKeywords((art.keywords || art.tags || []).join(', '));
+                                  setArtCoverImage(art.coverImage || '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg');
+                                  setArtStatus(art.status || (art.isDraft ? 'draft' : 'published'));
+                                  setActiveTab('new-article');
+                                }}
+                                className="p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100"
+                                title="Edit Article"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteArticle(art.id)}
+                                className="p-1.5 text-stone-600 hover:text-red-700 rounded hover:bg-red-50"
+                                title="Delete Article"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-6 text-center text-stone-500">
+                          {lang === 'bn' ? 'কোনো আর্টিকেল পাওয়া যায়নি।' : 'No articles match your search or filter.'}
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -974,9 +1394,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {/* TAB 4: WRITE / EDIT ARTICLE */}
           {activeTab === 'new-article' && (
             <form onSubmit={handleSaveArticle} className="space-y-4 text-xs">
-              <h3 className="text-base font-bold text-stone-900 border-b border-stone-200 pb-2">
-                {editingArticleId ? 'Edit Banking Article' : 'Compose New Bilingual Banking Article'}
-              </h3>
+              <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+                <h3 className="text-base font-bold text-stone-900">
+                  {editingArticleId ? 'Edit Banking Article' : 'Compose New Bilingual Banking Article'}
+                </h3>
+                <div className="flex items-center gap-3">
+                  <span className="text-stone-600 font-medium">স্ট্যাটাস:</span>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="artStatusRadio"
+                      checked={artStatus === 'published'}
+                      onChange={() => setArtStatus('published')}
+                      className="text-emerald-700 focus:ring-emerald-700"
+                    />
+                    <span className="font-semibold text-emerald-800">প্রকাশিত</span>
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="artStatusRadio"
+                      checked={artStatus === 'draft'}
+                      onChange={() => setArtStatus('draft')}
+                      className="text-amber-700 focus:ring-amber-700"
+                    />
+                    <span className="font-semibold text-amber-800">ড্রাফট</span>
+                  </label>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

@@ -49,6 +49,8 @@ export interface PdfResource {
   slug?: string;
   thumbnailUrl?: string;
   keywords?: string[];
+  status?: 'published' | 'draft';
+  isDraft?: boolean;
 }
 
 export interface Article {
@@ -71,6 +73,8 @@ export interface Article {
   coverImage?: string;
   featured?: boolean;
   relatedResourceIds?: string[];
+  status?: 'published' | 'draft';
+  isDraft?: boolean;
 }
 
 export interface CategoryInfo {

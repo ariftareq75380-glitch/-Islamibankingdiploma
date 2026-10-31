@@ -46,7 +46,9 @@ export const StorageService = {
       id: `resource-${Date.now()}`,
       publicationDate: new Date().toISOString().split('T')[0],
       downloadsCount: 0,
-      viewsCount: 1
+      viewsCount: 1,
+      status: newResource.status || 'published',
+      isDraft: newResource.status === 'draft' || Boolean(newResource.isDraft)
     };
     const updated = [created, ...resources];
     this.saveResources(updated);
@@ -119,7 +121,9 @@ export const StorageService = {
     const created: Article = {
       ...newArticle,
       id: `art-${Date.now()}`,
-      publishedDate: new Date().toISOString().split('T')[0]
+      publishedDate: new Date().toISOString().split('T')[0],
+      status: newArticle.status || 'published',
+      isDraft: newArticle.status === 'draft' || Boolean(newArticle.isDraft)
     };
     const updated = [created, ...articles];
     this.saveArticles(updated);
