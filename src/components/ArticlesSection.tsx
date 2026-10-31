@@ -51,7 +51,7 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({
             {onWriteArticle && (
               <button
                 onClick={onWriteArticle}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#047857] hover:bg-[#065f46] text-white rounded-lg text-xs font-bold shadow-2xs transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 <span>{lang === 'bn' ? 'নতুন কন্টেন্ট লিখুন' : 'Write New Article'}</span>
@@ -65,48 +65,48 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({
         </div>
 
         {/* Articles List / Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {articles.map((art) => (
             <article
               key={art.id}
               onClick={() => onOpenArticle(art)}
-              className="group cursor-pointer rounded-2xl border border-stone-200 bg-stone-50 hover:bg-white hover:border-emerald-600/70 hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden"
+              className="group cursor-pointer rounded-xl border border-stone-200 bg-white hover:border-[#047857]/60 hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden"
             >
               <div>
                 {/* Cover Image / Thumbnail */}
                 {art.coverImage && (
-                  <div className="relative h-48 overflow-hidden bg-stone-200">
+                  <div className="relative h-44 sm:h-48 overflow-hidden bg-stone-200">
                     <img
                       src={art.coverImage}
                       alt={art.titleBn || art.title}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
-                    <div className="absolute top-3 right-3">
-                      <span className="text-[11px] font-semibold bg-stone-900/80 backdrop-blur-xs text-white px-2 py-0.5 rounded">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-70" />
+                    <div className="absolute top-2.5 right-2.5">
+                      <span className="text-[10px] font-semibold bg-black/60 backdrop-blur-xs text-white px-2 py-0.5 rounded">
                         {art.readTime}
                       </span>
                     </div>
 
                     {/* Distinct URL Slug badge */}
                     <div className="absolute bottom-2 left-2 right-2">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-100 bg-stone-900/85 backdrop-blur-xs px-2 py-0.5 rounded truncate max-w-full">
-                        <Globe className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-[#D4AF37] bg-stone-900/90 backdrop-blur-xs px-2 py-0.5 rounded truncate max-w-full">
+                        <Globe className="w-3 h-3 text-[#D4AF37] shrink-0" />
                         <span className="truncate">/diploma/{art.slug}</span>
                       </span>
                     </div>
                   </div>
                 )}
 
-                <div className="p-5">
+                <div className="p-4 sm:p-5">
                   {/* Category and Date */}
                   <div className="flex items-center gap-2 text-xs text-stone-500 mb-2">
-                    <span className="font-semibold text-emerald-800">
+                    <span className="font-bold text-[#047857]">
                       {lang === 'bn' ? art.categoryBn : art.category}
                     </span>
                     <span aria-hidden="true">·</span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 text-[11px]">
                       <Calendar className="w-3 h-3" />
                       <span>{art.publishedDate}</span>
                     </span>

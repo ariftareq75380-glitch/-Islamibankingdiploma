@@ -415,7 +415,7 @@ export default function App() {
   }[fontSize];
 
   return (
-    <div className={`min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-100 selection:text-emerald-900 font-sans ${fontSizeClass}`}>
+    <div className={`min-h-screen flex flex-col bg-[#F8FAF5] text-stone-900 selection:bg-emerald-100 selection:text-emerald-900 font-sans overflow-x-hidden ${fontSizeClass}`}>
       {/* Navigation Header with Reading Mode Tools & Organized Categories */}
       <Navbar
         activeTab={activeTab}
@@ -529,14 +529,14 @@ export default function App() {
                 />
 
             {/* Complete Interactive PDF Library Section */}
-            <div ref={librarySectionRef} className="py-12 sm:py-16 bg-stone-50 border-t border-stone-200">
+            <div ref={librarySectionRef} className="py-10 sm:py-14 bg-[#F8FAF5] border-t border-stone-200">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
                   <div>
-                    <div className="text-xs font-semibold text-emerald-800 tracking-wider uppercase mb-1">
+                    <div className="text-xs font-bold text-[#047857] tracking-wider uppercase mb-1">
                       {lang === 'bn' ? 'সম্পূর্ণ আর্কাইভ অনুসন্ধান' : 'Master PDF Archive'}
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">
+                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-stone-900">
                       {lang === 'bn' ? 'সকল শিক্ষামূলক পিডিএফ ও স্টাডি ডকুমেন্টস' : 'All Islamic Banking & DIB PDF Resources'}
                     </h2>
                   </div>

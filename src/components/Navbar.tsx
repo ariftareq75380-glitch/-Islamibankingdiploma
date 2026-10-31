@@ -24,7 +24,8 @@ import {
   Sparkles,
   BookMarked,
   FileCheck,
-  Type
+  Type,
+  ChevronRight
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 
@@ -54,7 +55,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   setLang,
   openAdminModal,
   bookmarkedCount,
-  openBookmarks,
   siteName,
   siteNameBn,
   isAdminVisible,
@@ -66,66 +66,74 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Categorized navigation groups with clear icons for fast scanning
+  // Grouped navigation links: 1. Exam Preparation, 2. Study Resources, 3. Help & Information
   const menuGroups = [
     {
-      titleBn: 'পড়ার বিষয় ও সিলেবাস',
-      titleEn: 'Study Subjects & Modules',
+      titleBn: 'পরীক্ষা প্রস্তুতি',
+      titleEn: 'Exam Preparation',
       items: [
         { 
           tab: 'diploma' as ActiveTab, 
           labelBn: 'ডিআইবি পার্ট ১ ও ২', 
           labelEn: 'DIB Part 1 & 2',
-          icon: <GraduationCap className="w-4 h-4 text-emerald-700" />
+          icon: <GraduationCap className="w-4 h-4 text-emerald-700" />,
+          descBn: 'সিলেবাস, হ্যান্ডনোট ও পূর্ণাঙ্গ গাইডলাইন'
         },
         { 
           tab: 'previous-questions' as ActiveTab, 
           labelBn: 'বিগত বছরের প্রশ্ন ও সমাধান', 
           labelEn: 'Previous Solved Papers',
-          icon: <FileCheck className="w-4 h-4 text-emerald-700" />
+          icon: <FileCheck className="w-4 h-4 text-emerald-700" />,
+          descBn: '২০১৮–২০২৪ সালের অফিশিয়াল প্রশ্ন ও মডেল উত্তর'
         },
+        { 
+          tab: 'mock-test' as ActiveTab, 
+          labelBn: 'মডেল টেস্ট ও অনুশীলন কুইজ', 
+          labelEn: 'Mock Test & Practice',
+          icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />,
+          descBn: 'টাইমার সহ রিয়েল-টাইম সেলফ অ্যাসেসমেন্ট',
+          isHighlight: true
+        }
+      ]
+    },
+    {
+      titleBn: 'অধ্যয়ন ও রেফারেন্স',
+      titleEn: 'Study Resources',
+      items: [
         { 
           tab: 'banking' as ActiveTab, 
           labelBn: 'ইসলামিক ব্যাংকিং ও অর্থায়ন', 
           labelEn: 'Islamic Banking & Finance',
-          icon: <Building2 className="w-4 h-4 text-blue-700" />
+          icon: <Building2 className="w-4 h-4 text-emerald-700" />,
+          descBn: 'মুদারাবা, মুশারাকা ও আধুনিক ব্যাংকিং নীতিমালা'
+        },
+        { 
+          tab: 'pdf-library' as ActiveTab, 
+          labelBn: 'সম্পূর্ণ উন্মুক্ত পিডিএফ পাঠাগার', 
+          labelEn: 'Master PDF Library',
+          icon: <BookMarked className="w-4 h-4 text-teal-700" />,
+          descBn: 'আইবিবি অনুমোদিত সকল শিক্ষামূলক বই ও নোট'
         },
         { 
           tab: 'quran-hadith' as ActiveTab, 
           labelBn: 'কুরআন ও হাদিসে অর্থনৈতিক বিধান', 
           labelEn: 'Quran & Hadith on Finance',
-          icon: <BookOpen className="w-4 h-4 text-amber-700" />
+          icon: <BookOpen className="w-4 h-4 text-amber-700" />,
+          descBn: 'মুআমালাত সংক্রান্ত কোরআনের আয়াত ও সহীহ হাদিস'
         },
         { 
           tab: 'fiqh-fatwa' as ActiveTab, 
           labelBn: 'ফিকহুল মুআমালাত ও ফতোয়া', 
           labelEn: 'Fiqh al-Muamalat & Fatwas',
-          icon: <Scale className="w-4 h-4 text-teal-700" />
-        },
-        { 
-          tab: 'pdf-library' as ActiveTab, 
-          labelBn: 'সম্পূর্ণ পিডিএফ পাঠাগার', 
-          labelEn: 'Full PDF Library',
-          icon: <BookMarked className="w-4 h-4 text-stone-700" />
-        }
-      ]
-    },
-    {
-      titleBn: 'পরীক্ষা ও অনুশীলন',
-      titleEn: 'Exam & Practice',
-      items: [
-        { 
-          tab: 'mock-test' as ActiveTab, 
-          labelBn: 'মডেল টেস্ট ও MCQ কুইজ', 
-          labelEn: 'Mock Test & Quiz',
-          icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />,
-          isHighlight: true
+          icon: <Scale className="w-4 h-4 text-emerald-800" />,
+          descBn: 'সেন্ট্রাল শরীয়াহ বোর্ডের গুরুত্বপূর্ণ সিদ্ধান্ত'
         },
         { 
           tab: 'articles' as ActiveTab, 
           labelBn: 'ব্যাংকিং প্রবন্ধ ও কলাম', 
-          labelEn: 'Banking Articles',
-          icon: <Sparkles className="w-4 h-4 text-amber-600" />
+          labelEn: 'Banking Articles & Columns',
+          icon: <Sparkles className="w-4 h-4 text-amber-600" />,
+          descBn: 'বিশেষজ্ঞ ব্যাংকারদের দ্বিভাষিক গবেষণাপত্র'
         }
       ]
     },
@@ -135,38 +143,42 @@ export const Navbar: React.FC<NavbarProps> = ({
       items: [
         { 
           tab: 'bookmarks-view' as ActiveTab, 
-          labelBn: 'সংরক্ষিত প্রশ্নসমূহ (বুকমার্ক)', 
+          labelBn: 'সংরক্ষিত প্রশ্ন ও বই (Bookmarks)', 
           labelEn: 'Saved Questions (Bookmarks)',
-          icon: <Bookmark className="w-4 h-4 text-amber-600" />
+          icon: <Bookmark className="w-4 h-4 text-amber-600" />,
+          descBn: 'আপনার বুকমার্ক করা সকল প্রয়োজনীয় ডকুমেন্ট'
         },
         { 
           tab: 'faq' as ActiveTab, 
           labelBn: 'সচরাচর জিজ্ঞাসা (FAQ)', 
           labelEn: 'Frequently Asked Questions',
-          icon: <HelpCircle className="w-4 h-4 text-blue-600" />
+          icon: <HelpCircle className="w-4 h-4 text-blue-600" />,
+          descBn: 'ডিআইবি রেজিস্ট্রেশন ও পরীক্ষা সংক্রান্ত প্রশ্ন'
         },
         { 
           tab: 'about' as ActiveTab, 
           labelBn: 'আমাদের সম্পর্কে', 
           labelEn: 'About Us',
-          icon: <Info className="w-4 h-4 text-stone-600" />
+          icon: <Info className="w-4 h-4 text-stone-600" />,
+          descBn: 'ওয়েবসাইটের লক্ষ্য ও শিক্ষামূলক উদ্দেশ্য'
         },
         { 
           tab: 'contact' as ActiveTab, 
           labelBn: 'যোগাযোগ ও মতামত', 
           labelEn: 'Contact Us',
-          icon: <Mail className="w-4 h-4 text-stone-600" />
+          icon: <Mail className="w-4 h-4 text-stone-600" />,
+          descBn: 'কোনো প্রশ্ন বা নোটস পাঠানোর জন্য'
         }
       ]
     }
   ];
 
-  // Quick primary desktop bar links
+  // Primary desktop bar links
   const primaryDesktopLinks = [
     { tab: 'home' as ActiveTab, labelBn: 'হোম', labelEn: 'Home' },
     { tab: 'diploma' as ActiveTab, labelBn: 'ডিআইবি রিসোর্স', labelEn: 'DIB Hub' },
     { tab: 'previous-questions' as ActiveTab, labelBn: 'বিগত প্রশ্ন', labelEn: 'Past Papers' },
-    { tab: 'mock-test' as ActiveTab, labelBn: 'অনুশীলন ও কুইজ', labelEn: 'Mock Test', isNew: true },
+    { tab: 'mock-test' as ActiveTab, labelBn: 'মডেল টেস্ট', labelEn: 'Mock Test', isNew: true },
     { tab: 'pdf-library' as ActiveTab, labelBn: 'পাঠাগার', labelEn: 'Library' },
     { tab: 'faq' as ActiveTab, labelBn: 'এফএকিউ', labelEn: 'FAQ' },
   ];
@@ -185,44 +197,50 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-2xs">
       {/* Main Top Navigation Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-4 h-16">
-          {/* Brand Wordmark */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+        <div className="flex items-center justify-between gap-2 sm:gap-4 h-15 sm:h-16">
+          
+          {/* Logo & Brand Wordmark Area */}
           <button 
             onClick={() => setActiveTab('home')}
-            className="flex items-center gap-2.5 text-left shrink-0 group focus:outline-none"
+            className="flex items-center gap-2 sm:gap-3 text-left shrink-0 group focus:outline-none"
           >
-            <div className="w-10 h-10 rounded-xl bg-emerald-900 text-emerald-100 flex items-center justify-center shadow-xs group-hover:bg-emerald-800 transition-colors">
-              <BookOpen className="w-5 h-5 text-emerald-300" />
+            {/* Islamic Emblem Icon with restrained gold accent */}
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#14532D] via-[#047857] to-[#064e3b] text-white flex items-center justify-center shadow-xs border border-[#D4AF37]/40 group-hover:border-[#D4AF37] transition-all">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-100" />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#D4AF37] ring-1 ring-white" />
             </div>
+
             <div className="flex flex-col">
-              <span className="text-base sm:text-lg font-bold tracking-tight text-stone-900 group-hover:text-emerald-800 transition-colors whitespace-nowrap">
-                {lang === 'bn' ? siteNameBn : siteName}
-              </span>
-              <span className="text-[11px] text-stone-500 font-medium tracking-wide hidden sm:block">
-                {lang === 'bn' ? 'ডিআইবি পরীক্ষা ও ইসলামী ব্যাংকিং জ্ঞানভাণ্ডার' : 'Islamic Banking Diploma Exam Hub'}
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm sm:text-base md:text-lg font-bold tracking-tight text-[#14532D] group-hover:text-[#047857] transition-colors whitespace-nowrap font-bengali">
+                  {lang === 'bn' ? siteNameBn : siteName}
+                </span>
+              </div>
+              <span className="text-[10px] sm:text-[11px] text-stone-500 font-medium tracking-wide hidden sm:block font-bengali">
+                {lang === 'bn' ? 'ডিআইবি পরীক্ষা ও উন্মুক্ত জ্ঞান পাঠাগার' : 'Islamic Banking Diploma Academic Hub'}
               </span>
             </div>
           </button>
 
           {/* Desktop Primary Nav */}
-          <nav className="hidden lg:flex items-center gap-5 text-sm font-medium text-stone-600">
+          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-stone-600">
             {primaryDesktopLinks.map((item) => (
               <button
                 key={item.tab}
                 onClick={() => setActiveTab(item.tab)}
-                className={`transition-colors whitespace-nowrap shrink-0 py-1 flex items-center gap-1.5 ${
+                className={`transition-colors whitespace-nowrap shrink-0 py-1 flex items-center gap-1.5 font-bengali ${
                   activeTab === item.tab
-                    ? 'text-emerald-800 font-bold border-b-2 border-emerald-800'
-                    : 'hover:text-stone-900'
+                    ? 'text-[#047857] font-bold border-b-2 border-[#047857]'
+                    : 'hover:text-[#14532D]'
                 }`}
               >
                 <span>{lang === 'bn' ? item.labelBn : item.labelEn}</span>
                 {item.isNew && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                    {lang === 'bn' ? 'নতুন' : 'NEW'}
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#D4AF37]/15 text-[#14532D] border border-[#D4AF37]/40">
+                    {lang === 'bn' ? 'কুইজ' : 'NEW'}
                   </span>
                 )}
               </button>
@@ -230,7 +248,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Quick Reading Tools & Action Bar */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Font Size Adjuster (A-, A, A+) */}
             <button
               onClick={cycleFontSize}
@@ -239,7 +257,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? `ফন্ট সাইজ পরিবর্তন করুন (বর্তমান: ${fontSize.toUpperCase()})` 
                   : `Change reading text size (Current: ${fontSize.toUpperCase()})`
               }
-              className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-stone-600 hover:text-stone-900 hover:bg-stone-100 text-xs font-semibold flex items-center gap-1 border border-stone-200"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-stone-600 hover:text-[#14532D] hover:bg-emerald-50 text-xs font-semibold flex items-center gap-1 border border-stone-200 transition-colors"
             >
               <Type className="w-3.5 h-3.5 text-stone-500" />
               <span className="hidden sm:inline uppercase text-[11px]">{fontSize}</span>
@@ -253,9 +271,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? `থিম পরিবর্তন (বর্তমান: ${theme === 'sepia' ? 'আই-কেয়ার ক্রিম' : theme === 'dark' ? 'নাইট ডার্ক' : 'লাইট'})` 
                   : `Toggle theme (Current: ${theme})`
               }
-              className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-stone-600 hover:text-stone-900 hover:bg-stone-100 text-xs font-semibold flex items-center gap-1 border border-stone-200"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-stone-600 hover:text-[#14532D] hover:bg-emerald-50 text-xs font-semibold flex items-center gap-1 border border-stone-200 transition-colors"
             >
-              {theme === 'light' && <Sun className="w-3.5 h-3.5 text-amber-500" />}
+              {theme === 'light' && <Sun className="w-3.5 h-3.5 text-[#D4AF37]" />}
               {theme === 'sepia' && <Coffee className="w-3.5 h-3.5 text-amber-700" />}
               {theme === 'dark' && <Moon className="w-3.5 h-3.5 text-indigo-400" />}
               <span className="hidden sm:inline text-[11px]">
@@ -269,15 +287,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => setActiveTab('bookmarks-view')}
               title={lang === 'bn' ? 'সংরক্ষিত প্রশ্ন ও বই' : 'Bookmarks'}
-              className={`relative p-2 rounded-lg transition-colors border border-stone-200 ${
+              className={`relative p-2 rounded-lg transition-colors border ${
                 activeTab === 'bookmarks-view' 
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
-                  : 'text-stone-600 hover:text-emerald-800 hover:bg-stone-100'
+                  ? 'bg-emerald-50 text-[#047857] border-emerald-300' 
+                  : 'text-stone-600 hover:text-[#047857] hover:bg-emerald-50 border-stone-200'
               }`}
             >
               <Bookmark className="w-4 h-4" />
               {bookmarkedCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-700 text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#047857] text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
                   {bookmarkedCount}
                 </span>
               )}
@@ -287,10 +305,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => setLang(lang === 'bn' ? 'en' : 'bn')}
               title={lang === 'bn' ? 'Switch to English' : 'বাংলা ভাষায় পরিবর্তন করুন'}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-stone-700 hover:text-emerald-900 bg-stone-100 hover:bg-stone-200/80 transition-colors flex items-center gap-1 border border-stone-200"
+              className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold text-stone-700 hover:text-[#047857] bg-stone-100 hover:bg-emerald-50 transition-colors flex items-center gap-1 border border-stone-200"
             >
-              <Languages className="w-3.5 h-3.5 text-emerald-700" />
-              <span>{lang === 'bn' ? 'EN' : 'বাং'}</span>
+              <Languages className="w-3.5 h-3.5 text-[#047857]" />
+              <span className="font-semibold">{lang === 'bn' ? 'EN' : 'বাং'}</span>
             </button>
 
             {/* Admin Management Button (Secret - Only shown when unlocked) */}
@@ -299,15 +317,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={openAdminModal}
                   title={lang === 'bn' ? 'অ্যাডমিন পোর্টাল' : 'Admin Portal'}
-                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-white bg-emerald-900 rounded-md hover:bg-emerald-800 transition-colors whitespace-nowrap shadow-xs cursor-pointer border border-emerald-800/60"
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-white bg-[#14532D] rounded-md hover:bg-[#047857] transition-colors whitespace-nowrap shadow-xs cursor-pointer border border-[#D4AF37]/40"
                 >
-                  <Lock className="w-3 h-3 text-emerald-300" />
+                  <Lock className="w-3 h-3 text-[#D4AF37]" />
                   <span className="hidden sm:inline">{lang === 'bn' ? 'অ্যাডমিন' : 'Admin'}</span>
                 </button>
                 {onHideAdmin && (
                   <button
                     onClick={onHideAdmin}
-                    title={lang === 'bn' ? 'অ্যাডমিন বাটন আবার লুকিয়ে ফেলুন' : 'Hide admin button'}
+                    title={lang === 'bn' ? 'অ্যাডমিন বাটন লুকান' : 'Hide admin button'}
                     className="p-1 text-stone-400 hover:text-stone-700 rounded transition-colors"
                   >
                     <EyeOff className="w-3 h-3" />
@@ -319,24 +337,40 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-stone-700 hover:text-stone-900 rounded-lg border border-stone-200 hover:bg-stone-100"
+              className="lg:hidden p-2 text-stone-700 hover:text-[#14532D] rounded-lg border border-stone-200 hover:bg-emerald-50 transition-colors"
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-5 h-5 text-[#14532D]" /> : <Menu className="w-5 h-5 text-[#14532D]" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Categorized Mobile Drawer Navigation */}
+      {/* Mobile Drawer Navigation (Grouped under Exam Preparation, Study Resources, and Help & Information) */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-stone-200 px-4 pt-3 pb-6 max-h-[80vh] overflow-y-auto space-y-5 animate-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden fixed inset-x-0 top-15 sm:top-16 bg-white/98 backdrop-blur-lg border-b border-stone-200 shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto px-4 py-4 space-y-5 animate-in slide-in-from-top-2 duration-200 z-50 font-bengali">
+          {/* Quick Header inside Drawer */}
+          <div className="flex items-center justify-between pb-2 border-b border-stone-100">
+            <span className="text-xs font-bold text-[#14532D] uppercase tracking-wider">
+              {lang === 'bn' ? 'নেভিগেশন মেনু' : 'Portal Navigation'}
+            </span>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-1 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
           {menuGroups.map((group, groupIdx) => (
             <div key={groupIdx} className="space-y-1.5">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-stone-400 px-2 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-700"></span>
-                <span>{lang === 'bn' ? group.titleBn : group.titleEn}</span>
+              {/* Group Title with Gold Accent Indicator */}
+              <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 px-2 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
+                <span className="text-stone-700">{lang === 'bn' ? group.titleBn : group.titleEn}</span>
               </div>
+
+              {/* Group Items */}
               <div className="grid grid-cols-1 gap-1">
                 {group.items.map((item) => (
                   <button
@@ -345,23 +379,36 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setActiveTab(item.tab);
                       setMobileMenuOpen(false);
                     }}
-                    className={`text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-between ${
+                    className={`text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-between min-h-[44px] ${
                       activeTab === item.tab
-                        ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-200/80 shadow-2xs'
+                        ? 'bg-emerald-50 text-[#14532D] font-bold border border-emerald-300 shadow-2xs'
                         : 'text-stone-700 hover:bg-stone-50 border border-transparent'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-1.5 rounded-lg bg-stone-100">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${activeTab === item.tab ? 'bg-emerald-100 text-[#047857]' : 'bg-stone-100 text-stone-600'}`}>
                         {item.icon}
                       </div>
-                      <span>{lang === 'bn' ? item.labelBn : item.labelEn}</span>
+                      <div className="truncate">
+                        <div className="font-semibold truncate leading-snug">
+                          {lang === 'bn' ? item.labelBn : item.labelEn}
+                        </div>
+                        {item.descBn && (
+                          <div className="text-[10px] text-stone-500 font-normal truncate">
+                            {lang === 'bn' ? item.descBn : ''}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {item.isHighlight && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                        {lang === 'bn' ? 'কুইজ' : 'Quiz'}
-                      </span>
-                    )}
+
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {item.isHighlight && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#14532D] border border-[#D4AF37]/40">
+                          {lang === 'bn' ? 'কুইজ' : 'Quiz'}
+                        </span>
+                      )}
+                      <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                    </div>
                   </button>
                 ))}
               </div>
@@ -370,15 +417,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Mobile Admin Link if visible */}
           {isAdminVisible && (
-            <div className="pt-2 border-t border-stone-200 flex items-center justify-between">
+            <div className="pt-3 border-t border-stone-200 flex items-center justify-between">
               <button
                 onClick={() => {
                   openAdminModal();
                   setMobileMenuOpen(false);
                 }}
-                className="px-3 py-2 rounded-xl text-xs font-semibold text-emerald-950 bg-emerald-100 hover:bg-emerald-200 flex items-center gap-2 flex-1"
+                className="px-3 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#14532D] hover:bg-[#047857] flex items-center justify-center gap-2 flex-1 shadow-xs"
               >
-                <Lock className="w-4 h-4 text-emerald-800" />
+                <Lock className="w-4 h-4 text-[#D4AF37]" />
                 <span>{lang === 'bn' ? 'অ্যাডমিন পোর্টাল খুলুন' : 'Open Admin Portal'}</span>
               </button>
               {onHideAdmin && (

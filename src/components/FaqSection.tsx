@@ -150,7 +150,7 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ lang, onContactClick }) 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={lang === 'bn' ? 'যেকোনো প্রশ্ন বা বিষয় খুঁজুন...' : 'Search questions or keywords...'}
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-700 font-bengali"
+              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#047857] font-bengali"
             />
           </div>
 
@@ -175,8 +175,8 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ lang, onContactClick }) 
         <div className="flex items-center gap-2 overflow-x-auto pt-3 mt-3 border-t border-stone-100 text-xs">
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-3 py-1 rounded-lg font-medium transition-colors shrink-0 ${
-              activeCategory === 'all' ? 'bg-emerald-800 text-white' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+            className={`px-3 py-1 rounded-md font-medium transition-colors shrink-0 ${
+              activeCategory === 'all' ? 'bg-[#047857] text-white' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
             }`}
           >
             {lang === 'bn' ? 'সকল প্রশ্ন' : 'All'}

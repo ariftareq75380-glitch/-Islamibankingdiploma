@@ -43,17 +43,17 @@ export const PrayerAndDateStrip: React.FC<PrayerAndDateStripProps> = ({
   };
 
   return (
-    <div className="bg-stone-100/90 border-b border-stone-200/90 text-stone-700 text-xs py-2 px-3 sm:px-4 font-bengali">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
+    <div className="bg-[#F4F6F0] border-b border-stone-200/80 text-stone-700 text-xs py-2 px-3 sm:px-4 font-bengali">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
         {/* Left: Tri-Calendar Dates (Hijri & Bangla) */}
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-1 text-[11px] sm:text-xs">
+        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 gap-y-1 text-[11px] sm:text-xs">
           {/* Hijri */}
           <button
             onClick={onOpenCalendarModal}
-            className="flex items-center gap-1.5 text-emerald-950 font-semibold hover:text-emerald-700 transition-colors"
+            className="flex items-center gap-1.5 text-[#14532D] font-bold hover:text-[#047857] transition-colors"
             title={lang === 'bn' ? 'হিজরি ও বঙ্গাব্দ ক্যালেন্ডার বিস্তারিত' : 'View Islamic Calendar'}
           >
-            <Moon className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+            <Moon className="w-3.5 h-3.5 text-[#D4AF37] fill-[#D4AF37]/20 shrink-0" />
             <span>{lang === 'bn' ? triDate.hijri.formattedBn : triDate.hijri.formattedEn}</span>
           </button>
 
@@ -65,7 +65,7 @@ export const PrayerAndDateStrip: React.FC<PrayerAndDateStripProps> = ({
             <span>{lang === 'bn' ? triDate.bengali.formattedBn : triDate.bengali.formattedEn}</span>
           </div>
 
-          <span className="text-stone-300">·</span>
+          <span className="text-stone-300 hidden sm:inline">·</span>
 
           {/* Gregorian */}
           <span className="text-stone-500 hidden sm:inline">
@@ -74,17 +74,17 @@ export const PrayerAndDateStrip: React.FC<PrayerAndDateStripProps> = ({
         </div>
 
         {/* Right: Hanafi Prayer Time for District + Quick District Switch */}
-        <div className="flex items-center justify-center md:justify-end gap-2.5 flex-wrap text-[11px] sm:text-xs">
+        <div className="flex items-center justify-center sm:justify-end gap-2 flex-wrap text-[11px] sm:text-xs">
           {/* Next Prayer Badge */}
           <button
             onClick={onOpenPrayerTimesModal}
-            className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-900 border border-emerald-200/80 px-2.5 py-1 rounded-full font-medium hover:bg-emerald-100 transition-colors"
+            className="inline-flex items-center gap-1.5 bg-white text-[#14532D] border border-emerald-200/90 shadow-2xs px-2.5 py-1 rounded-md font-semibold hover:border-[#047857] transition-colors"
             title={lang === 'bn' ? 'সব ওয়াক্তের নামাজের সময়সূচি দেখুন' : 'View all prayer times'}
           >
-            <Clock className="w-3 h-3 text-emerald-700 shrink-0" />
+            <Clock className="w-3 h-3 text-[#047857] shrink-0" />
             <span>
               {lang === 'bn'
-                ? `পরবর্তী ওয়াক্ত: ${prayerData.nextPrayer.nameBn} (${prayerData.nextPrayer.timeStr})`
+                ? `ওয়াক্ত: ${prayerData.nextPrayer.nameBn} (${prayerData.nextPrayer.timeStr})`
                 : `Next: ${prayerData.nextPrayer.nameEn} (${prayerData.nextPrayer.timeStr})`}
             </span>
           </button>
@@ -95,7 +95,7 @@ export const PrayerAndDateStrip: React.FC<PrayerAndDateStripProps> = ({
             <select
               value={selectedDistrictId}
               onChange={handleDistrictChange}
-              className="pl-6 pr-6 py-0.5 text-[11px] bg-white border border-stone-200 rounded-md text-stone-700 hover:border-stone-400 focus:outline-none focus:ring-1 focus:ring-emerald-700 appearance-none cursor-pointer"
+              className="pl-5 pr-5 py-1 text-[11px] bg-white border border-stone-200 rounded-md text-stone-700 hover:border-stone-400 focus:outline-none focus:ring-1 focus:ring-[#047857] appearance-none cursor-pointer"
               title={lang === 'bn' ? 'জেলা পরিবর্তন করুন' : 'Change District'}
             >
               {BANGLADESH_DISTRICTS.map((d) => (
@@ -110,11 +110,11 @@ export const PrayerAndDateStrip: React.FC<PrayerAndDateStripProps> = ({
           {/* Date Converter Trigger */}
           <button
             onClick={onOpenCalendarModal}
-            className="text-stone-500 hover:text-emerald-800 transition-colors flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-stone-200/60"
+            className="text-stone-500 hover:text-[#047857] transition-colors flex items-center gap-1 px-1.5 py-1 rounded hover:bg-stone-200/50"
             title={lang === 'bn' ? 'তারিখ রূপান্তরক' : 'Date Converter'}
           >
-            <ArrowRightLeft className="w-3 h-3 text-emerald-700" />
-            <span className="hidden sm:inline">{lang === 'bn' ? 'রূপান্তরক' : 'Converter'}</span>
+            <ArrowRightLeft className="w-3 h-3 text-[#047857]" />
+            <span className="hidden md:inline">{lang === 'bn' ? 'রূপান্তরক' : 'Converter'}</span>
           </button>
         </div>
       </div>

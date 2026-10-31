@@ -7,15 +7,23 @@
   }
 
   body {
-    background-color: #fafaf9;
+    background-color: #f8faf5;
     color: #1e293b;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  html {
+    overflow-x: hidden;
+    width: 100%;
   }
 
   /* Bengali typography polish - line-height 1.75-1.85 ensures complex conjuncts (যুক্তাক্ষর) do not overlap */
   .font-bengali {
     font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Plus Jakarta Sans', sans-serif;
     line-height: 1.8;
+    word-break: break-word;
   }
 
   /* Arabic calligraphy & Quranic quote font */
@@ -23,6 +31,19 @@
     font-family: 'Amiri', 'Noto Naskh Arabic', 'Traditional Arabic', serif;
     line-height: 2.0;
     direction: rtl;
+  }
+
+  /* Subtle gold accent decoration */
+  .border-gold {
+    border-color: #d4af37;
+  }
+
+  .text-gold {
+    color: #d4af37;
+  }
+
+  .bg-gold {
+    background-color: #d4af37;
   }
 
   /* Sepia / Eye-care Cream Theme for long comfortable reading sessions */

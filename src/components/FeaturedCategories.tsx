@@ -116,20 +116,20 @@ export const FeaturedCategories: React.FC<FeaturedCategoriesProps> = ({
   };
 
   return (
-    <section className="py-12 sm:py-16 bg-white border-b border-stone-200">
+    <section className="py-10 sm:py-14 bg-white border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-7 gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 tracking-wider uppercase mb-1">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#047857] tracking-wider uppercase mb-1">
+              <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
               <span>{lang === 'bn' ? 'বিষয়ভিত্তিক বিভাগসমূহ' : 'Subject Divisions'}</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-stone-900">
               {lang === 'bn' ? 'প্রধান শিক্ষামূলক বিভাগ' : 'Featured Knowledge Categories'}
             </h2>
           </div>
-          <p className="text-sm text-stone-500 max-w-md">
+          <p className="text-xs sm:text-sm text-stone-500 max-w-md font-bengali">
             {lang === 'bn' 
               ? 'ডিপ্লোমা ইন ইসলামিক ব্যাংকিং, আন্তর্জাতিক শরীয়াহ স্ট্যান্ডার্ড এবং প্রামাণ্য ইসলামিক ফিকহ সংকলন।'
               : 'Direct access to structured study modules, past question papers, and authentic financial treatises.'}
@@ -137,57 +137,57 @@ export const FeaturedCategories: React.FC<FeaturedCategoriesProps> = ({
         </div>
 
         {/* 4 Cards Grid - with distinct colorful headers & icons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {categories.map((cat) => {
             const visual = getVisual(cat.id);
             return (
               <div
                 key={cat.id}
                 onClick={() => onSelectCategory(cat.courseType, cat.slug)}
-                className="group cursor-pointer rounded-2xl border border-stone-200/90 overflow-hidden bg-stone-50 hover:bg-white hover:border-emerald-600/60 hover:shadow-xl transition-all duration-300 flex flex-col transform hover:-translate-y-1"
+                className="group cursor-pointer rounded-xl border border-stone-200/90 overflow-hidden bg-white hover:border-[#047857]/60 hover:shadow-md transition-all duration-200 flex flex-col"
               >
                 {/* Visual Header with Distinct Islamic Theme & Colors */}
-                <div className={`relative h-44 overflow-hidden bg-gradient-to-br ${visual.gradient} p-5 flex flex-col justify-between text-white`}>
+                <div className={`relative h-40 overflow-hidden bg-gradient-to-br ${visual.gradient} p-4 flex flex-col justify-between text-white`}>
                   {/* Subtle Background Pattern (never empty/broken) */}
                   {visual.patternSvg}
 
                   {/* Top Badge */}
                   <div className="relative z-10 flex items-center justify-between">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border backdrop-blur-xs ${visual.badgeBg}`}>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border backdrop-blur-xs ${visual.badgeBg}`}>
                       {lang === 'bn' ? visual.badgeLabelBn : visual.badgeLabelEn}
                     </span>
-                    <span className="font-semibold text-xs px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-xs text-white/90">
-                      {cat.itemCount} {lang === 'bn' ? 'টি রিসোর্স' : 'PDFs'}
+                    <span className="font-semibold text-[11px] px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-xs text-[#D4AF37]">
+                      {cat.itemCount} {lang === 'bn' ? 'টি ফাইল' : 'PDFs'}
                     </span>
                   </div>
 
                   {/* Center/Bottom Subject Icon Emblem */}
-                  <div className="relative z-10 flex items-center gap-3 mt-auto">
-                    <div className={`p-3 rounded-xl shadow-lg backdrop-blur-md ${visual.iconBg} group-hover:scale-110 transition-transform duration-300`}>
+                  <div className="relative z-10 flex items-center gap-2.5 mt-auto">
+                    <div className={`p-2.5 rounded-lg shadow-md backdrop-blur-md ${visual.iconBg} group-hover:scale-105 transition-transform duration-200`}>
                       {visual.icon}
                     </div>
                     <div>
-                      <h3 className="font-bold text-white text-base leading-snug drop-shadow-sm group-hover:text-emerald-200 transition-colors">
+                      <h3 className="font-bold text-white text-sm sm:text-base leading-snug drop-shadow-sm group-hover:text-[#D4AF37] transition-colors">
                         {lang === 'bn' ? cat.nameBn : cat.name}
                       </h3>
-                      <span className="text-[11px] text-stone-300 block">
-                        {lang === 'bn' ? 'পূর্ণাঙ্গ সিলেবাস ও নোটস' : 'Comprehensive syllabus'}
+                      <span className="text-[10px] text-stone-300 block">
+                        {lang === 'bn' ? 'সিলেবাস ও সমাধান' : 'Syllabus & Solved'}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Card Body */}
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <p className="text-xs text-stone-600 font-bengali line-clamp-3 leading-relaxed mb-4">
+                <div className="p-4 flex-1 flex flex-col justify-between bg-white">
+                  <p className="text-xs text-stone-600 font-bengali line-clamp-3 leading-relaxed mb-3">
                     {lang === 'bn' ? cat.descriptionBn : cat.description}
                   </p>
 
-                  <div className="pt-3 border-t border-stone-200/80 flex items-center justify-between text-xs font-semibold text-emerald-800 group-hover:text-emerald-900">
+                  <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-semibold text-[#047857] group-hover:text-[#14532D]">
                     <span className="flex items-center gap-1">
-                      <span>{lang === 'bn' ? 'ফাইলগুলো পড়ুন ও ডাউনলোড করুন' : 'Explore Archive'}</span>
+                      <span>{lang === 'bn' ? 'ফাইলগুলো দেখুন' : 'Explore Archive'}</span>
                     </span>
-                    <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-transform text-emerald-700" />
+                    <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform text-[#047857]" />
                   </div>
                 </div>
               </div>

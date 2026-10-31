@@ -300,29 +300,29 @@ export const PracticeMockTest: React.FC<PracticeMockTestProps> = ({ lang, onBack
       <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-stone-100">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#047857] uppercase tracking-wider mb-1">
+              <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
               <span>{lang === 'bn' ? 'ডিআইবি পরীক্ষা অনুশীলন মডিউল' : 'DIB Examination Practice Hub'}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-stone-900">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-stone-900">
               {lang === 'bn' ? 'মডেল টেস্ট ও সেলফ-অ্যাসেসমেন্ট কুইজ' : 'Mock Test & Knowledge Assessment'}
             </h1>
           </div>
 
           {/* Timer Display */}
           <div className="flex items-center gap-3 self-start sm:self-auto">
-            <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold ${
+            <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg border text-xs font-bold ${
               timerSeconds < 120 
                 ? 'bg-red-50 text-red-700 border-red-300 animate-pulse' 
-                : 'bg-stone-50 text-stone-700 border-stone-200'
+                : 'bg-[#F8FAF5] text-[#14532D] border-stone-200'
             }`}>
-              <Clock className="w-4 h-4 text-emerald-700" />
+              <Clock className="w-4 h-4 text-[#047857]" />
               <span>{formatTimer(timerSeconds)}</span>
             </div>
             <button
               onClick={handleRestart}
               title={lang === 'bn' ? 'পুনরায় শুরু করুন' : 'Restart Test'}
-              className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition-colors"
+              className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -335,8 +335,8 @@ export const PracticeMockTest: React.FC<PracticeMockTestProps> = ({ lang, onBack
             <span className="text-stone-500 font-medium">{lang === 'bn' ? 'মডিউল:' : 'Module:'}</span>
             <button
               onClick={() => { setSelectedFilter('ALL'); setCurrentIndex(0); }}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
-                selectedFilter === 'ALL' ? 'bg-emerald-800 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+              className={`px-3 py-1.5 rounded-md font-semibold transition-colors ${
+                selectedFilter === 'ALL' ? 'bg-[#047857] text-white shadow-2xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
               }`}
             >
               {lang === 'bn' ? 'সব প্রশ্ন (পার্ট ১ ও ২)' : 'All (Part 1 & 2)'}

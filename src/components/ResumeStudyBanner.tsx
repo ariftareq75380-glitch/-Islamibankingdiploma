@@ -24,8 +24,8 @@ export const ResumeStudyBanner: React.FC<ResumeStudyBannerProps> = ({
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white rounded-2xl p-4 sm:p-5 shadow-lg border border-emerald-700/60 my-6 font-bengali">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+    <div className="bg-gradient-to-r from-[#14532D] via-[#047857] to-[#0f3d23] text-white rounded-xl p-3.5 sm:p-5 shadow-md border border-[#D4AF37]/30 my-4 sm:my-6 font-bengali">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
         {/* Left: Last read info & Resume button */}
         <div className="flex items-center gap-3.5 w-full md:w-auto">
           <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-md text-emerald-300 shrink-0">

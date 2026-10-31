@@ -40,19 +40,19 @@ export const DiplomaExamSection: React.FC<DiplomaExamSectionProps> = ({
   });
 
   return (
-    <section className="py-12 sm:py-16 bg-stone-100/70 border-b border-stone-200">
+    <section className="py-10 sm:py-14 bg-[#F8FAF5] border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-7">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 tracking-wider uppercase mb-1">
-              <GraduationCap className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-xs font-bold text-[#047857] tracking-wider uppercase mb-1">
+              <GraduationCap className="w-4 h-4 text-[#D4AF37]" />
               <span>{lang === 'bn' ? 'আইবিবি ডিপ্লোমা ইন ইসলামিক ব্যাংকিং' : 'IBB Diploma Examination Hub'}</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-stone-900">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-stone-900">
               {lang === 'bn' ? 'বিগত বছরের প্রশ্নপত্র ও সমাধান (সালভিত্তিক)' : 'Previous Year Questions & Solutions by Year'}
             </h2>
-            <p className="text-sm text-stone-600 mt-1 max-w-2xl">
+            <p className="text-xs sm:text-sm text-stone-600 mt-1 max-w-2xl font-bengali">
               {lang === 'bn'
                 ? 'আইবিবি (IBB) ডিপ্লোমা ইন ইসলামিক ব্যাংকিং পরীক্ষার বিগত সেশনসমূহের অফিশিয়াল প্রশ্ন ও অভিজ্ঞ ব্যাংকারদের প্রস্তুতকৃত বিশদ উত্তর।'
                 : 'Official examination papers, answer keys, and model solutions indexed by year and exam session for banking candidates.'}
@@ -60,22 +60,22 @@ export const DiplomaExamSection: React.FC<DiplomaExamSectionProps> = ({
           </div>
 
           {/* Part 1 vs Part 2 Segmented Control */}
-          <div className="flex items-center bg-stone-200/80 p-1 rounded-lg shrink-0">
+          <div className="flex items-center bg-stone-200/70 p-1 rounded-lg shrink-0">
             <button
               onClick={() => setSelectedPart('ALL')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                 selectedPart === 'ALL' 
-                  ? 'bg-white text-emerald-900 shadow-xs' 
+                  ? 'bg-[#14532D] text-white shadow-2xs' 
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              {lang === 'bn' ? 'সব পেপার' : 'All DIB Papers'}
+              {lang === 'bn' ? 'সব পেপার' : 'All Papers'}
             </button>
             <button
               onClick={() => setSelectedPart('DIB-1')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                 selectedPart === 'DIB-1' 
-                  ? 'bg-white text-emerald-900 shadow-xs' 
+                  ? 'bg-[#14532D] text-white shadow-2xs' 
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
@@ -85,7 +85,7 @@ export const DiplomaExamSection: React.FC<DiplomaExamSectionProps> = ({
               onClick={() => setSelectedPart('DIB-2')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                 selectedPart === 'DIB-2' 
-                  ? 'bg-white text-emerald-900 shadow-xs' 
+                  ? 'bg-[#14532D] text-white shadow-2xs' 
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
@@ -95,16 +95,16 @@ export const DiplomaExamSection: React.FC<DiplomaExamSectionProps> = ({
         </div>
 
         {/* Year Pills Filter Row */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none text-xs">
-          <span className="text-stone-500 font-medium shrink-0 flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>{lang === 'bn' ? 'পরীক্ষার সাল:' : 'Filter Year:'}</span>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-5 scrollbar-none text-xs">
+          <span className="text-stone-500 font-medium shrink-0 flex items-center gap-1 text-[11px]">
+            <Calendar className="w-3.5 h-3.5 text-[#047857]" />
+            <span>{lang === 'bn' ? 'সাল:' : 'Year:'}</span>
           </span>
           <button
             onClick={() => setSelectedYear('ALL')}
-            className={`px-3 py-1 rounded-md transition-colors font-medium shrink-0 ${
+            className={`px-2.5 py-1 rounded-md transition-colors font-medium shrink-0 text-xs ${
               selectedYear === 'ALL'
-                ? 'bg-emerald-800 text-white'
+                ? 'bg-[#047857] text-white shadow-2xs'
                 : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
             }`}
           >
@@ -114,9 +114,9 @@ export const DiplomaExamSection: React.FC<DiplomaExamSectionProps> = ({
             <button
               key={year}
               onClick={() => setSelectedYear(year)}
-              className={`px-3 py-1 rounded-md transition-colors font-medium shrink-0 ${
+              className={`px-2.5 py-1 rounded-md transition-colors font-medium shrink-0 text-xs ${
                 selectedYear === year
-                  ? 'bg-emerald-800 text-white'
+                  ? 'bg-[#047857] text-white shadow-2xs'
                   : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
               }`}
             >

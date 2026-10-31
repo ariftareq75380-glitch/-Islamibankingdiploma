@@ -33,13 +33,13 @@ export const Footer: React.FC<FooterProps> = ({
     }
   };
   return (
-    <footer className="bg-stone-900 text-stone-300 border-t border-stone-800 text-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+    <footer className="bg-[#14532D] text-stone-300 border-t-2 border-[#D4AF37]/40 text-xs">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
           {/* Brand Column */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-3.5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-800 text-emerald-200 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#047857] text-[#D4AF37] border border-[#D4AF37]/30 flex items-center justify-center font-bold">
                 <BookOpen className="w-4 h-4" />
               </div>
               <span className="text-base font-bold text-white tracking-tight">
@@ -47,58 +47,58 @@ export const Footer: React.FC<FooterProps> = ({
               </span>
             </div>
 
-            <p className="text-stone-400 text-xs leading-relaxed max-w-sm font-bengali">
+            <p className="text-stone-300/80 text-xs leading-relaxed max-w-sm font-bengali">
               {lang === 'bn' 
                 ? 'বাংলাদেশের ব্যাংকিং প্রফেশনাল ও ডিপ্লোমা ইন ইসলামিক ব্যাংকিং (DIB) পরীক্ষার্থীদের জন্য উন্মুক্ত গবেষণামূলক জ্ঞান পাঠাগার। সমৃদ্ধ প্রশ্ন ব্যাংক, সমাধান ও দ্বিভাষিক গবেষণা।'
                 : 'An open-access academic digital repository dedicated to Diploma in Islamic Banking (DIB) candidates, banking professionals, and researchers in Bangladesh.'}
             </p>
 
-            <div className="pt-2 text-[11px] text-stone-400 space-y-1">
+            <div className="pt-1 text-[11px] text-stone-300/70 space-y-1.5">
               <div className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <MapPin className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
                 <span>{settings.officeAddress}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <Mail className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
                 <span>{settings.contactEmail}</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Group 1: Exam Preparation */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
-              {lang === 'bn' ? 'ডিআইবি বিভাগ' : 'DIB Archives'}
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-3">
+              {lang === 'bn' ? 'পরীক্ষা প্রস্তুতি' : 'Exam Preparation'}
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-2 font-bengali text-xs">
               <li>
                 <button 
                   onClick={() => setActiveTab('diploma')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
-                  {lang === 'bn' ? 'ডিআইবি পার্ট-১ রিসোর্স' : 'DIB Part-1 Modules'}
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => setActiveTab('diploma')} 
-                  className="hover:text-emerald-400 transition-colors"
-                >
-                  {lang === 'bn' ? 'ডিআইবি পার্ট-২ রিসোর্স' : 'DIB Part-2 Modules'}
+                  {lang === 'bn' ? 'ডিআইবি পার্ট-১ ও পার্ট-২' : 'DIB Part-1 & Part-2'}
                 </button>
               </li>
               <li>
                 <button 
                   onClick={() => setActiveTab('previous-questions')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
                   {lang === 'bn' ? 'বিগত বছরের প্রশ্ন ও উত্তর' : 'Past Year Question Papers'}
                 </button>
               </li>
               <li>
                 <button 
+                  onClick={() => setActiveTab('mock-test')} 
+                  className="hover:text-white transition-colors text-stone-300"
+                >
+                  {lang === 'bn' ? 'মডেল টেস্ট ও কুইজ' : 'Mock Test & Quiz'}
+                </button>
+              </li>
+              <li>
+                <button 
                   onClick={() => setActiveTab('pdf-library')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
                   {lang === 'bn' ? 'সম্পূর্ণ পিডিএফ লাইব্রেরি' : 'Master PDF Repository'}
                 </button>
@@ -106,16 +106,16 @@ export const Footer: React.FC<FooterProps> = ({
             </ul>
           </div>
 
-          {/* Shariah & Articles */}
+          {/* Group 2: Study Resources */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
-              {lang === 'bn' ? 'ইসলামী অর্থনীতি' : 'Islamic Studies'}
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-3">
+              {lang === 'bn' ? 'অধ্যয়ন রিসোর্স' : 'Study Resources'}
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-2 font-bengali text-xs">
               <li>
                 <button 
                   onClick={() => setActiveTab('articles')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
                   {lang === 'bn' ? 'ব্যাংকিং প্রবন্ধ ও কলাম' : 'Banking Research Articles'}
                 </button>
@@ -123,7 +123,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button 
                   onClick={() => setActiveTab('quran-hadith')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
                   {lang === 'bn' ? 'কুরআন ও হাদিসে অর্থনীতি' : 'Quran & Hadith on Finance'}
                 </button>
@@ -131,23 +131,15 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button 
                   onClick={() => setActiveTab('fiqh-fatwa')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
-                  {lang === 'bn' ? 'সেন্ট্রাল শরীয়াহ বোর্ডের ফতোয়া' : 'CSBIB Fatwa Resolutions'}
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => setActiveTab('mock-test')} 
-                  className="hover:text-emerald-400 transition-colors"
-                >
-                  {lang === 'bn' ? 'মডেল টেস্ট ও MCQ কুইজ' : 'DIB Mock Test & Quiz'}
+                  {lang === 'bn' ? 'ফিকহ ও শরীয়াহ ফতোয়া' : 'Fiqh & Fatwa Resolutions'}
                 </button>
               </li>
               <li>
                 <button 
                   onClick={() => setActiveTab('faq')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
                   {lang === 'bn' ? 'সচরাচর জিজ্ঞাসা (FAQ)' : 'Exam FAQs & Tips'}
                 </button>
@@ -155,16 +147,24 @@ export const Footer: React.FC<FooterProps> = ({
             </ul>
           </div>
 
-          {/* Compliance & Legal (Critical for AdSense) */}
+          {/* Group 3: Help & Policies */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
-              {lang === 'bn' ? 'আইনি ও নীতিমালা' : 'Legal & Policies'}
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-3">
+              {lang === 'bn' ? 'সাহায্য ও তথ্য' : 'Help & Information'}
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-2 font-bengali text-xs">
+              <li>
+                <button 
+                  onClick={() => setActiveTab('bookmarks-view')} 
+                  className="hover:text-white transition-colors text-stone-300"
+                >
+                  {lang === 'bn' ? 'সংরক্ষিত বুকমার্কসমূহ' : 'Saved Bookmarks'}
+                </button>
+              </li>
               <li>
                 <button 
                   onClick={() => setActiveTab('about')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
                   {lang === 'bn' ? 'আমাদের পরিচিতি' : 'About Our Mission'}
                 </button>
@@ -172,7 +172,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button 
                   onClick={() => setActiveTab('contact')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
                   {lang === 'bn' ? 'যোগাযোগ ও ফিডব্যাক' : 'Contact Helpdesk'}
                 </button>
@@ -180,17 +180,17 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button 
                   onClick={() => setActiveTab('privacy')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
-                  {lang === 'bn' ? 'গোপনীয়তা নীতিমালা (Privacy)' : 'Privacy Policy & Terms'}
+                  {lang === 'bn' ? 'গোপনীয়তা নীতিমালা' : 'Privacy Policy'}
                 </button>
               </li>
               <li>
                 <button 
                   onClick={() => setActiveTab('disclaimer')} 
-                  className="hover:text-emerald-400 transition-colors"
+                  className="hover:text-white transition-colors text-stone-300"
                 >
-                  {lang === 'bn' ? 'কপিরাইট ও ডিসক্লেইমার' : 'Copyright & Disclaimer'}
+                  {lang === 'bn' ? 'কপিরাইট ও ডিসক্লেইমার' : 'Copyright & Terms'}
                 </button>
               </li>
             </ul>
@@ -198,7 +198,7 @@ export const Footer: React.FC<FooterProps> = ({
         </div>
 
         {/* Bottom Strip */}
-        <div className="pt-8 border-t border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-500 text-[11px]">
+        <div className="pt-6 border-t border-emerald-900/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-stone-400 text-[11px]">
           <div className="flex items-center gap-2">
             <span 
               onClick={handleSecretTap} 
@@ -212,12 +212,12 @@ export const Footer: React.FC<FooterProps> = ({
               onClick={() => onSecretAdminTrigger?.()}
               aria-label="Admin Control Gateway"
               title={lang === 'bn' ? 'অ্যাডমিন সিকিউরিটি পোর্টাল' : 'Admin Security Gateway'}
-              className="opacity-20 hover:opacity-100 text-stone-600 hover:text-emerald-400 p-0.5 rounded transition-all focus:outline-none cursor-pointer"
+              className="opacity-20 hover:opacity-100 text-stone-400 hover:text-[#D4AF37] p-0.5 rounded transition-all focus:outline-none cursor-pointer"
             >
               <Lock className="w-3 h-3" />
             </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-stone-300/80">
             <span>Non-profit Islamic Educational Initiative</span>
             <span>·</span>
             <span>Made for DIB Students in Bangladesh</span>
