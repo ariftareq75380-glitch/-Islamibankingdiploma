@@ -529,6 +529,78 @@ Exam questions follow structured patterns. Over 65% of the syllabus repeats acro
     coverImage: '/images/category_quran_hadith_1793322326327.webp',
     featured: false,
     relatedResourceIds: ['dib-study-guide-complete']
+  },
+  {
+    id: 'art-bfiu-26',
+    title: 'BFIU Circular 26: AML & CFT Compliance Framework for Islamic Banks in Bangladesh',
+    titleBn: 'বিএফআইইউ সার্কুলার ২৬: মানি লন্ডারিং ও সন্ত্রাসী অর্থায়ন প্রতিরোধে ইসলামী ব্যাংকিং কমপ্লায়েন্স ও আইনি গাইডলাইন',
+    slug: 'bfiu-circuler-26',
+    author: 'মুহাম্মদ আরিফুর রহমান',
+    authorDesignation: 'সিনিয়র ইসলামী ব্যাংকিং স্পেশালিস্ট ও এএমএল কমপ্লায়েন্স ট্রেইনার',
+    publishedDate: '2026-11-01',
+    readTime: '৭ মিনিট পাঠ',
+    category: 'Diploma in Islamic Banking (Part 2)',
+    categoryBn: 'ডিআইবি পার্ট-২ ও আইন',
+    summary: 'Detailed operational and regulatory analysis of BFIU Circular 26 covering Customer Due Diligence (CDD), Enhanced Due Diligence (EDD), Beneficial Ownership identification, and Suspicious Transaction Reporting (STR/SAR) in Islamic financial institutions.',
+    summaryBn: 'বাংলাদেশ ফাইন্যান্সিয়াল ইন্টেলিজেন্স ইউনিট (BFIU) সার্কুলার ২৬-এর আলোকে গ্রাহক পরিচিতি (KYC/CDD), বেনিফিসিয়াল ওনারশিপ যাচাই, সন্দেহজনক লেনদেন (STR) রিপোর্টিং এবং ডিআইবি পার্ট-২ পরীক্ষার জন্য পূর্ণাঙ্গ বিশ্লেষণী প্রস্তুতি ও মডেল উত্তর।',
+    contentMarkdownEn: `## Overview of BFIU Circular 26 for Banking Professionals
+
+BFIU Circular No. 26 is a cornerstone regulatory directive issued by the Bangladesh Financial Intelligence Unit under the Money Laundering Prevention Act, 2012 and Anti-Terrorism Act, 2009. It establishes mandatory compliance baselines for all scheduled commercial banks, with specialized risk assessment frameworks for Islamic banks.
+
+### 1. Core Objectives and Statutory Mandates
+- **Preventing Illicit Fund Flows:** Safeguarding the integrity of the financial system against money laundering and terrorism financing.
+- **Uniform CDD/EDD Standards:** Standardizing Know Your Customer (KYC) through Customer Due Diligence (CDD) and Enhanced Due Diligence (EDD) for high-risk accounts.
+- **Trade-Based Money Laundering (TBML) Screening:** Rigorous scrutiny of Murabaha import/export letters of credit, price benchmarking, and physical goods verification.
+
+### 2. Special Implications for Islamic Banking Modes
+1. **Asset-Backed Verification in Murabaha:** Unlike conventional loans where funds can be misused, Islamic banks must ensure real physical procurement and genuine invoices.
+2. **Partnership Modes (Mudaraba & Musharaka):** Continuous oversight of project accounts to prevent layering of illicit capital into commercial equity.
+3. **Charity Account Audits:** Strict screening of non-compliant income allocated to CSR/Charity accounts to prevent unauthorized diversions.
+
+### 3. Suspicious Transaction Reporting (STR / SAR)
+Branch officials must identify red flags (unusual transaction velocity, structuring below reporting thresholds, mismatch with stated customer profile) and escalate STR reports to the Central Compliance Unit (CCU) without tipping off the customer.`,
+    contentMarkdownBn: `## ১. বিএফআইইউ সার্কুলার ২৬-এর পটভূমি ও আইনি ভিত্তি
+
+মানি লন্ডারিং প্রতিরোধ আইন, ২০১২ (সংশোধিত ২০১৫) এবং সন্ত্রাস বিরোধী আইন, ২০০৯-এর ক্ষমতাবলে বাংলাদেশ ফাইন্যান্সিয়াল ইন্টেলিজেন্স ইউনিট (BFIU) কর্তৃক জারিকৃত সার্কুলার নম্বর ২৬ দেশের ব্যাংকিং খাতের জন্য একটি অত্যন্ত গুরুত্বপূর্ণ আইনি দলিল। ডিআইবি পার্ট-২-এর 'কমার্শিয়াল ব্যাংকিং অ্যান্ড লজ' বিষয়ে প্রতি বছরই এই সার্কুলার ও এএমএল কমপ্লায়েন্স সংক্রান্ত প্রশ্ন এসে থাকে।
+
+---
+
+### ২. সার্কুলার ২৬-এর মূল নির্দেশনাসমূহ ও ব্যাংকারদের দায়িত্ব
+
+১. **যথাযথ গ্রাহক পরিচিতি নিশ্চিতকরণ (Customer Due Diligence - CDD):**
+- হিসাব খোলার পূর্বেই গ্রাহকের জাতীয় পরিচয়পত্র (NID) নির্বাচন কমিশনের ডাটাবেজ থেকে স্বয়ংক্রিয় যাচাই বাধ্যতামূলক।
+- আয়ের বৈধ উৎস ও তহবিলের প্রকৃত মালিক (Beneficial Owner) যথাযথ নথিপত্র দ্বারা প্রমাণ করতে হবে।
+
+২. **বর্ধিত গ্রাহক যাচাই (Enhanced Due Diligence - EDD):**
+- রাজনৈতিকভাবে প্রভাবশালী ব্যক্তি (PEPs), তাদের পরিবারের সদস্য এবং আন্তর্জাতিক সংবেদনশীল সংস্থার কর্মকর্তাদের হিসাব উচ্চ-ঝুঁকিপূর্ণ হিসেবে শ্রেণিবদ্ধ করে জ্যেষ্ঠ ব্যবস্থাপনা কর্তৃপক্ষের অনুমোদনক্রমে পরিচালনা করতে হবে।
+
+৩. **বাণিজ্যভিত্তিক মানি লন্ডারিং (Trade-Based Money Laundering - TBML) প্রতিরোধ:**
+- আমদানি-রপ্তানি ও ব্যাক-টু-ব্যাক এলসি খোলার ক্ষেত্রে পণ্যের আন্তর্জাতিক বাজারদর, ইনভয়েসের সত্যতা ও শিপিং ডকুমেন্টস পুঙ্খানুপুঙ্খভাবে যাচাই করতে হবে।
+
+---
+
+### ৩. ইসলামী ব্যাংকিংয়ের ক্ষেত্রে সার্কুলার ২৬-এর বিশেষ তাৎপর্য
+
+- **মুরাবাহা ও পণ্যের ভৌত অস্তিত্ব:** প্রচলিত ব্যাংকে নগদ অর্থ ছাড় করা হয় যা মানি লন্ডারিংয়ের ঝুঁকি বাড়ায়। কিন্তু ইসলামী ব্যাংকে মুরাবাহায় সরাসরি পণ্য ক্রয় করতে হয়। সার্কুলার ২৬ অনুযায়ী ভেন্ডরের সত্যতা ও ক্রয়াদেশের সত্যতা যাচাই করা আবশ্যক।
+- **মুদারাবা ও মুশারাকা প্রকল্প তদারকি:** ইকুইটি পার্টনারশিপের নামে অবৈধ অর্থ বৈধ করার চেষ্টা (Layering) রোধে ব্যাংকের নিয়মিত অডিট দল নিয়োগ করতে হয়।
+- **চ্যারিটি ফান্ড ও সন্দেহজনক মুনাফা ব্যবস্হাপনা:** শরীয়াহ নন-কমপ্লায়েন্সের কারণে বাতিলকৃত মুনাফা চ্যারিটি ফান্ডে নেওয়ার সময় সেই ফান্ডের বিতরণ কোনো বিতর্কিত বা নিষিদ্ধ সংস্থায় যেন না যায়, তা নিশ্চিত করা আবশ্যক।
+
+---
+
+### ৪. ডিআইবি পরীক্ষার বিগত বছরের মডেল প্রশ্ন ও উত্তর
+
+**প্রশ্ন:** বিএফআইইউ সার্কুলার ২৬ অনুযায়ী শাখা পর্যায়ে 'রেড ফ্ল্যাগ' (Red Flags) বা সন্দেহজনক লেনদেনের সূচকগুলো কী কী?
+**উত্তর:**
+১. গ্রাহকের ঘোষিত পেশা ও নিয়মিত লেনদেন প্রোফাইলের সাথে হঠাৎ করে অস্বাভাবিক বড় অঙ্কের লেনদেন।
+২. ক্যাশ ট্রানজেকশন রিপোর্টিং (CTR) সীমা (১০ লাখ টাকা) এড়ানোর জন্য একই দিনে একাধিক দফায় ৯ লাখ টাকার লেনদেন করা (Structuring)।
+৩. নিষ্ক্রিয় বা ডরম্যান্ট একাউন্টে হঠাৎ করে বিপুল পরিমাণ বৈদেশিক রেমিট্যান্স আসা এবং দ্রুত তা অন্য ব্যাংকে স্থানান্তর।
+
+পরীক্ষায় উত্তর লেখার সময় "মানি লন্ডারিং প্রতিরোধ আইন ২০১২"-এর ধারা এবং বিএফআইইউ সার্কুলার ২৬-এর সুস্পষ্ট উল্লেখ পরীক্ষককে সর্বোচ্চ নম্বর দিতে উদ্বুদ্ধ করে।`,
+    tags: ['BFIU Circular 26', 'AML', 'CFT', 'Compliance', 'DIB Part 2', 'Islamic Banking Law'],
+    keywords: ['BFIU Circular 26', 'বিএফআইইউ সার্কুলার ২৬', 'মানি লন্ডারিং প্রতিরোধ', 'KYC', 'CDD', 'STR', 'DIB Part 2', 'ইসলামী ব্যাংকিং আইন'],
+    coverImage: '/images/banner_bangladesh_banking_1793322325377.webp',
+    featured: true,
+    relatedResourceIds: ['dib-2023-may-law', 'dib-2024-may-q1']
   }
 ];
 
