@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   BookOpen, 
@@ -26,13 +26,15 @@ import {
   BookMarked,
   FileCheck,
   Type,
-  ChevronRight
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 
 interface NavbarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
+  onNavigateUrl?: (url: string) => void;
   lang: 'bn' | 'en';
   setLang: (lang: 'bn' | 'en') => void;
   openAdminModal: () => void;
@@ -52,6 +54,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
+  onNavigateUrl,
   lang,
   setLang,
   openAdminModal,
@@ -66,6 +69,31 @@ export const Navbar: React.FC<NavbarProps> = ({
   onFontSizeChange
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<'dib-exam' | 'articles' | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleNavigate = (path: string, tab?: ActiveTab) => {
+    setActiveDropdown(null);
+    if (onNavigateUrl) {
+      onNavigateUrl(path);
+    } else if (tab) {
+      setActiveTab(tab);
+    } else if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
 
   // Close mobile drawer on Escape key for accessibility
   useEffect(() => {
@@ -254,12 +282,127 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Desktop Primary Nav */}
-          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-stone-600">
+          <nav 
+            ref={dropdownRef}
+            className="hidden lg:flex items-center gap-3 xl:gap-4 text-xs xl:text-sm font-medium text-stone-600"
+            aria-label="Main Navigation"
+          >
+            {/* 1. DIB Exam Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setActiveDropdown(activeDropdown === 'dib-exam' ? null : 'dib-exam')}
+                onMouseEnter={() => setActiveDropdown('dib-exam')}
+                aria-expanded={activeDropdown === 'dib-exam'}
+                className="py-1 px-2 rounded-lg hover:text-[#14532D] hover:bg-emerald-50/70 transition-colors flex items-center gap-1 font-bengali font-semibold text-stone-700 cursor-pointer"
+              >
+                <span>{lang === 'bn' ? 'ডিআইবি পরীক্ষা' : 'DIB Exam'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-stone-400 transition-transform ${activeDropdown === 'dib-exam' ? 'rotate-180' : ''}`} />
+              </button>
+
+              {activeDropdown === 'dib-exam' && (
+                <div 
+                  onMouseLeave={() => setActiveDropdown(null)}
+                  className="absolute left-0 top-full mt-1 w-56 rounded-xl bg-white shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95 font-bengali"
+                >
+                  <button
+                    onClick={() => handleNavigate('/articles?menu=dib-part-1', 'articles')}
+                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-emerald-50 hover:text-[#14532D] flex items-center justify-between text-stone-700 transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <div className="font-semibold">{lang === 'bn' ? 'ডিআইবি পার্ট ১ (DIB Part 1)' : 'DIB Part 1'}</div>
+                      <div className="text-[10px] text-stone-400">/articles?menu=dib-part-1</div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-stone-300" />
+                  </button>
+                  <button
+                    onClick={() => handleNavigate('/articles?menu=dib-part-2', 'articles')}
+                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-emerald-50 hover:text-[#14532D] flex items-center justify-between text-stone-700 transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <div className="font-semibold">{lang === 'bn' ? 'ডিআইবি পার্ট ২ (DIB Part 2)' : 'DIB Part 2'}</div>
+                      <div className="text-[10px] text-stone-400">/articles?menu=dib-part-2</div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-stone-300" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 2. PDF Corner Direct Link */}
+            <button
+              onClick={() => handleNavigate('/pdf-library', 'pdf-library')}
+              className={`transition-colors whitespace-nowrap shrink-0 py-1 px-2 rounded-lg flex items-center gap-1.5 font-bengali cursor-pointer ${
+                activeTab === 'pdf-library'
+                  ? 'text-[#047857] font-bold bg-emerald-50/80 border-b-2 border-[#047857]'
+                  : 'text-stone-700 hover:text-[#14532D] hover:bg-emerald-50/70 font-semibold'
+              }`}
+            >
+              <BookMarked className="w-3.5 h-3.5 text-teal-700" />
+              <span>{lang === 'bn' ? 'পিডিএফ কর্নার' : 'PDF Corner'}</span>
+            </button>
+
+            {/* 3. Articles Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setActiveDropdown(activeDropdown === 'articles' ? null : 'articles')}
+                onMouseEnter={() => setActiveDropdown('articles')}
+                aria-expanded={activeDropdown === 'articles'}
+                className="py-1 px-2 rounded-lg hover:text-[#14532D] hover:bg-emerald-50/70 transition-colors flex items-center gap-1 font-bengali font-semibold text-stone-700 cursor-pointer"
+              >
+                <span>{lang === 'bn' ? 'আর্টিকেলসমূহ' : 'Articles'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-stone-400 transition-transform ${activeDropdown === 'articles' ? 'rotate-180' : ''}`} />
+              </button>
+
+              {activeDropdown === 'articles' && (
+                <div 
+                  onMouseLeave={() => setActiveDropdown(null)}
+                  className="absolute left-0 top-full mt-1 w-60 rounded-xl bg-white shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95 font-bengali"
+                >
+                  <button
+                    onClick={() => handleNavigate('/articles?menu=islamic-economics', 'articles')}
+                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-emerald-50 hover:text-[#14532D] flex items-center justify-between text-stone-700 transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <div className="font-semibold">{lang === 'bn' ? 'ইসলামিক অর্থনীতি' : 'Islamic Economics'}</div>
+                      <div className="text-[10px] text-stone-400">/articles?menu=islamic-economics</div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-stone-300" />
+                  </button>
+                  <button
+                    onClick={() => handleNavigate('/articles?menu=islamic-essays', 'articles')}
+                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-emerald-50 hover:text-[#14532D] flex items-center justify-between text-stone-700 transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <div className="font-semibold">{lang === 'bn' ? 'ইসলামিক প্রবন্ধ' : 'Islamic Essays'}</div>
+                      <div className="text-[10px] text-stone-400">/articles?menu=islamic-essays</div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-stone-300" />
+                  </button>
+                  <button
+                    onClick={() => handleNavigate('/articles?menu=miscellaneous', 'articles')}
+                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-emerald-50 hover:text-[#14532D] flex items-center justify-between text-stone-700 transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <div className="font-semibold">{lang === 'bn' ? 'বিবিধ' : 'Miscellaneous'}</div>
+                      <div className="text-[10px] text-stone-400">/articles?menu=miscellaneous</div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-stone-300" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Subtle Divider between new structure and existing links */}
+            <div className="h-4 w-px bg-stone-200 mx-0.5" aria-hidden="true" />
+
+            {/* Existing Menu Links Kept Intact */}
             {primaryDesktopLinks.map((item) => (
               <button
                 key={item.tab}
-                onClick={() => setActiveTab(item.tab)}
-                className={`transition-colors whitespace-nowrap shrink-0 py-1 flex items-center gap-1.5 font-bengali ${
+                onClick={() => handleNavigate(`/${item.tab === 'home' ? '' : item.tab}`, item.tab)}
+                className={`transition-colors whitespace-nowrap shrink-0 py-1 flex items-center gap-1 font-bengali cursor-pointer ${
                   activeTab === item.tab
                     ? 'text-[#047857] font-bold border-b-2 border-[#047857]'
                     : 'hover:text-[#14532D]'
@@ -406,7 +549,121 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Scrollable menu links */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 bg-white min-h-0">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-white min-h-0">
+              
+              {/* 1. New Menu Structure Required */}
+              <div className="space-y-1.5 pb-3 border-b border-stone-200">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-900 px-2 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
+                  <span>{lang === 'bn' ? 'প্রধান মেনু' : 'Primary Menu'}</span>
+                </div>
+
+                {/* DIB Exam Item with Nested Sub-items */}
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-2 space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1 text-xs font-bold text-[#14532D]">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="w-4 h-4 text-emerald-700" />
+                      <span>{lang === 'bn' ? 'ডিআইবি পরীক্ষা (DIB Exam)' : 'DIB Exam'}</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-700 font-semibold px-1.5 py-0.5 rounded bg-emerald-100">
+                      ২টি পার্ট
+                    </span>
+                  </div>
+                  <div className="pl-6 pr-1 space-y-1">
+                    <button
+                      onClick={() => {
+                        handleNavigate('/articles?menu=dib-part-1', 'articles');
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-700 hover:text-[#14532D] hover:bg-emerald-100/70 transition-colors flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{lang === 'bn' ? 'ডিআইবি পার্ট ১ (DIB Part 1)' : 'DIB Part 1'}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleNavigate('/articles?menu=dib-part-2', 'articles');
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-700 hover:text-[#14532D] hover:bg-emerald-100/70 transition-colors flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{lang === 'bn' ? 'ডিআইবি পার্ট ২ (DIB Part 2)' : 'DIB Part 2'}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* PDF Corner Link */}
+                <button
+                  onClick={() => {
+                    handleNavigate('/pdf-library', 'pdf-library');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-between min-h-[42px] cursor-pointer text-stone-800 hover:bg-stone-50 border border-stone-200/80"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-teal-50 text-teal-700">
+                      <BookMarked className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-stone-900 leading-snug">
+                        {lang === 'bn' ? 'পিডিএফ কর্নার (PDF Corner)' : 'PDF Corner'}
+                      </div>
+                      <div className="text-[10px] text-stone-500">
+                        {lang === 'bn' ? 'উন্মুক্ত বই ও বিগত প্রশ্নপত্র পাঠাগার' : 'Open /pdf-library'}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                </button>
+
+                {/* Articles Item with Nested Sub-items */}
+                <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-2 space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1 text-xs font-bold text-stone-900">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-600" />
+                      <span>{lang === 'bn' ? 'আর্টিকেলসমূহ (Articles)' : 'Articles'}</span>
+                    </div>
+                    <span className="text-[10px] text-amber-800 font-semibold px-1.5 py-0.5 rounded bg-amber-100">
+                      ৩টি বিভাগ
+                    </span>
+                  </div>
+                  <div className="pl-6 pr-1 space-y-1">
+                    <button
+                      onClick={() => {
+                        handleNavigate('/articles?menu=islamic-economics', 'articles');
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-700 hover:text-amber-900 hover:bg-amber-100/60 transition-colors flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{lang === 'bn' ? 'ইসলামিক অর্থনীতি (Islamic Economics)' : 'Islamic Economics'}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleNavigate('/articles?menu=islamic-essays', 'articles');
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-700 hover:text-amber-900 hover:bg-amber-100/60 transition-colors flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{lang === 'bn' ? 'ইসলামিক প্রবন্ধ (Islamic Essays)' : 'Islamic Essays'}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleNavigate('/articles?menu=miscellaneous', 'articles');
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-700 hover:text-amber-900 hover:bg-amber-100/60 transition-colors flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{lang === 'bn' ? 'বিবিধ (Miscellaneous)' : 'Miscellaneous'}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. All Existing Menu Groups Kept Intact */}
               {menuGroups.map((group, groupIdx) => (
                 <div key={groupIdx} className="space-y-1.5">
                   {/* Group Title with Gold Accent Indicator */}

@@ -88,6 +88,12 @@ export default function App() {
   const [isPrayerModalOpen, setIsPrayerModalOpen] = useState(false);
   const [isContentEditorOpen, setIsContentEditorOpen] = useState(false);
   const [editingArticleForEditor, setEditingArticleForEditor] = useState<Article | null>(null);
+  const [articleMenuFilter, setArticleMenuFilter] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('menu');
+    }
+    return null;
+  });
 
   const librarySectionRef = useRef<HTMLDivElement>(null);
 
@@ -215,6 +221,8 @@ export default function App() {
   const syncRouteFromLocation = (articlesList: Article[] = articles, resourcesList: PdfResource[] = resources) => {
     if (typeof window === 'undefined') return;
     const pathname = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    const searchParams = new URLSearchParams(window.location.search);
+    setArticleMenuFilter(searchParams.get('menu'));
 
     if (!pathname || pathname === 'home') {
       setActiveTab('home');
@@ -312,6 +320,7 @@ export default function App() {
   const handleSelectTabWithFilter = (tab: ActiveTab) => {
     setActiveTab(tab);
     setSelectedArticleForRead(null);
+    setArticleMenuFilter(null);
     if (typeof window !== 'undefined') {
       const targetPath = tab === 'home' ? '/' : `/${tab}`;
       window.history.pushState(null, '', targetPath);
@@ -343,6 +352,36 @@ export default function App() {
     } else if (tab === 'home' || tab === 'pdf-library') {
       // Keep existing
     }
+  };
+
+  // Dedicated URL path navigator supporting query params (e.g., /articles?menu=dib-part-1)
+  const handleNavigateUrl = (path: string) => {
+    setSelectedArticleForRead(null);
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', path);
+    }
+    const [pathPart, searchPart] = path.split('?');
+    const cleanPath = pathPart.replace(/^\/+|\/+$/g, '');
+    const searchParams = new URLSearchParams(searchPart || '');
+    const menuVal = searchParams.get('menu');
+    setArticleMenuFilter(menuVal);
+
+    if (cleanPath === 'articles') {
+      setActiveTab('articles');
+      updateSEOMetadata({
+        title: 'আর্টিকেল ও কলাম | ইসলামী ব্যাংকিং ডিপ্লোমা',
+        canonicalPath: path
+      });
+    } else if (cleanPath === 'pdf-library') {
+      setActiveTab('pdf-library');
+      updateSEOMetadata({
+        title: 'পাঠাগার | ইসলামী ব্যাংকিং ডিপ্লোমা',
+        canonicalPath: '/pdf-library'
+      });
+    } else {
+      handleSelectTabWithFilter((cleanPath || 'home') as ActiveTab);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Multi-facet filtering engine for all PDF resources
@@ -444,6 +483,7 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={handleSelectTabWithFilter}
+        onNavigateUrl={handleNavigateUrl}
         lang={lang}
         setLang={setLang}
         openAdminModal={() => setIsAdminOpen(true)}
@@ -556,6 +596,11 @@ export default function App() {
                     setIsContentEditorOpen(true);
                   } : undefined}
                   lang={lang}
+                  menuFilter={articleMenuFilter}
+                  onSelectMenuFilter={(m) => {
+                    const targetUrl = m ? `/articles?menu=${m}` : '/articles';
+                    handleNavigateUrl(targetUrl);
+                  }}
                 />
 
             {/* Complete Interactive PDF Library Section */}
@@ -783,6 +828,11 @@ export default function App() {
                 setIsContentEditorOpen(true);
               } : undefined}
               lang={lang}
+              menuFilter={articleMenuFilter}
+              onSelectMenuFilter={(m) => {
+                const targetUrl = m ? `/articles?menu=${m}` : '/articles';
+                handleNavigateUrl(targetUrl);
+              }}
             />
           </div>
         )}
