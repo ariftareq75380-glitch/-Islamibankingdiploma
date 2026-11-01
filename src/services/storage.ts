@@ -94,12 +94,45 @@ export const StorageService = {
         const parsed: Article[] = JSON.parse(stored);
         const existingIds = new Set(parsed.map(a => a.id));
         const missingSamples = sampleArticles.filter(s => !existingIds.has(s.id));
+        let needSave = false;
+        let result = parsed;
         if (missingSamples.length > 0) {
-          const merged = [...missingSamples, ...parsed];
-          this.saveArticles(merged);
-          return merged;
+          result = [...missingSamples, ...result];
+          needSave = true;
         }
-        return parsed;
+        // Ensure standard sample articles receive updated metadata if cached
+        result = result.map(art => {
+          const sample = sampleArticles.find(s => s.id === art.id);
+          if (sample) {
+            let updated = false;
+            const patched = { ...art };
+            if (!patched.menuCategory && sample.menuCategory) {
+              patched.menuCategory = sample.menuCategory;
+              updated = true;
+            }
+            if (patched.publishedAt === undefined && sample.publishedAt !== undefined) {
+              patched.publishedAt = sample.publishedAt;
+              updated = true;
+            }
+            if (patched.pdfId === undefined && sample.pdfId !== undefined) {
+              patched.pdfId = sample.pdfId;
+              updated = true;
+            }
+            if (patched.featured === undefined && sample.featured !== undefined) {
+              patched.featured = sample.featured;
+              updated = true;
+            }
+            if (updated) {
+              needSave = true;
+              return patched;
+            }
+          }
+          return art;
+        });
+        if (needSave) {
+          this.saveArticles(result);
+        }
+        return result;
       }
     } catch {
       // Fallback
@@ -122,6 +155,9 @@ export const StorageService = {
       ...newArticle,
       id: `art-${Date.now()}`,
       publishedDate: new Date().toISOString().split('T')[0],
+      publishedAt: newArticle.publishedAt !== undefined ? newArticle.publishedAt : new Date().toISOString().split('T')[0],
+      featured: newArticle.featured ?? false,
+      pdfId: newArticle.pdfId ?? null,
       status: newArticle.status || 'published',
       isDraft: newArticle.status === 'draft' || Boolean(newArticle.isDraft)
     };

@@ -375,8 +375,11 @@ One of the most frequently tested concepts in the **Diploma in Islamic Banking (
     tags: ['Mudaraba', 'DIB Part 1', 'Rabb-ul-Mal', 'Mudarib', 'Profit-Loss Sharing', 'Islamic Economics', 'AAOIFI'],
     keywords: ['মুদারাবা সংজ্ঞা', 'mudaraba definition', 'রব্বুল মাল', 'মুদারিব', 'DIB Part 1', 'ইসলামিক ব্যাংকিং ডিপ্লোমা', 'লাভ-ক্ষতি বণ্টন', 'AAOIFI Shariah Standard'],
     coverImage: '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg',
-    featured: true,
-    relatedResourceIds: ['dib-2023-nov-q2', 'dib-2024-may-q1']
+    featured: false,
+    relatedResourceIds: ['dib-2023-nov-q2', 'dib-2024-may-q1'],
+    menuCategory: 'dib-part-1',
+    publishedAt: '2024-06-01',
+    pdfId: null
   },
   {
     id: 'art-01',
@@ -425,8 +428,11 @@ Candidates appearing for Diploma in Islamic Banking (DIB) examinations must focu
 ডিআইবি পার্ট-১ ও পার্ট-২ পরীক্ষার্থীদের বাংলাদেশ ব্যাংকের ২০০৯ সালের গাইডলাইন, তারল্য ব্যবস্থাপনাসংক্রান্ত সার্কুলার এবং ব্যাসেল-৩ কমপ্লায়েন্স সম্পর্কে স্পষ্ট ধারণা রাখতে হবে। পরীক্ষায় তাত্ত্বিক ব্যাখ্যার সাথে ব্যাংকিং অপারেশনের বাস্তব উদাহরণ দিলে সর্বোচ্চ নম্বর পাওয়া সম্ভব।`,
     tags: ['Islamic Banking', 'Bangladesh Economy', 'DIB Preparation', 'Sukuk', 'Bank Company Act'],
     coverImage: '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg',
-    featured: true,
-    relatedResourceIds: ['dib-2024-may-q1', 'dib-2023-may-law']
+    featured: false,
+    relatedResourceIds: ['dib-2024-may-q1', 'dib-2023-may-law'],
+    menuCategory: 'islamic-essays',
+    publishedAt: '2024-05-18',
+    pdfId: null
   },
   {
     id: 'art-02',
@@ -482,7 +488,10 @@ In DIB Question Papers, examiners award maximum credit when candidates illustrat
     tags: ['Riba', 'Profit', 'Fiqh al-Muamalat', 'DIB Questions', 'Islamic Economics'],
     coverImage: '/src/assets/images/category_diploma_banking_1793322326189.jpg',
     featured: false,
-    relatedResourceIds: ['dib-2024-may-q1', 'res-quran-riba']
+    relatedResourceIds: ['dib-2024-may-q1', 'res-quran-riba'],
+    menuCategory: 'islamic-economics',
+    publishedAt: '2024-04-10',
+    pdfId: null
   },
   {
     id: 'art-03',
@@ -528,7 +537,10 @@ Exam questions follow structured patterns. Over 65% of the syllabus repeats acro
     tags: ['DIB Preparation', 'Exam Tips', 'IBB Guidelines', 'Study Routine'],
     coverImage: '/images/category_quran_hadith_1793322326327.webp',
     featured: false,
-    relatedResourceIds: ['dib-study-guide-complete']
+    relatedResourceIds: ['dib-study-guide-complete'],
+    menuCategory: 'miscellaneous',
+    publishedAt: '2024-03-02',
+    pdfId: null
   },
   {
     id: 'art-bfiu-26',
@@ -599,8 +611,11 @@ Branch officials must identify red flags (unusual transaction velocity, structur
     tags: ['BFIU Circular 26', 'AML', 'CFT', 'Compliance', 'DIB Part 2', 'Islamic Banking Law'],
     keywords: ['BFIU Circular 26', 'বিএফআইইউ সার্কুলার ২৬', 'মানি লন্ডারিং প্রতিরোধ', 'KYC', 'CDD', 'STR', 'DIB Part 2', 'ইসলামী ব্যাংকিং আইন'],
     coverImage: '/images/banner_bangladesh_banking_1793322325377.webp',
-    featured: true,
-    relatedResourceIds: ['dib-2023-may-law', 'dib-2024-may-q1']
+    featured: false,
+    relatedResourceIds: ['dib-2023-may-law', 'dib-2024-may-q1'],
+    menuCategory: 'dib-part-2',
+    publishedAt: '2026-11-01',
+    pdfId: null
   }
 ];
 

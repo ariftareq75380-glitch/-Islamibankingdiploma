@@ -53,6 +53,13 @@ export interface PdfResource {
   isDraft?: boolean;
 }
 
+export type ArticleMenuCategory = 
+  | 'dib-part-1' 
+  | 'dib-part-2' 
+  | 'islamic-economics' 
+  | 'islamic-essays' 
+  | 'miscellaneous';
+
 export interface Article {
   id: string;
   title: string;
@@ -75,6 +82,9 @@ export interface Article {
   relatedResourceIds?: string[];
   status?: 'published' | 'draft';
   isDraft?: boolean;
+  menuCategory?: 'dib-part-1' | 'dib-part-2' | 'islamic-economics' | 'islamic-essays' | 'miscellaneous';
+  publishedAt?: string | null;
+  pdfId?: string | null;
 }
 
 export interface CategoryInfo {

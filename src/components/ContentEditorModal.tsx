@@ -384,7 +384,10 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
       tags: keywords,
       keywords: keywords,
       coverImage: thumbnailUrl,
-      featured: true
+      featured: existingArticle?.featured ?? false,
+      menuCategory: existingArticle?.menuCategory,
+      publishedAt: existingArticle?.publishedAt || existingArticle?.publishedDate || new Date().toISOString().split('T')[0],
+      pdfId: existingArticle?.pdfId ?? null
     };
 
     if (existingArticle) {
