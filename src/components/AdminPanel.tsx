@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, 
   Plus, 
@@ -22,7 +22,16 @@ import {
   Eye,
   EyeOff,
   LogOut,
-  Search
+  Search,
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Heading2,
+  Heading3,
+  List,
+  Quote,
+  Minus,
+  Smartphone
 } from 'lucide-react';
 import { PdfResource, Article, CourseType, ExamSession, ResourceCategory, SiteSettings } from '../types';
 import { StorageService } from '../services/storage';
@@ -154,8 +163,95 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [artTags, setArtTags] = useState('Islamic Banking, Bangladesh Economy, DIB');
   const [artKeywords, setArtKeywords] = useState('মুদারাবা সংজ্ঞা, রব্বুল মাল, DIB Part 1, ইসলামিক ব্যাংকিং');
   const [artSlug, setArtSlug] = useState('');
-  const [artCoverImage, setArtCoverImage] = useState('/src/assets/images/banner_bangladesh_banking_1793322325377.jpg');
+  const [artCoverImage, setArtCoverImage] = useState('/images/banner_bangladesh_banking_1793322325377.webp');
   const [artStatus, setArtStatus] = useState<'published' | 'draft'>('published');
+
+  const artContentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const artImageInputRef = useRef<HTMLInputElement>(null);
+
+  // Phone storage / device upload for article thumbnail
+  const handleArtImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setFormErrorMessage(lang === 'bn' ? 'অনুগ্রহ করে শুধুমাত্র ছবি ফাইল (JPG, PNG, WebP) নির্বাচন করুন।' : 'Please choose an image file.');
+      return;
+    }
+    const sizeInMB = file.size / (1024 * 1024);
+    if (sizeInMB > 4.5) {
+      setFormErrorMessage(lang === 'bn' ? 'ছবির সাইজ অনেক বড়। সর্বোচ্চ ৪.৫ মেগাবাইট ফাইল আপলোড করতে পারবেন।' : 'Image size exceeds 4.5MB limit.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setArtCoverImage(reader.result);
+        setFormSuccessMessage(lang === 'bn' ? 'ফোন স্টোরেজ থেকে থাম্বনেল যুক্ত হয়েছে!' : 'Device thumbnail attached successfully!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Text formatting tool for Admin Article Content
+  const applyArtFormat = (formatType: 'bold' | 'italic' | 'underline' | 'h2' | 'h3' | 'quote' | 'bullet' | 'link' | 'divider') => {
+    const textarea = artContentTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentVal = artContentBn;
+    const selectedText = currentVal.substring(start, end);
+
+    let replacement = '';
+    let cursorOffset = 0;
+
+    switch (formatType) {
+      case 'bold':
+        replacement = `**${selectedText || 'বোল্ড লেখা'}**`;
+        cursorOffset = selectedText ? replacement.length : 2;
+        break;
+      case 'italic':
+        replacement = `*${selectedText || 'ইটালিক লেখা'}*`;
+        cursorOffset = selectedText ? replacement.length : 1;
+        break;
+      case 'underline':
+        replacement = `<u>${selectedText || 'আন্ডারলাইন করা লেখা'}</u>`;
+        cursorOffset = selectedText ? replacement.length : 3;
+        break;
+      case 'h2':
+        replacement = `\n## ${selectedText || 'নতুন পরিচ্ছেদ শিরোনাম'}\n`;
+        cursorOffset = replacement.length;
+        break;
+      case 'h3':
+        replacement = `\n### ${selectedText || 'উপ-শিরোনাম'}\n`;
+        cursorOffset = replacement.length;
+        break;
+      case 'quote':
+        replacement = `\n> ${selectedText || 'আরবি বা নির্ভরযোগ্য উদ্ধৃতি'}\n`;
+        cursorOffset = replacement.length;
+        break;
+      case 'bullet':
+        replacement = `\n- ${selectedText || 'পয়েন্ট ১'}\n- পয়েন্ট ২\n`;
+        cursorOffset = replacement.length;
+        break;
+      case 'link':
+        replacement = `[${selectedText || 'লিংকের শিরোনাম'}](https://)`;
+        cursorOffset = replacement.length - 1;
+        break;
+      case 'divider':
+        replacement = `\n\n---\n\n`;
+        cursorOffset = replacement.length;
+        break;
+    }
+
+    const updatedText = currentVal.substring(0, start) + replacement + currentVal.substring(end);
+    setArtContentBn(updatedText);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + cursorOffset, start + cursorOffset);
+    }, 50);
+  };
 
   // Backup state
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
@@ -412,7 +508,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
 
     onRefreshData();
-    alert(lang === 'bn' ? 'আর্টিকেল সফলভাবে সংরক্ষিত হয়েছে!' : 'Article saved successfully!');
+    setFormSuccessMessage(lang === 'bn' ? 'আর্টিকেল সফলভাবে সংরক্ষিত হয়েছে!' : 'Article saved successfully!');
     setEditingArticleId(null);
     setActiveTab('articles');
   };
@@ -1504,42 +1600,76 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
-              {/* Thumbnail / Cover Image */}
-              <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 space-y-2">
-                <label className="block font-semibold text-stone-700">
-                  কন্টেন্ট থাম্বনেল / কভার ছবি (Thumbnail URL)
-                </label>
-                <input
-                  type="text"
-                  value={artCoverImage}
-                  onChange={(e) => setArtCoverImage(e.target.value)}
-                  placeholder="/src/assets/images/banner_bangladesh_banking_1793322325377.jpg"
-                  className="w-full p-2 bg-white border border-stone-300 rounded-lg text-stone-900 font-mono text-xs"
-                />
-                <div className="flex items-center gap-2 pt-1 text-[11px]">
-                  <span className="text-stone-500">প্রিসেট থাম্বনেল পছন্দ:</span>
+              {/* Thumbnail / Cover Image with Phone Storage Upload */}
+              <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-stone-700">
+                    কন্টেন্ট থাম্বনেল / কভার ছবি (Thumbnail)
+                  </label>
+                  <span className="text-[11px] text-stone-500">ফোন বা কম্পিউটার স্টোরেজ থেকে আপলোড সমর্থিত</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="file"
+                    ref={artImageInputRef}
+                    accept="image/*"
+                    onChange={handleArtImageUpload}
+                    className="hidden"
+                  />
                   <button
                     type="button"
-                    onClick={() => setArtCoverImage('/src/assets/images/banner_bangladesh_banking_1793322325377.jpg')}
-                    className="px-2 py-0.5 bg-white border border-stone-300 hover:border-emerald-600 rounded text-stone-700"
+                    onClick={() => artImageInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#047857] hover:bg-[#065f46] text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs transition-all"
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    <span>ফোন স্টোরেজ থেকে ছবি আপলোড</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setArtCoverImage('/images/banner_bangladesh_banking_1793322325377.webp')}
+                    className="px-2.5 py-1.5 bg-white border border-stone-300 hover:border-emerald-600 rounded-lg text-stone-700 text-xs"
                   >
                     ব্যাংকিং ব্যানার
                   </button>
                   <button
                     type="button"
-                    onClick={() => setArtCoverImage('/src/assets/images/category_diploma_banking_1793322326189.jpg')}
-                    className="px-2 py-0.5 bg-white border border-stone-300 hover:border-emerald-600 rounded text-stone-700"
+                    onClick={() => setArtCoverImage('/images/category_diploma_banking_1793322326189.webp')}
+                    className="px-2.5 py-1.5 bg-white border border-stone-300 hover:border-emerald-600 rounded-lg text-stone-700 text-xs"
                   >
                     ডিআইবি পাঠাগার
                   </button>
                   <button
                     type="button"
-                    onClick={() => setArtCoverImage('/src/assets/images/category_quran_hadith_1793322326327.jpg')}
-                    className="px-2 py-0.5 bg-white border border-stone-300 hover:border-emerald-600 rounded text-stone-700"
+                    onClick={() => setArtCoverImage('/images/category_quran_hadith_1793322326327.webp')}
+                    className="px-2.5 py-1.5 bg-white border border-stone-300 hover:border-emerald-600 rounded-lg text-stone-700 text-xs"
                   >
                     কুরআন ও হাদিস
                   </button>
                 </div>
+
+                {artCoverImage && (
+                  <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-stone-200">
+                    <img
+                      src={artCoverImage}
+                      alt="Thumbnail Preview"
+                      className="w-20 h-14 object-cover rounded border border-stone-200 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-semibold text-emerald-800">থাম্বনেল যুক্ত করা হয়েছে</div>
+                      <div className="text-[10px] text-stone-500 font-mono truncate">{artCoverImage.startsWith('data:') ? 'ডিভাইস ফাইল (Base64)' : artCoverImage}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setArtCoverImage('')}
+                      className="text-stone-400 hover:text-red-600 p-1"
+                      title="মুছুন"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1554,15 +1684,96 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 />
               </div>
 
+              {/* Full Article Content with Text Formatting Toolbar */}
               <div>
-                <label className="block font-medium text-stone-700 mb-1">পূর্ণাঙ্গ মূল আর্টিকেল (বাংলায়) *</label>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                  <label className="font-semibold text-stone-700">পূর্ণাঙ্গ মূল আর্টিকেল (বাংলায়) *</label>
+                  
+                  {/* Formatting Toolbar */}
+                  <div className="flex items-center flex-wrap gap-1 bg-stone-100 p-1 rounded-lg border border-stone-200">
+                    <button
+                      type="button"
+                      onClick={() => applyArtFormat('bold')}
+                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 rounded border border-stone-200 font-bold"
+                      title="বোল্ড (**লেখা**)"
+                    >
+                      <Bold className="w-3 h-3 text-stone-900" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyArtFormat('italic')}
+                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 rounded border border-stone-200 italic"
+                      title="ইটালিক (*লেখা*)"
+                    >
+                      <Italic className="w-3 h-3 text-stone-900" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyArtFormat('underline')}
+                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 rounded border border-stone-200 underline"
+                      title="আন্ডারলাইন (<u>লেখা</u>)"
+                    >
+                      <UnderlineIcon className="w-3 h-3 text-stone-900" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyArtFormat('h2')}
+                      className="px-1.5 py-1 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200 font-bold text-[10px]"
+                      title="বড় শিরোনাম (H2)"
+                    >
+                      H2
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyArtFormat('h3')}
+                      className="px-1.5 py-1 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200 font-bold text-[10px]"
+                      title="উপ-শিরোনাম (H3)"
+                    >
+                      H3
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyArtFormat('bullet')}
+                      className="p-1.5 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200"
+                      title="বুলেট পয়েন্ট (- )"
+                    >
+                      <List className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyArtFormat('quote')}
+                      className="p-1.5 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200"
+                      title="উদ্ধৃতি (> )"
+                    >
+                      <Quote className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyArtFormat('link')}
+                      className="p-1.5 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200"
+                      title="লিংক ([নাম](url))"
+                    >
+                      <LinkIcon className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyArtFormat('divider')}
+                      className="p-1.5 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200"
+                      title="ডিভাইডার (---)"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
                 <textarea
-                  rows={8}
+                  ref={artContentTextareaRef}
+                  rows={10}
                   required
                   value={artContentBn}
                   onChange={(e) => setArtContentBn(e.target.value)}
                   placeholder="## প্রথম পরিচ্ছেদ&#10;বিস্তারিত প্রবন্ধের বিষয়বস্তু বাংলায় লিখুন..."
-                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-900 font-bengali font-mono"
+                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-900 font-bengali font-mono text-xs leading-relaxed focus:ring-1 focus:ring-emerald-700"
                 />
               </div>
 

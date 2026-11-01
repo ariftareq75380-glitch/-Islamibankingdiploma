@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Sparkles, 
@@ -7,17 +7,23 @@ import {
   Globe, 
   Link as LinkIcon, 
   Upload, 
-  BookOpen, 
   Check, 
   Eye, 
   FileText, 
-  Heading1, 
-  List, 
   Quote, 
-  HelpCircle,
   AlertCircle,
   Copy,
-  Lock
+  Lock,
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  Minus,
+  Trash2,
+  Smartphone
 } from 'lucide-react';
 import { Article } from '../types';
 import { StorageService } from '../services/storage';
@@ -30,27 +36,27 @@ interface ContentEditorModalProps {
   lang: 'bn' | 'en';
 }
 
-// Preset Curated Islamic Banking & Educational Thumbnails
+// Preset Curated Islamic Banking & Educational WebP Thumbnails
 const PRESET_THUMBNAILS = [
   {
     id: 'banking_banner',
-    name: 'ইসলামী ব্যাংকিং ও অর্থায়ন ব্যানার',
-    url: '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg'
+    name: 'ইসলামী ব্যাংকিং ব্যানার',
+    url: '/images/banner_bangladesh_banking_1793322325377.webp'
   },
   {
     id: 'diploma_study',
     name: 'ডিআইবি পাঠাগার ও গবেষণা',
-    url: '/src/assets/images/category_diploma_banking_1793322326189.jpg'
+    url: '/images/category_diploma_banking_1793322326189.webp'
   },
   {
     id: 'quran_fiqh',
-    name: 'কুরআন ও হাদিসে অর্থনৈতিক নীতিমালা',
-    url: '/src/assets/images/category_quran_hadith_1793322326327.jpg'
+    name: 'কুরআন ও হাদিসে অর্থনীতি',
+    url: '/images/category_quran_hadith_1793322326327.webp'
   },
   {
     id: 'master_library',
     name: 'ইসলামিক নলেজ মাস্টার লাইব্রেরি',
-    url: '/src/assets/images/hero_islamic_library_1793322325013.jpg'
+    url: '/images/hero_islamic_library_1793322325013.webp'
   }
 ];
 
@@ -65,7 +71,8 @@ const SUGGESTED_KEYWORDS = [
   'ব্যাংক কোম্পানি আইন ১৯৯১',
   'এএওআইএফআই (AAOIFI)',
   'বাংলাদেশ ব্যাংক গাইডলাইন',
-  'সুদ বনাম মুনাফা'
+  'সুদ বনাম মুনাফা',
+  'BFIU Circular'
 ];
 
 export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
@@ -81,6 +88,85 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
 
+  // Form states
+  const [titleBn, setTitleBn] = useState('');
+  const [titleEn, setTitleEn] = useState('');
+  const [slug, setSlug] = useState('');
+  const [isSlugManual, setIsSlugManual] = useState(false);
+  const [categoryBn, setCategoryBn] = useState('ডিআইবি পার্ট-১ ও মূলনীতি');
+  const [categoryEn, setCategoryEn] = useState('Diploma in Islamic Banking (Part 1)');
+  const [urlPrefix, setUrlPrefix] = useState<'diploma' | 'articles'>('diploma');
+  
+  // Author
+  const [author, setAuthor] = useState('মুহাম্মদ আরিফুর রহমান');
+  const [authorDesignation, setAuthorDesignation] = useState('সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+
+  // Content
+  const [summaryBn, setSummaryBn] = useState('');
+  const [contentMarkdownBn, setContentMarkdownBn] = useState('');
+  const [contentMarkdownEn, setContentMarkdownEn] = useState('');
+
+  // Keywords
+  const [keywords, setKeywords] = useState<string[]>(['মুদারাবা', 'DIB Part 1', 'ইসলামিক ব্যাংকিং']);
+  const [keywordInput, setKeywordInput] = useState('');
+
+  // Thumbnail
+  const [thumbnailUrl, setThumbnailUrl] = useState(PRESET_THUMBNAILS[0].url);
+  const [thumbnailSourceType, setThumbnailSourceType] = useState<'upload' | 'presets' | 'url'>('upload');
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+
+  // Preview Mode
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Synchronize form states whenever modal opens or existingArticle changes
+  useEffect(() => {
+    if (isOpen) {
+      if (existingArticle) {
+        setTitleBn(existingArticle.titleBn || existingArticle.title || '');
+        setTitleEn(existingArticle.title || '');
+        setSlug(existingArticle.slug || '');
+        setIsSlugManual(true);
+        setCategoryBn(existingArticle.categoryBn || 'ডিআইবি পার্ট-১ ও মূলনীতি');
+        setCategoryEn(existingArticle.category || 'Diploma in Islamic Banking (Part 1)');
+        setAuthor(existingArticle.author || 'মুহাম্মদ আরিফুর রহমান');
+        setAuthorDesignation(existingArticle.authorDesignation || 'সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+        setSummaryBn(existingArticle.summaryBn || existingArticle.summary || '');
+        setContentMarkdownBn(existingArticle.contentMarkdownBn || '');
+        setContentMarkdownEn(existingArticle.contentMarkdownEn || '');
+        
+        const existingKw = existingArticle.keywords && existingArticle.keywords.length > 0 
+          ? existingArticle.keywords 
+          : (existingArticle.tags || ['মুদারাবা', 'DIB Part 1']);
+        setKeywords(existingKw);
+        setThumbnailUrl(existingArticle.coverImage || PRESET_THUMBNAILS[0].url);
+      } else {
+        // Clear for new article
+        setTitleBn('');
+        setTitleEn('');
+        setSlug('');
+        setIsSlugManual(false);
+        setCategoryBn('ডিআইবি পার্ট-১ ও মূলনীতি');
+        setCategoryEn('Diploma in Islamic Banking (Part 1)');
+        setAuthor('মুহাম্মদ আরিফুর রহমান');
+        setAuthorDesignation('সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+        setSummaryBn('');
+        setContentMarkdownBn('');
+        setContentMarkdownEn('');
+        setKeywords(['মুদারাবা', 'DIB Part 1', 'ইসলামিক ব্যাংকিং']);
+        setThumbnailUrl(PRESET_THUMBNAILS[0].url);
+      }
+      setActiveTab('editor');
+      setValidationError(null);
+      setUploadMessage(null);
+      setPinError(false);
+    }
+  }, [isOpen, existingArticle]);
+
   const getSavedPin = () => {
     return localStorage.getItem('dib_admin_pin') || '7538';
   };
@@ -95,6 +181,220 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
     } else {
       setPinError(true);
     }
+  };
+
+  // Auto-generate clean slug from English title or Bengali transliteration
+  useEffect(() => {
+    if (!isSlugManual && !existingArticle) {
+      const source = titleEn || titleBn;
+      if (source) {
+        const generated = source
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .trim()
+          .replace(/[\s_-]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        
+        if (generated) {
+          setSlug(generated);
+        } else if (titleBn.includes('মুদারাবা')) {
+          setSlug('mudaraba-definition');
+        } else if (titleBn.includes('মুশারাকা')) {
+          setSlug('musharaka-principles');
+        } else if (titleBn.includes('সার্কুলার') || titleBn.includes('বিএফআইইউ')) {
+          setSlug('bfiu-circuler-26');
+        }
+      }
+    }
+  }, [titleEn, titleBn, isSlugManual, existingArticle]);
+
+  // Handle adding a keyword
+  const handleAddKeyword = (kw: string) => {
+    const trimmed = kw.trim();
+    if (trimmed && !keywords.includes(trimmed)) {
+      setKeywords([...keywords, trimmed]);
+    }
+    setKeywordInput('');
+  };
+
+  const handleRemoveKeyword = (kwToRemove: string) => {
+    setKeywords(keywords.filter(k => k !== kwToRemove));
+  };
+
+  const handleKeyDownKeyword = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddKeyword(keywordInput);
+    }
+  };
+
+  // Direct Phone/Computer Image Upload handler with compression & Base64 storage
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setValidationError('অনুগ্রহ করে শুধুমাত্র ছবি ফাইল (JPG, PNG, WebP) নির্বাচন করুন।');
+      return;
+    }
+
+    const sizeInMB = file.size / (1024 * 1024);
+    if (sizeInMB > 4.5) {
+      setValidationError('ছবির সাইজ অনেক বড়। অনুগ্রহ করে ৪.৫ মেগাবাইট বা তার চেয়ে ছোট ছবি নির্বাচন করুন।');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setThumbnailUrl(reader.result);
+        setUploadMessage('ফোন স্টোরেজ থেকে থাম্বনেল সফলভাবে যুক্ত হয়েছে!');
+        setValidationError(null);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Smart Formatting Tool applying bold, italic, underline, headers, lists, quotes, links
+  const applyFormat = (formatType: 'bold' | 'italic' | 'underline' | 'h2' | 'h3' | 'quote' | 'bullet' | 'number' | 'link' | 'divider') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentVal = contentMarkdownBn;
+    const selectedText = currentVal.substring(start, end);
+
+    let replacement = '';
+    let cursorOffset = 0;
+
+    switch (formatType) {
+      case 'bold':
+        replacement = `**${selectedText || 'বোল্ড লেখা'}**`;
+        cursorOffset = selectedText ? replacement.length : 2;
+        break;
+      case 'italic':
+        replacement = `*${selectedText || 'ইটালিক লেখা'}*`;
+        cursorOffset = selectedText ? replacement.length : 1;
+        break;
+      case 'underline':
+        replacement = `<u>${selectedText || 'আন্ডারলাইন করা লেখা'}</u>`;
+        cursorOffset = selectedText ? replacement.length : 3;
+        break;
+      case 'h2':
+        replacement = `\n## ${selectedText || 'নতুন পরিচ্ছেদ শিরোনাম'}\n`;
+        cursorOffset = replacement.length;
+        break;
+      case 'h3':
+        replacement = `\n### ${selectedText || 'উপ-শিরোনাম'}\n`;
+        cursorOffset = replacement.length;
+        break;
+      case 'quote':
+        replacement = `\n> ${selectedText || 'আরবি বা নির্ভরযোগ্য উদ্ধৃতি'}\n`;
+        cursorOffset = replacement.length;
+        break;
+      case 'bullet':
+        if (selectedText.includes('\n')) {
+          replacement = selectedText.split('\n').map(line => `- ${line}`).join('\n');
+        } else {
+          replacement = `\n- ${selectedText || 'পয়েন্ট ১'}\n- পয়েন্ট ২\n`;
+        }
+        cursorOffset = replacement.length;
+        break;
+      case 'number':
+        if (selectedText.includes('\n')) {
+          replacement = selectedText.split('\n').map((line, idx) => `${idx + 1}. ${line}`).join('\n');
+        } else {
+          replacement = `\n১. ${selectedText || 'প্রথম শর্ত'}\n২. দ্বিতীয় শর্ত\n`;
+        }
+        cursorOffset = replacement.length;
+        break;
+      case 'link':
+        replacement = `[${selectedText || 'লিংকের শিরোনাম'}](https://)`;
+        cursorOffset = replacement.length - 1;
+        break;
+      case 'divider':
+        replacement = `\n\n---\n\n`;
+        cursorOffset = replacement.length;
+        break;
+    }
+
+    const updatedText = currentVal.substring(0, start) + replacement + currentVal.substring(end);
+    setContentMarkdownBn(updatedText);
+
+    // Reposition cursor
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + cursorOffset, start + cursorOffset);
+    }, 50);
+  };
+
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://islamibankingdiploma-4f7m.vercel.app';
+  const fullLiveUrl = `${currentOrigin}/${urlPrefix}/${slug || 'mudaraba-definition'}`;
+
+  const handleCopyLiveUrl = () => {
+    navigator.clipboard.writeText(fullLiveUrl);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationError(null);
+
+    if (!titleBn.trim()) {
+      setValidationError('অনুগ্রহ করে আর্টিকেলের বাংলা শিরোনাম লিখুন।');
+      return;
+    }
+
+    const finalSlug = (slug || 'study-guide')
+      .toLowerCase()
+      .replace(/[^\w-]/g, '-')
+      .replace(/--+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    if (!finalSlug) {
+      setValidationError('একটি বৈধ ইংরেজি URL স্লাগ প্রদান করুন (যেমন: bfiu-circuler-26)।');
+      return;
+    }
+
+    if (!contentMarkdownBn.trim()) {
+      setValidationError('অনুগ্রহ করে আর্টিকেলের মূল বক্তব্য বা ব্যাখ্যা বাংলায় লিখুন।');
+      return;
+    }
+
+    const wordCount = contentMarkdownBn.split(/\s+/).filter(Boolean).length;
+    const calculatedReadTime = `${Math.max(3, Math.ceil(wordCount / 150))} মিনিট পাঠ`;
+
+    const articlePayload: Article = {
+      id: existingArticle?.id || `art-${Date.now()}`,
+      title: titleEn || titleBn,
+      titleBn: titleBn,
+      slug: finalSlug,
+      author: author || 'মুহাম্মদ আরিফুর রহমান',
+      authorDesignation: authorDesignation || 'সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর',
+      publishedDate: existingArticle?.publishedDate || new Date().toISOString().split('T')[0],
+      readTime: calculatedReadTime,
+      category: categoryEn,
+      categoryBn: categoryBn,
+      summary: (summaryBn || titleBn).slice(0, 150) + '...',
+      summaryBn: summaryBn || titleBn,
+      contentMarkdownEn: contentMarkdownEn || summaryBn || titleBn,
+      contentMarkdownBn: contentMarkdownBn,
+      tags: keywords,
+      keywords: keywords,
+      coverImage: thumbnailUrl,
+      featured: true
+    };
+
+    if (existingArticle) {
+      StorageService.updateArticle(articlePayload);
+    } else {
+      StorageService.addArticle(articlePayload);
+    }
+
+    onArticleSaved(articlePayload);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -137,13 +437,13 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2 text-xs font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl"
+                className="flex-1 py-2 text-xs font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer"
               >
                 {lang === 'bn' ? 'বাতিল' : 'Cancel'}
               </button>
               <button
                 type="submit"
-                className="flex-1 py-2 text-xs font-semibold text-white bg-[#047857] hover:bg-[#065f46] rounded-xl shadow-xs"
+                className="flex-1 py-2 text-xs font-semibold text-white bg-[#047857] hover:bg-[#065f46] rounded-xl shadow-xs cursor-pointer"
               >
                 {lang === 'bn' ? 'যাচাই করুন' : 'Verify'}
               </button>
@@ -154,186 +454,6 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
     );
   }
 
-  // Form states
-  const [titleBn, setTitleBn] = useState(existingArticle?.titleBn || '');
-  const [titleEn, setTitleEn] = useState(existingArticle?.title || '');
-  const [slug, setSlug] = useState(existingArticle?.slug || '');
-  const [isSlugManual, setIsSlugManual] = useState(false);
-  const [categoryBn, setCategoryBn] = useState(existingArticle?.categoryBn || 'ডিআইবি পার্ট-১ ও মূলনীতি');
-  const [categoryEn, setCategoryEn] = useState(existingArticle?.category || 'Diploma in Islamic Banking (Part 1)');
-  const [urlPrefix, setUrlPrefix] = useState<'diploma' | 'articles'>('diploma');
-  
-  // Author
-  const [author, setAuthor] = useState(existingArticle?.author || 'মুহাম্মদ আরিফুর রহমান');
-  const [authorDesignation, setAuthorDesignation] = useState(
-    existingArticle?.authorDesignation || 'সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর'
-  );
-
-  // Content
-  const [summaryBn, setSummaryBn] = useState(existingArticle?.summaryBn || '');
-  const [contentMarkdownBn, setContentMarkdownBn] = useState(existingArticle?.contentMarkdownBn || '');
-  const [contentMarkdownEn, setContentMarkdownEn] = useState(existingArticle?.contentMarkdownEn || '');
-
-  // Keywords (কি-ওয়ার্ডস)
-  const [keywords, setKeywords] = useState<string[]>(() => {
-    if (existingArticle?.keywords && existingArticle.keywords.length > 0) {
-      return existingArticle.keywords;
-    }
-    if (existingArticle?.tags && existingArticle.tags.length > 0) {
-      return existingArticle.tags;
-    }
-    return ['মুদারাবা', 'DIB Part 1', 'ইসলামিক ব্যাংকিং'];
-  });
-  const [keywordInput, setKeywordInput] = useState('');
-
-  // Thumbnail (থাম্বনেল)
-  const [thumbnailUrl, setThumbnailUrl] = useState(
-    existingArticle?.coverImage || PRESET_THUMBNAILS[0].url
-  );
-  const [thumbnailSourceType, setThumbnailSourceType] = useState<'presets' | 'url' | 'upload'>('presets');
-
-  // Preview Mode
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  // Auto-generate clean slug from English title or Bengali transliteration
-  useEffect(() => {
-    if (!isSlugManual && !existingArticle) {
-      const source = titleEn || titleBn;
-      if (source) {
-        // Transliterate or clean to ASCII alphanumeric + dash
-        const generated = source
-          .toLowerCase()
-          .replace(/[^\w\s-]/g, '')
-          .trim()
-          .replace(/[\s_-]+/g, '-')
-          .replace(/^-+|-+$/g, '');
-        
-        if (generated) {
-          setSlug(generated);
-        } else if (titleBn.includes('মুদারাবা')) {
-          setSlug('mudaraba-definition');
-        } else if (titleBn.includes('মুশারাকা')) {
-          setSlug('musharaka-principles');
-        } else if (titleBn.includes('মুরাবাহা')) {
-          setSlug('murabaha-rules');
-        }
-      }
-    }
-  }, [titleEn, titleBn, isSlugManual, existingArticle]);
-
-  // Handle adding a keyword
-  const handleAddKeyword = (kw: string) => {
-    const trimmed = kw.trim();
-    if (trimmed && !keywords.includes(trimmed)) {
-      setKeywords([...keywords, trimmed]);
-    }
-    setKeywordInput('');
-  };
-
-  const handleRemoveKeyword = (kwToRemove: string) => {
-    setKeywords(keywords.filter(k => k !== kwToRemove));
-  };
-
-  const handleKeyDownKeyword = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      handleAddKeyword(keywordInput);
-    }
-  };
-
-  // Image Upload handler
-  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('অনুগ্রহ করে শুধুমাত্র ছবি ফাইল (JPG, PNG, WebP) নির্বাচন করুন।');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setThumbnailUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Insert helper markdown
-  const insertMarkdown = (syntax: string) => {
-    setContentMarkdownBn(prev => prev + '\n' + syntax);
-  };
-
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://islamibankingdiploma-4f7m.vercel.app';
-  const fullLiveUrl = `${currentOrigin}/${urlPrefix}/${slug || 'article-slug'}`;
-
-  const handleCopyLiveUrl = () => {
-    navigator.clipboard.writeText(fullLiveUrl);
-    setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2000);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError(null);
-
-    if (!titleBn.trim()) {
-      setValidationError('অনুগ্রহ করে আর্টিকেলের বাংলা শিরোনাম লিখুন।');
-      return;
-    }
-
-    const finalSlug = (slug || 'dib-study-guide')
-      .toLowerCase()
-      .replace(/[^\w-]/g, '-')
-      .replace(/--+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-    if (!finalSlug) {
-      setValidationError('একটি বৈধ ইংরেজি URL স্লাগ প্রদান করুন (যেমন: mudaraba-definition)।');
-      return;
-    }
-
-    if (!contentMarkdownBn.trim()) {
-      setValidationError('অনুগ্রহ করে আর্টিকেলের মূল বক্তব্য বা ব্যাখ্যা বাংলায় লিখুন।');
-      return;
-    }
-
-    const calculatedReadTime = `${Math.max(3, Math.ceil(contentMarkdownBn.split(/\s+/).length / 150))} মিনিট পাঠ`;
-
-    const articlePayload: Article = {
-      id: existingArticle?.id || `art-${Date.now()}`,
-      title: titleEn || titleBn,
-      titleBn: titleBn,
-      slug: finalSlug,
-      author: author || 'Islamic Banking Contributor',
-      authorDesignation: authorDesignation || 'DIB Academic Researcher',
-      publishedDate: existingArticle?.publishedDate || new Date().toISOString().split('T')[0],
-      readTime: calculatedReadTime,
-      category: categoryEn,
-      categoryBn: categoryBn,
-      summary: summaryBn.slice(0, 150) + '...',
-      summaryBn: summaryBn || titleBn,
-      contentMarkdownEn: contentMarkdownEn || summaryBn,
-      contentMarkdownBn: contentMarkdownBn,
-      tags: keywords,
-      keywords: keywords,
-      coverImage: thumbnailUrl,
-      featured: true
-    };
-
-    if (existingArticle) {
-      StorageService.updateArticle(articlePayload);
-    } else {
-      StorageService.addArticle(articlePayload);
-    }
-
-    onArticleSaved(articlePayload);
-    onClose();
-  };
-
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 font-bengali">
       <div 
@@ -341,17 +461,17 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Top Header */}
-        <div className="px-5 py-4 bg-emerald-900 text-white flex items-center justify-between border-b border-emerald-800">
+        <div className="px-5 py-4 bg-gradient-to-r from-[#14532D] to-[#047857] text-white flex items-center justify-between border-b border-emerald-900 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-800 flex items-center justify-center text-amber-300">
+            <div className="w-8 h-8 rounded-lg bg-emerald-800 border border-[#D4AF37]/40 flex items-center justify-center text-amber-300">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold">
-                {existingArticle ? 'কন্টেন্ট সম্পাদনা ও SEO আপডেট' : 'নতুন কন্টেন্ট ও প্রবন্ধ প্রকাশনা'}
+                {existingArticle ? 'আর্টিকেল সম্পাদনা ও আপডেট' : 'নতুন আর্টিকেল ও স্টাডি গাইড প্রকাশ'}
               </h2>
-              <p className="text-xs text-emerald-200/90">
-                স্থায়ী URL, কাস্টম থাম্বনেল, এবং সার্চ ইঞ্জিন কি-ওয়ার্ড অপ্টিমাইজেশন
+              <p className="text-xs text-emerald-100/90">
+                স্থায়ী URL, ফোন থেকে থাম্বনেল আপলোড, ও রিচ টেক্সট ফরম্যাটিং
               </p>
             </div>
           </div>
@@ -362,7 +482,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('editor')}
-                className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer ${
                   activeTab === 'editor' ? 'bg-white text-emerald-950 font-bold' : 'text-emerald-200 hover:text-white'
                 }`}
               >
@@ -371,7 +491,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('preview')}
-                className={`px-3 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1 ${
+                className={`px-3 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1 cursor-pointer ${
                   activeTab === 'preview' ? 'bg-white text-emerald-950 font-bold' : 'text-emerald-200 hover:text-white'
                 }`}
               >
@@ -382,7 +502,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-colors ml-1"
+              className="p-1.5 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-colors ml-1 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -390,19 +510,19 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
         </div>
 
         {/* Live URL Slug Banner */}
-        <div className="bg-stone-100 border-b border-stone-200 px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="bg-stone-100 border-b border-stone-200 px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
           <div className="flex items-center gap-2 flex-1 min-w-[280px]">
             <Globe className="w-4 h-4 text-emerald-700 shrink-0" />
-            <span className="font-semibold text-stone-600">গুগল ইনডেক্সেবল স্থায়ী URL:</span>
+            <span className="font-semibold text-stone-600">স্থায়ী ওয়েব লিংক (Permanent URL):</span>
             <span className="font-mono text-emerald-800 font-bold bg-white px-2 py-1 rounded border border-stone-200 truncate max-w-md">
-              /{urlPrefix}/{slug || 'mudaraba-definition'}
+              /{urlPrefix}/{slug || 'bfiu-circuler-26'}
             </span>
           </div>
 
           <button
             type="button"
             onClick={handleCopyLiveUrl}
-            className="flex items-center gap-1 text-[11px] text-stone-600 hover:text-emerald-800 font-semibold bg-white hover:bg-emerald-50 px-2.5 py-1 rounded border border-stone-200 transition-colors"
+            className="flex items-center gap-1 text-[11px] text-stone-600 hover:text-emerald-800 font-semibold bg-white hover:bg-emerald-50 px-2.5 py-1 rounded border border-stone-200 transition-colors cursor-pointer"
           >
             {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copiedUrl ? 'কপি হয়েছে!' : 'লিংক কপি করুন'}</span>
@@ -411,9 +531,17 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
 
         {/* Validation error notice */}
         {validationError && (
-          <div className="mx-5 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
+          <div className="mx-5 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2 shrink-0">
             <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
             <span>{validationError}</span>
+          </div>
+        )}
+
+        {/* Upload success message */}
+        {uploadMessage && (
+          <div className="mx-5 mt-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2 shrink-0">
+            <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+            <span>{uploadMessage}</span>
           </div>
         )}
 
@@ -443,20 +571,20 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                       required
                       value={titleBn}
                       onChange={(e) => setTitleBn(e.target.value)}
-                      placeholder="যেমন: মুদারাবা (Mudaraba) সংজ্ঞা, মূলনীতি ও ইসলামিক ব্যাংকিংয়ে পরিচালন পদ্ধতি"
+                      placeholder="যেমন: বিএফআইইউ সার্কুলার ২৬: ইসলামী ব্যাংকিং কমপ্লায়েন্স ও এএমএল নির্দেশিকা"
                       className="w-full p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs focus:ring-2 focus:ring-emerald-700"
                     />
                   </div>
 
                   <div>
                     <label className="block font-semibold text-stone-700 mb-1">
-                      ইংরেজি শিরোনাম (URL তৈরি ও সার্চের জন্য)
+                      ইংরেজি শিরোনাম (URL তৈরি ও আন্তর্জাতিক সার্চের জন্য)
                     </label>
                     <input
                       type="text"
                       value={titleEn}
                       onChange={(e) => setTitleEn(e.target.value)}
-                      placeholder="e.g. Mudaraba Definition and Operational Mechanics"
+                      placeholder="e.g. BFIU Circular 26 Compliance and AML Protocols"
                       className="w-full p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs focus:ring-2 focus:ring-emerald-700"
                     />
                   </div>
@@ -473,7 +601,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                       onChange={(e) => setUrlPrefix(e.target.value as 'diploma' | 'articles')}
                       className="w-full p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs font-mono"
                     >
-                      <option value="diploma">/diploma/:slug (DIB স্টাডি ও প্রশ্ন)</option>
+                      <option value="diploma">/diploma/:slug (DIB সিলেবাস ও স্টাডি)</option>
                       <option value="articles">/articles/:slug (রিসার্চ আর্টিকেল)</option>
                     </select>
                   </div>
@@ -489,14 +617,14 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                           setIsSlugManual(false);
                           if (titleEn || titleBn) {
                             setSlug(
-                              (titleEn || 'mudaraba-definition')
+                              (titleEn || 'study-guide')
                                 .toLowerCase()
                                 .replace(/[^a-z0-9]+/g, '-')
                                 .replace(/^-+|-+$/g, '')
                             );
                           }
                         }}
-                        className="text-[11px] text-emerald-800 hover:underline font-medium"
+                        className="text-[11px] text-emerald-800 hover:underline font-medium cursor-pointer"
                       >
                         স্বয়ংক্রিয় তৈরি করুন
                       </button>
@@ -513,7 +641,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                           setIsSlugManual(true);
                           setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
                         }}
-                        placeholder="mudaraba-definition"
+                        placeholder="bfiu-circuler-26"
                         className="w-full p-2.5 bg-white border border-stone-300 rounded-r-lg text-stone-900 font-mono text-xs focus:ring-2 focus:ring-emerald-700"
                       />
                     </div>
@@ -521,122 +649,77 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                 </div>
               </div>
 
-              {/* Section 2: Keywords / কি-ওয়ার্ড যোগ করার অপশন */}
-              <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-stone-200">
-                  <div className="font-bold text-stone-900 text-sm flex items-center gap-1.5">
-                    <Tag className="w-4 h-4 text-emerald-700" />
-                    <span>২. এসইও কি-ওয়ার্ড ও ট্যাগ (Keywords for Google & Search)</span>
-                  </div>
-                  <span className="text-[11px] text-stone-500">
-                    মেটা কি-ওয়ার্ড হিসেবে HTML হেডে যুক্ত হবে
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    কি-ওয়ার্ড লিখুন (Enter বা কমা চেপে যুক্ত করুন)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={keywordInput}
-                      onChange={(e) => setKeywordInput(e.target.value)}
-                      onKeyDown={handleKeyDownKeyword}
-                      placeholder="যেমন: মুদারাবা সংজ্ঞা, রব্বুল মাল, DIB Part 1..."
-                      className="flex-1 p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs focus:ring-2 focus:ring-emerald-700"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleAddKeyword(keywordInput)}
-                      className="px-4 py-2 bg-emerald-800 text-white rounded-lg font-semibold hover:bg-emerald-700 text-xs"
-                    >
-                      যুক্ত করুন
-                    </button>
-                  </div>
-                </div>
-
-                {/* Active Keyword Chips */}
-                <div className="flex flex-wrap gap-1.5 min-h-[32px] pt-1">
-                  {keywords.map((kw, i) => (
-                    <span 
-                      key={i}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-900 font-medium rounded-full text-xs border border-emerald-200"
-                    >
-                      <span>#{kw}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveKeyword(kw)}
-                        className="text-emerald-700 hover:text-red-600 rounded-full p-0.5"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-
-                {/* Quick Add Suggestions */}
-                <div className="pt-2 border-t border-stone-200/80">
-                  <div className="text-[11px] font-semibold text-stone-600 mb-1.5">
-                    জনপ্রিয় কি-ওয়ার্ড সুপারিশ (ক্লিক করে দ্রুত যুক্ত করুন):
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {SUGGESTED_KEYWORDS.map((sug, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleAddKeyword(sug)}
-                        className="px-2 py-0.5 bg-white hover:bg-emerald-50 text-stone-700 hover:text-emerald-800 text-[11px] rounded-md border border-stone-200 transition-colors"
-                      >
-                        + {sug}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 3: Thumbnail / থাম্বনেল যোগ করার অপশন */}
+              {/* Section 2: Phone Storage Thumbnail Upload / থাম্বনেল আপলোড অপশন */}
               <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-stone-200">
                   <div className="font-bold text-stone-900 text-sm flex items-center gap-1.5">
                     <ImageIcon className="w-4 h-4 text-emerald-700" />
-                    <span>৩. কন্টেন্ট থাম্বনেল ও কভার ছবি (Thumbnail & Cover Image)</span>
+                    <span>২. কন্টেন্ট থাম্বনেল আপলোড (ফোন স্টোরেজ / গ্যালারি)</span>
                   </div>
                   <span className="text-[11px] text-stone-500">
-                    Google SERP, সোশ্যাল শেয়ার কার্ড ও তালিকায় প্রদর্শিত
+                    মোবাইল থেকে সরাসরি ছবি আপলোড করা যাবে
                   </span>
                 </div>
 
-                {/* Thumbnail Source Selector */}
-                <div className="flex items-center gap-2 text-xs">
+                {/* Thumbnail Source Mode Switch */}
+                <div className="flex items-center gap-2 text-xs flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setThumbnailSourceType('upload')}
+                    className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      thumbnailSourceType === 'upload' ? 'bg-[#047857] text-white shadow-xs' : 'bg-white text-stone-700 border border-stone-300'
+                    }`}
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span>ফোন স্টোরেজ / ফাইল থেকে আপলোড</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setThumbnailSourceType('presets')}
-                    className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                      thumbnailSourceType === 'presets' ? 'bg-emerald-800 text-white font-bold' : 'bg-white text-stone-700 border border-stone-200'
+                    className={`px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
+                      thumbnailSourceType === 'presets' ? 'bg-[#047857] text-white shadow-xs' : 'bg-white text-stone-700 border border-stone-300'
                     }`}
                   >
-                    লাইব্রেরি গ্যালারি থেকে পছন্দ
+                    প্রিসেট গ্যালারি
                   </button>
                   <button
                     type="button"
                     onClick={() => setThumbnailSourceType('url')}
-                    className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                      thumbnailSourceType === 'url' ? 'bg-emerald-800 text-white font-bold' : 'bg-white text-stone-700 border border-stone-200'
+                    className={`px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
+                      thumbnailSourceType === 'url' ? 'bg-[#047857] text-white shadow-xs' : 'bg-white text-stone-700 border border-stone-300'
                     }`}
                   >
-                    ইমেজ URL প্রদান
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setThumbnailSourceType('upload')}
-                    className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                      thumbnailSourceType === 'upload' ? 'bg-emerald-800 text-white font-bold' : 'bg-white text-stone-700 border border-stone-200'
-                    }`}
-                  >
-                    মোবাইল/কম্পিউটার থেকে আপলোড
+                    ইমেজ লিংক (URL)
                   </button>
                 </div>
+
+                {/* Sub-view: Mobile / PC Phone Storage Upload */}
+                {thumbnailSourceType === 'upload' && (
+                  <div className="p-5 bg-white border-2 border-dashed border-emerald-300 hover:border-emerald-500 rounded-xl text-center transition-colors">
+                    <Upload className="w-8 h-8 text-[#047857] mx-auto mb-2" />
+                    <p className="font-bold text-stone-800 text-xs mb-1">
+                      মোবাইল গ্যালারি বা কম্পিউটার থেকে ছবি সিলেক্ট করুন
+                    </p>
+                    <p className="text-[11px] text-stone-500 mb-3">
+                      JPG, PNG, অথবা WebP ফরম্যাট (সর্বোচ্চ ৪.৫ MB)
+                    </p>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      accept="image/*" 
+                      onChange={handleImageFileUpload}
+                      className="hidden" 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#047857] hover:bg-[#065f46] text-white rounded-lg text-xs font-semibold cursor-pointer shadow-sm active:scale-95 transition-all"
+                    >
+                      <Smartphone className="w-4 h-4" />
+                      <span>গ্যালারি / ফাইল ম্যানেজার খুলুন</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Sub-view: Preset Thumbnails */}
                 {thumbnailSourceType === 'presets' && (
@@ -671,64 +754,256 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                 {thumbnailSourceType === 'url' && (
                   <div>
                     <label className="block font-semibold text-stone-700 mb-1">
-                      পাবলিক ইমেজ URL লিংক (JPG, PNG, WebP)
+                      পাবলিক ইমেজ URL লিংক
                     </label>
                     <input
                       type="url"
                       value={thumbnailUrl}
                       onChange={(e) => setThumbnailUrl(e.target.value)}
-                      placeholder="https://example.com/images/mudaraba-banner.jpg"
-                      className="w-full p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs focus:ring-2 focus:ring-emerald-700 font-mono"
+                      placeholder="https://example.com/banner.jpg"
+                      className="w-full p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs font-mono"
                     />
-                  </div>
-                )}
-
-                {/* Sub-view: Direct File Upload */}
-                {thumbnailSourceType === 'upload' && (
-                  <div className="p-4 bg-white border-2 border-dashed border-stone-300 rounded-xl text-center">
-                    <Upload className="w-8 h-8 text-stone-400 mx-auto mb-2" />
-                    <p className="font-semibold text-stone-800 text-xs mb-1">
-                      ছবি নির্বাচন করতে ক্লিক করুন বা টেনে আনুন
-                    </p>
-                    <p className="text-[11px] text-stone-500 mb-3">
-                      মোবাইল বা পিসি থেকে কভার থাম্বনেল আপলোড করুন (সর্বোচ্চ ৩ মেগাবাইট)
-                    </p>
-                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer">
-                      <span>ফাইল ব্রাউজ করুন</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleImageFileUpload}
-                        className="hidden" 
-                      />
-                    </label>
                   </div>
                 )}
 
                 {/* Live Preview of Selected Thumbnail */}
                 {thumbnailUrl && (
-                  <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-stone-200">
+                  <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-stone-200">
                     <img 
                       src={thumbnailUrl} 
                       alt="Thumbnail Preview" 
-                      className="w-28 h-16 object-cover rounded-lg border border-stone-200" 
+                      className="w-24 h-16 object-cover rounded-lg border border-stone-200 shrink-0" 
                     />
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider">
-                        থাম্বনেল প্রিভিউ অ্যাক্টিভ
+                        বর্তমান সক্রিয় থাম্বনেল
                       </div>
                       <div className="text-xs font-bold text-stone-900 truncate">
                         {titleBn || 'শিরোনাম নির্ধারণ করুন'}
                       </div>
                       <div className="text-[11px] text-stone-500 truncate">
-                        {keywords.join(' · ')}
+                        {(keywords || []).join(' · ')}
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setThumbnailUrl('')}
+                      className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg hover:bg-stone-50 cursor-pointer"
+                      title="থাম্বনেল মুছুন"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
               </div>
 
-              {/* Section 4: Author & Category Metadata */}
+              {/* Section 3: Formatting Toolbar & Content Writing / এডিটর টুলস */}
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="font-semibold text-stone-700">
+                    মূল আর্টিকেল ও ব্যাখ্যা (বাংলায়) *
+                  </label>
+
+                  {/* Rich Text Markdown Formatting Toolbar (বোল্ড, ইটালিক, আন্ডারলাইন ইত্যাদি) */}
+                  <div className="flex items-center flex-wrap gap-1 bg-stone-100 p-1.5 rounded-xl border border-stone-200 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('bold')}
+                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 rounded-lg border border-stone-200 flex items-center gap-1 font-bold cursor-pointer"
+                      title="বোল্ড করুন (**লেখা**)"
+                    >
+                      <Bold className="w-3.5 h-3.5 text-stone-900" />
+                      <span className="text-[11px] hidden sm:inline">বোল্ড</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('italic')}
+                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 rounded-lg border border-stone-200 flex items-center gap-1 italic cursor-pointer"
+                      title="ইটালিক করুন (*লেখা*)"
+                    >
+                      <Italic className="w-3.5 h-3.5 text-stone-900" />
+                      <span className="text-[11px] hidden sm:inline">ইটালিক</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('underline')}
+                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 rounded-lg border border-stone-200 flex items-center gap-1 underline cursor-pointer"
+                      title="আন্ডারলাইন করুন (<u>লেখা</u>)"
+                    >
+                      <UnderlineIcon className="w-3.5 h-3.5 text-stone-900" />
+                      <span className="text-[11px] hidden sm:inline">আন্ডারলাইন</span>
+                    </button>
+
+                    <span className="w-px h-5 bg-stone-300 mx-0.5" />
+
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('h2')}
+                      className="px-2 py-1 bg-white hover:bg-stone-200 text-stone-800 rounded-lg border border-stone-200 text-[11px] font-bold cursor-pointer"
+                      title="বড় শিরোনাম (H2)"
+                    >
+                      H2
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('h3')}
+                      className="px-2 py-1 bg-white hover:bg-stone-200 text-stone-800 rounded-lg border border-stone-200 text-[11px] font-bold cursor-pointer"
+                      title="উপ-শিরোনাম (H3)"
+                    >
+                      H3
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('bullet')}
+                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
+                      title="বুলেট তালিকা (- পয়েন্ট)"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('number')}
+                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
+                      title="নম্বরযুক্ত তালিকা (১, ২, ৩)"
+                    >
+                      <ListOrdered className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('quote')}
+                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
+                      title="উদ্ধৃতি / কোটেশন"
+                    >
+                      <Quote className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('link')}
+                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
+                      title="ওয়েব লিংক যুক্ত করুন"
+                    >
+                      <LinkIcon className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFormat('divider')}
+                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
+                      title="ডিভাইডার দাগ (---)"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <textarea
+                  ref={textareaRef}
+                  rows={12}
+                  required
+                  value={contentMarkdownBn}
+                  onChange={(e) => setContentMarkdownBn(e.target.value)}
+                  placeholder="## ১. পটভূমি ও প্রজ্ঞাপনের মূল উদ্দেশ্য&#10;&#10;বাংলাদেশ ফাইন্যান্সিয়াল ইন্টেলিজেন্স ইউনিট (BFIU) সার্কুলার ২৬-এর আলোকে সকল ইসলামী ব্যাংককে গ্রাহক সনাক্তকরণ (KYC) ও সন্দেহজনক লেনদেন (STR) তদারকিতে সতর্ক থাকার নির্দেশ দেওয়া হয়েছে...&#10;&#10;**প্রধান দিকসমূহ:**&#10;- পয়েন্ট ১&#10;- পয়েন্ট ২"
+                  className="w-full p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-emerald-700"
+                />
+              </div>
+
+              {/* Section 4: Summary (Meta Description for Google Search) */}
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">
+                  সংক্ষিপ্ত সারসংক্ষেপ (Google Search Snippet ও Meta Description) *
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={summaryBn}
+                  onChange={(e) => setSummaryBn(e.target.value)}
+                  placeholder="সার্কুলারের মূল বক্তব্য এবং ডিআইবি পরীক্ষার্থীদের জন্য গুরুত্বপূর্ণ দিকসমূহ..."
+                  className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 text-xs leading-relaxed"
+                />
+              </div>
+
+              {/* Section 5: Keywords / কি-ওয়ার্ড যোগ করার অপশন */}
+              <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-stone-200">
+                  <div className="font-bold text-stone-900 text-sm flex items-center gap-1.5">
+                    <Tag className="w-4 h-4 text-emerald-700" />
+                    <span>৪. এসইও কি-ওয়ার্ড ও ট্যাগ (Google Search Keywords)</span>
+                  </div>
+                  <span className="text-[11px] text-stone-500">
+                    মেটা কি-ওয়ার্ড হিসেবে HTML হেডে যুক্ত হবে
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">
+                    কি-ওয়ার্ড লিখুন (Enter বা কমা চেপে যুক্ত করুন)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={keywordInput}
+                      onChange={(e) => setKeywordInput(e.target.value)}
+                      onKeyDown={handleKeyDownKeyword}
+                      placeholder="যেমন: BFIU Circular 26, মানি লন্ডারিং প্রতিরোধ, DIB Part 1..."
+                      className="flex-1 p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs focus:ring-2 focus:ring-emerald-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddKeyword(keywordInput)}
+                      className="px-4 py-2 bg-emerald-800 text-white rounded-lg font-semibold hover:bg-emerald-700 text-xs cursor-pointer"
+                    >
+                      যুক্ত করুন
+                    </button>
+                  </div>
+                </div>
+
+                {/* Active Keyword Chips */}
+                <div className="flex flex-wrap gap-1.5 min-h-[32px] pt-1">
+                  {(keywords || []).map((kw, i) => (
+                    <span 
+                      key={i}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-900 font-medium rounded-full text-xs border border-emerald-200"
+                    >
+                      <span>#{kw}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveKeyword(kw)}
+                        className="text-emerald-700 hover:text-red-600 rounded-full p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+
+                {/* Quick Add Suggestions */}
+                <div className="pt-2 border-t border-stone-200/80">
+                  <div className="text-[11px] font-semibold text-stone-600 mb-1.5">
+                    সুপারিশকৃত কি-ওয়ার্ড:
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {SUGGESTED_KEYWORDS.map((sug, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleAddKeyword(sug)}
+                        className="px-2 py-0.5 bg-white hover:bg-emerald-50 text-stone-700 hover:text-emerald-800 text-[11px] rounded-md border border-stone-200 transition-colors cursor-pointer"
+                      >
+                        + {sug}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 6: Author & Category Metadata */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block font-semibold text-stone-700 mb-1">
@@ -781,85 +1056,6 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                 </div>
               </div>
 
-              {/* Section 5: Summary (Meta Description for Google Search) */}
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  সংক্ষিপ্ত সারসংক্ষেপ (Google Search Snippet ও Meta Description) *
-                </label>
-                <textarea
-                  rows={2}
-                  required
-                  value={summaryBn}
-                  onChange={(e) => setSummaryBn(e.target.value)}
-                  placeholder="মুদারাবার পারিভাষিক সংজ্ঞা, রব্বুল মাল ও মুদারিবের আইনি মর্যাদা, লাভ বণ্টনের পূর্বনির্ধারিত অনুপাত ও লোকসান বহনের নীতিমালা..."
-                  className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 text-xs leading-relaxed"
-                />
-              </div>
-
-              {/* Section 6: Full Article Content Editor */}
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className="font-semibold text-stone-700">
-                    পূর্ণাঙ্গ আর্টিকেল / স্টাডি নোটস (বাংলায়) *
-                  </label>
-
-                  {/* Formatting Toolbar */}
-                  <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg border border-stone-200">
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('## নতুন পরিচ্ছেদ শিরোনাম\n')}
-                      className="px-2 py-1 bg-white hover:bg-stone-200 rounded text-[11px] font-bold text-stone-800"
-                      title="Header 2"
-                    >
-                      H2
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('### উপ-শিরোনাম\n')}
-                      className="px-2 py-1 bg-white hover:bg-stone-200 rounded text-[11px] font-bold text-stone-800"
-                      title="Header 3"
-                    >
-                      H3
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('> আরবি বা হাদিসের উদ্ধৃতি: قال رسول الله ﷺ...\n')}
-                      className="px-2 py-1 bg-white hover:bg-stone-200 rounded text-[11px] font-medium text-stone-800 flex items-center gap-1"
-                      title="Quote"
-                    >
-                      <Quote className="w-3 h-3" />
-                      <span>উদ্ধৃতি</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('- পয়েন্ট ১\n- পয়েন্ট ২\n- পয়েন্ট ৩\n')}
-                      className="px-2 py-1 bg-white hover:bg-stone-200 rounded text-[11px] font-medium text-stone-800 flex items-center gap-1"
-                      title="Bullet list"
-                    >
-                      <List className="w-3 h-3" />
-                      <span>তালিকা</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('**প্রশ্ন:** মুদারাবা কী?\n**উত্তর:** মুদারাবা হলো...\n')}
-                      className="px-2 py-1 bg-white hover:bg-stone-200 rounded text-[11px] font-semibold text-emerald-800 flex items-center gap-1"
-                      title="DIB Question format"
-                    >
-                      <span>Q&A ফরম্যাট</span>
-                    </button>
-                  </div>
-                </div>
-
-                <textarea
-                  rows={10}
-                  required
-                  value={contentMarkdownBn}
-                  onChange={(e) => setContentMarkdownBn(e.target.value)}
-                  placeholder="## মুদারাবা (Mudaraba) কী? পারিভাষিক সংজ্ঞা ও ভিত্তি&#10;&#10;মুদারাবা হলো ইসলামী বাণিজ্যিক আইনের একটি বিশেষ চুক্তি..."
-                  className="w-full p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-emerald-700"
-                />
-              </div>
-
               {/* English Optional translation */}
               <div>
                 <label className="block font-semibold text-stone-700 mb-1">
@@ -869,7 +1065,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                   rows={4}
                   value={contentMarkdownEn}
                   onChange={(e) => setContentMarkdownEn(e.target.value)}
-                  placeholder="## What is Mudaraba? Definition & Principles..."
+                  placeholder="## Section 1: Background & Scope&#10;English text for bilingual readership..."
                   className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 text-xs font-mono leading-relaxed"
                 />
               </div>
@@ -888,13 +1084,13 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                     {fullLiveUrl}
                   </div>
                   <div className="text-base font-semibold text-blue-800 hover:underline cursor-pointer mb-1 leading-snug">
-                    {titleBn || 'মুদারাবা (Mudaraba) সংজ্ঞা, মূলনীতি ও ইসলামিক ব্যাংকিংয়ে পরিচালন পদ্ধতি'} | ইসলামী ব্যাংকিং ডিপ্লোমা
+                    {titleBn || 'আর্টিকেলের বাংলা শিরোনাম'} | ইসলামী ব্যাংকিং ডিপ্লোমা
                   </div>
                   <div className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
-                    {summaryBn || 'মুদারাবার পারিভাষিক সংজ্ঞা, রব্বুল মাল ও মুদারিবের আইনি মর্যাদা, লাভ বণ্টনের পূর্বনির্ধারিত অনুপাত, লোকসানের দায়ভার বহন এবং ডিআইবি পরীক্ষার বিগত বছরের মডেল প্রশ্নোত্তর।'}
+                    {summaryBn || 'আর্টিকেলের সংক্ষিপ্ত সারসংক্ষেপ ও পরীক্ষার মূল বিষয়বস্তু...'}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {keywords.map((kw, i) => (
+                    {(keywords || []).map((kw, i) => (
                       <span key={i} className="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded">
                         #{kw}
                       </span>
@@ -909,7 +1105,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                   <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-stone-900">
                     <img 
                       src={thumbnailUrl} 
-                      alt={titleBn} 
+                      alt={titleBn || 'Cover'} 
                       className="w-full h-full object-cover opacity-90" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
@@ -927,18 +1123,19 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                 <div className="p-6 space-y-4">
                   <div className="flex items-center gap-3 text-xs text-stone-500 pb-4 border-b border-stone-100">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center">
-                      {author.charAt(0)}
+                      {(author || 'লেখক').charAt(0)}
                     </div>
                     <div>
-                      <div className="font-bold text-stone-900">{author}</div>
-                      <div className="text-[11px]">{authorDesignation}</div>
+                      <div className="font-bold text-stone-900">{author || 'মুহাম্মদ আরিফুর রহমান'}</div>
+                      <div className="text-[11px]">{authorDesignation || 'ডিআইবি মেন্টর'}</div>
                     </div>
                   </div>
 
-                  <div className="prose prose-sm max-w-none text-stone-800 space-y-3 leading-relaxed">
-                    {contentMarkdownBn
+                  <div className="space-y-3 leading-relaxed text-stone-800">
+                    {(contentMarkdownBn || '')
                       .split('\n\n')
                       .map((para, i) => {
+                        if (!para.trim()) return null;
                         if (para.startsWith('## ')) {
                           return <h2 key={i} className="text-lg font-bold text-emerald-950 mt-4">{para.replace('## ', '')}</h2>;
                         }
@@ -947,6 +1144,9 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                         }
                         if (para.startsWith('> ')) {
                           return <blockquote key={i} className="p-3 bg-emerald-50 border-l-4 border-emerald-700 italic rounded-r">{para.replace('> ', '')}</blockquote>;
+                        }
+                        if (para.startsWith('---')) {
+                          return <hr key={i} className="border-t border-stone-200 my-4" />;
                         }
                         return <p key={i}>{para}</p>;
                       })}
@@ -958,11 +1158,11 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="px-5 py-3.5 bg-stone-100 border-t border-stone-200 flex items-center justify-between text-xs">
+        <div className="px-5 py-3.5 bg-stone-100 border-t border-stone-200 flex items-center justify-between text-xs shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-white hover:bg-stone-200 text-stone-700 font-semibold rounded-xl border border-stone-300 transition-colors"
+            className="px-4 py-2 bg-white hover:bg-stone-200 text-stone-700 font-semibold rounded-xl border border-stone-300 transition-colors cursor-pointer"
           >
             বাতিল করুন
           </button>
@@ -971,7 +1171,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab(activeTab === 'editor' ? 'preview' : 'editor')}
-              className="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold rounded-xl transition-colors"
+              className="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold rounded-xl transition-colors cursor-pointer"
             >
               {activeTab === 'editor' ? 'প্রিভিউ দেখুন' : 'এডিটরে ফিরুন'}
             </button>
@@ -979,10 +1179,10 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
             <button
               type="submit"
               form="content-author-form"
-              className="px-6 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+              className="px-6 py-2 bg-[#047857] hover:bg-[#065f46] text-white font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>{existingArticle ? 'আপডেট করুন' : 'প্রকাশ করুন (Publish Live)'}</span>
+              <span>{existingArticle ? 'আপডেট সম্পন্ন করুন' : 'প্রকাশ করুন (Publish Live)'}</span>
             </button>
           </div>
         </div>

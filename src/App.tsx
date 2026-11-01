@@ -476,10 +476,10 @@ export default function App() {
             onBack={handleCloseArticle}
             allResources={publishedResources}
             onOpenResource={handlePreviewResource}
-            onEditArticle={isAdminAuthenticated ? (art) => {
+            onEditArticle={(art) => {
               setEditingArticleForEditor(art);
               setIsContentEditorOpen(true);
-            } : undefined}
+            }}
             lang={lang}
           />
         ) : (

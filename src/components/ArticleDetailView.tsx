@@ -48,20 +48,27 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://islamibankingdiploma-4f7m.vercel.app';
     const canonicalPath = `/diploma/${article.slug}`;
 
+    const coverImg = article.coverImage;
+    const ogImage = coverImg 
+      ? (coverImg.startsWith('data:') || coverImg.startsWith('http') 
+          ? coverImg 
+          : `${origin}${coverImg.startsWith('/') ? '' : '/'}${coverImg}`)
+      : undefined;
+
     updateSEOMetadata({
       title: article.title,
       titleBn: article.titleBn,
       description: article.summaryBn || article.summary,
       keywords: article.keywords || article.tags,
       canonicalPath: canonicalPath,
-      ogImage: article.coverImage ? `${origin}${article.coverImage.startsWith('/') ? '' : '/'}${article.coverImage}` : undefined,
+      ogImage: ogImage,
       ogType: 'article',
       author: article.author,
       datePublished: article.publishedDate,
       breadcrumbs: [
         { name: 'হোম', url: '/' },
         { name: 'ডিপ্লোমা ইন ইসলামিক ব্যাংকিং (DIB)', url: '/diploma' },
-        { name: article.titleBn, url: canonicalPath }
+        { name: article.titleBn || article.title, url: canonicalPath }
       ]
     });
 
@@ -211,11 +218,11 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-b border-stone-200 mb-6 bg-white p-4 rounded-xl border border-stone-100 shadow-2xs">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-emerald-100 text-emerald-900 flex items-center justify-center font-bold text-base shadow-2xs">
-            {article.author.charAt(0)}
+            {(article.author || 'লেখক').charAt(0)}
           </div>
           <div>
-            <div className="font-bold text-stone-900 text-sm">{article.author}</div>
-            <div className="text-xs text-stone-500">{article.authorDesignation}</div>
+            <div className="font-bold text-stone-900 text-sm">{article.author || 'মুহাম্মদ আরিফুর রহমান'}</div>
+            <div className="text-xs text-stone-500">{article.authorDesignation || 'ইসলামিক ব্যাংকিং গবেষক'}</div>
           </div>
         </div>
 
@@ -223,7 +230,7 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
           {/* Language toggle */}
           <button
             onClick={() => setContentLang(contentLang === 'bn' ? 'en' : 'bn')}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-800 text-white hover:bg-emerald-700 text-xs font-semibold transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-800 text-white hover:bg-emerald-700 text-xs font-semibold transition-colors cursor-pointer"
           >
             <Languages className="w-3.5 h-3.5" />
             <span>{contentLang === 'bn' ? 'Read in English' : 'বাংলায় পড়ুন'}</span>
@@ -233,21 +240,21 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
           <div className="flex items-center bg-stone-100 rounded-lg p-0.5 text-xs text-stone-700 font-semibold">
             <button
               onClick={() => setFontSize('sm')}
-              className={`px-2 py-1 rounded ${fontSize === 'sm' ? 'bg-white shadow-xs text-emerald-900' : 'hover:text-stone-900'}`}
+              className={`px-2 py-1 rounded cursor-pointer ${fontSize === 'sm' ? 'bg-white shadow-xs text-emerald-900' : 'hover:text-stone-900'}`}
               title="Small text"
             >
               A-
             </button>
             <button
               onClick={() => setFontSize('base')}
-              className={`px-2 py-1 rounded ${fontSize === 'base' ? 'bg-white shadow-xs text-emerald-900' : 'hover:text-stone-900'}`}
+              className={`px-2 py-1 rounded cursor-pointer ${fontSize === 'base' ? 'bg-white shadow-xs text-emerald-900' : 'hover:text-stone-900'}`}
               title="Normal text"
             >
               A
             </button>
             <button
               onClick={() => setFontSize('lg')}
-              className={`px-2 py-1 rounded ${fontSize === 'lg' ? 'bg-white shadow-xs text-emerald-900' : 'hover:text-stone-900'}`}
+              className={`px-2 py-1 rounded cursor-pointer ${fontSize === 'lg' ? 'bg-white shadow-xs text-emerald-900' : 'hover:text-stone-900'}`}
               title="Large text"
             >
               A+
@@ -257,23 +264,30 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
       </div>
 
       {/* 6. Summary Callout Box */}
-      {article.summaryBn && (
+      {(article.summaryBn || article.summary) && (
         <div className="p-4 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl mb-6 text-stone-800 text-xs sm:text-sm leading-relaxed">
           <div className="font-bold text-amber-900 mb-1 flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-amber-600" />
             <span>সংক্ষিপ্ত সারসংক্ষেপ ও পরীক্ষার মূল পয়েন্ট:</span>
           </div>
           <p className="font-bengali">
-            {contentLang === 'bn' ? article.summaryBn : article.summary}
+            {contentLang === 'bn' ? (article.summaryBn || article.summary) : (article.summary || article.summaryBn)}
           </p>
         </div>
       )}
 
-      {/* 7. Full Article Text with Arabic & DIB Exam formatting */}
+      {/* 7. Full Article Text with Arabic, Underline & DIB Exam formatting */}
       <div className={`text-stone-800 ${fontSizeClasses[fontSize]} font-bengali space-y-5 bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-xs`}>
-        {(contentLang === 'bn' ? article.contentMarkdownBn : article.contentMarkdownEn)
+        {((contentLang === 'bn' ? article.contentMarkdownBn : article.contentMarkdownEn) 
+          || article.contentMarkdownBn 
+          || article.contentMarkdownEn 
+          || article.summaryBn 
+          || article.summary 
+          || '')
           .split('\n\n')
           .map((paragraph, idx) => {
+            if (!paragraph.trim()) return null;
+
             if (paragraph.startsWith('## ')) {
               return (
                 <h2 key={idx} className="text-xl sm:text-2xl font-bold text-stone-900 mt-8 mb-3 pb-2 border-b border-stone-100 flex items-center gap-2">
@@ -296,6 +310,9 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
                 </blockquote>
               );
             }
+            if (paragraph.startsWith('---')) {
+              return <hr key={idx} className="border-t border-stone-200 my-6" />;
+            }
             if (paragraph.startsWith('**প্রশ্ন:**') || paragraph.startsWith('**প্রশ্ন:')) {
               return (
                 <div key={idx} className="p-4 bg-stone-50 border border-stone-200 rounded-xl my-4 space-y-2">
@@ -305,11 +322,11 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
             }
             if (paragraph.startsWith('- ') || paragraph.startsWith('১. ') || paragraph.startsWith('1. ')) {
               return (
-                <div key={idx} className="pl-2 space-y-1 my-3">
+                <div key={idx} className="pl-2 space-y-1.5 my-3">
                   {paragraph.split('\n').map((line, li) => (
                     <div key={li} className="flex items-start gap-2 text-stone-800">
                       <span className="text-emerald-700 font-bold mt-0.5">•</span>
-                      <span>{line.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, '')}</span>
+                      <span className="flex-1 leading-relaxed">{line.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, '')}</span>
                     </div>
                   ))}
                 </div>
