@@ -106,77 +106,23 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [mobileMenuOpen]);
 
-  // Grouped navigation links: 1. Exam Preparation, 2. Study Resources, 3. Help & Information
-  const menuGroups = [
-    {
-      titleBn: 'পরীক্ষা প্রস্তুতি',
-      titleEn: 'Exam Preparation',
-      items: [
-        { 
-          tab: 'diploma' as ActiveTab, 
-          labelBn: 'ডিআইবি পার্ট ১ ও ২', 
-          labelEn: 'DIB Part 1 & 2',
-          icon: <GraduationCap className="w-4 h-4 text-emerald-700" />,
-          descBn: 'সিলেবাস, হ্যান্ডনোট ও পূর্ণাঙ্গ গাইডলাইন'
-        },
-        { 
-          tab: 'previous-questions' as ActiveTab, 
-          labelBn: 'বিগত বছরের প্রশ্ন ও সমাধান', 
-          labelEn: 'Previous Solved Papers',
-          icon: <FileCheck className="w-4 h-4 text-emerald-700" />,
-          descBn: '২০১৮–২০২৪ সালের অফিশিয়াল প্রশ্ন ও মডেল উত্তর'
-        },
-        { 
-          tab: 'mock-test' as ActiveTab, 
-          labelBn: 'মডেল টেস্ট ও অনুশীলন কুইজ', 
-          labelEn: 'Mock Test & Practice',
-          icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />,
-          descBn: 'টাইমার সহ রিয়েল-টাইম সেলফ অ্যাসেসমেন্ট',
-          isHighlight: true
-        }
-      ]
-    },
-    {
-      titleBn: 'অধ্যয়ন ও রেফারেন্স',
-      titleEn: 'Study Resources',
-      items: [
-        { 
-          tab: 'banking' as ActiveTab, 
-          labelBn: 'ইসলামিক ব্যাংকিং ও অর্থায়ন', 
-          labelEn: 'Islamic Banking & Finance',
-          icon: <Building2 className="w-4 h-4 text-emerald-700" />,
-          descBn: 'মুদারাবা, মুশারাকা ও আধুনিক ব্যাংকিং নীতিমালা'
-        },
-        { 
-          tab: 'pdf-library' as ActiveTab, 
-          labelBn: 'সম্পূর্ণ উন্মুক্ত পিডিএফ পাঠাগার', 
-          labelEn: 'Master PDF Library',
-          icon: <BookMarked className="w-4 h-4 text-teal-700" />,
-          descBn: 'আইবিবি অনুমোদিত সকল শিক্ষামূলক বই ও নোট'
-        },
-        { 
-          tab: 'quran-hadith' as ActiveTab, 
-          labelBn: 'কুরআন ও হাদিসে অর্থনৈতিক বিধান', 
-          labelEn: 'Quran & Hadith on Finance',
-          icon: <BookOpen className="w-4 h-4 text-amber-700" />,
-          descBn: 'মুআমালাত সংক্রান্ত কোরআনের আয়াত ও সহীহ হাদিস'
-        },
-        { 
-          tab: 'fiqh-fatwa' as ActiveTab, 
-          labelBn: 'ফিকহুল মুআমালাত ও ফতোয়া', 
-          labelEn: 'Fiqh al-Muamalat & Fatwas',
-          icon: <Scale className="w-4 h-4 text-emerald-800" />,
-          descBn: 'সেন্ট্রাল শরীয়াহ বোর্ডের গুরুত্বপূর্ণ সিদ্ধান্ত'
-        },
-        { 
-          tab: 'articles' as ActiveTab, 
-          labelBn: 'ব্যাংকিং প্রবন্ধ ও কলাম', 
-          labelEn: 'Banking Articles & Columns',
-          icon: <Sparkles className="w-4 h-4 text-amber-600" />,
-          descBn: 'বিশেষজ্ঞ ব্যাংকারদের দ্বিভাষিক গবেষণাপত্র'
-        }
-      ]
-    },
+  interface DrawerMenuItem {
+    tab: ActiveTab;
+    labelBn: string;
+    labelEn: string;
+    icon: React.ReactNode;
+    descBn: string;
+    isHighlight?: boolean;
+  }
+
+  interface DrawerMenuGroup {
+    titleBn: string;
+    titleEn: string;
+    items: DrawerMenuItem[];
+  }
+
+  // Navigation groups for drawer: Help & Information group kept
+  const menuGroups: DrawerMenuGroup[] = [
     {
       titleBn: 'সাহায্য ও তথ্য',
       titleEn: 'Help & Information',
@@ -213,13 +159,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   ];
 
-  // Primary desktop bar links
+  // Primary desktop bar links (duplicates removed: DIB Hub & Library now handled by DIB Exam & PDF Corner)
   const primaryDesktopLinks = [
     { tab: 'home' as ActiveTab, labelBn: 'হোম', labelEn: 'Home' },
-    { tab: 'diploma' as ActiveTab, labelBn: 'ডিআইবি রিসোর্স', labelEn: 'DIB Hub' },
     { tab: 'previous-questions' as ActiveTab, labelBn: 'বিগত প্রশ্ন', labelEn: 'Past Papers' },
     { tab: 'mock-test' as ActiveTab, labelBn: 'মডেল টেস্ট', labelEn: 'Mock Test', isNew: true },
-    { tab: 'pdf-library' as ActiveTab, labelBn: 'পাঠাগার', labelEn: 'Library' },
     { tab: 'faq' as ActiveTab, labelBn: 'এফএকিউ', labelEn: 'FAQ' },
   ];
 

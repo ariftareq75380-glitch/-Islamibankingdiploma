@@ -197,6 +197,129 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
         </div>
 
+        {/* অন্যান্য রিসোর্স (Other Resources) Section */}
+        <div className="pt-6 pb-6 border-t border-emerald-900/60 mb-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-3 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
+            <span>অন্যান্য রিসোর্স</span>
+            <span className="text-[10px] text-stone-400 font-sans font-normal">(Other Resources)</span>
+          </h4>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 font-bengali text-xs">
+            <li>
+              <a
+                href="/previous-questions"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/previous-questions');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+                className="text-stone-300 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+              >
+                <span className="text-[#D4AF37]">›</span>
+                <span>বিগত বছরের প্রশ্ন ও সমাধান</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="/mock-test"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/mock-test');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+                className="text-stone-300 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+              >
+                <span className="text-[#D4AF37]">›</span>
+                <span>মডেল টেস্ট ও অনুশীলন কুঠুরি</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="/banking"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/banking');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+                className="text-stone-300 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+              >
+                <span className="text-[#D4AF37]">›</span>
+                <span>ইসলামিক ব্যাংকিং ও অর্থায়ন</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="/pdf-library"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/pdf-library');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+                className="text-stone-300 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+              >
+                <span className="text-[#D4AF37]">›</span>
+                <span>সম্পূর্ণ উন্মুক্ত পিডিএফ পাঠাগার</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="/quran-hadith"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/quran-hadith');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+                className="text-stone-300 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+              >
+                <span className="text-[#D4AF37]">›</span>
+                <span>কুরআন ও হাদিসে অর্থনৈতিক বিধান</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="/fiqh-fatwa"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/fiqh-fatwa');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+                className="text-stone-300 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+              >
+                <span className="text-[#D4AF37]">›</span>
+                <span>ফিকহুল মুআমালাত ও ফতোয়া</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="/diploma"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/diploma');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+                className="text-stone-300 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+              >
+                <span className="text-[#D4AF37]">›</span>
+                <span>ডিআইবি পার্ট ১ ও ২ (সব আর্টিকেল)</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
         {/* Bottom Strip */}
         <div className="pt-6 border-t border-emerald-900/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-stone-400 text-[11px]">
           <div className="flex items-center gap-2">
