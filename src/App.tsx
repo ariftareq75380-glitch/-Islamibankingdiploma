@@ -16,6 +16,7 @@ import { HeroSection } from './components/HeroSection';
 import { ResumeStudyBanner } from './components/ResumeStudyBanner';
 import { FeaturedCategories } from './components/FeaturedCategories';
 import { DiplomaExamSection } from './components/DiplomaExamSection';
+import { HighlightedArticlesSection, RecentArticlesSection } from './components/HomeArticleSections';
 import { PracticeMockTest } from './components/PracticeMockTest';
 import { BookmarksView } from './components/BookmarksView';
 import { FaqSection } from './components/FaqSection';
@@ -187,9 +188,7 @@ export default function App() {
 
   // Scroll helper
   const scrollToLibrary = () => {
-    if (activeTab !== 'home') {
-      setActiveTab('pdf-library');
-    }
+    handleNavigateUrl('/pdf-library');
     setTimeout(() => {
       librarySectionRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -464,6 +463,19 @@ export default function App() {
     return articles.filter(a => a.status !== 'draft' && !a.isDraft);
   }, [articles]);
 
+  // Computed counts for category cards
+  const dibArticlesCount = useMemo(() => {
+    return publishedArticles.filter(a => a.menuCategory === 'dib-part-1' || a.menuCategory === 'dib-part-2').length;
+  }, [publishedArticles]);
+
+  const dibResourcesCount = useMemo(() => {
+    return publishedResources.filter(r => r.course === 'DIB-1' || r.course === 'DIB-2').length;
+  }, [publishedResources]);
+
+  const totalDibCount = useMemo(() => {
+    return dibArticlesCount + dibResourcesCount;
+  }, [dibArticlesCount, dibResourcesCount]);
+
   // Bookmarked Resources
   const bookmarkedResources = useMemo(() => {
     return resources.filter(r => bookmarks.includes(r.id) && r.status !== 'draft' && !r.isDraft);
@@ -527,7 +539,7 @@ export default function App() {
             {/* 1. HOMEPAGE VIEW */}
             {activeTab === 'home' && (
               <>
-                {/* Hero Section with concise placeholder & instant autocomplete suggestions */}
+                {/* 1. Compact Hero: Title, short description, search bar */}
                 <HeroSection
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
@@ -535,159 +547,40 @@ export default function App() {
                   setSelectedYear={setSelectedYear}
                   selectedCourse={selectedCourse}
                   setSelectedCourse={setSelectedCourse}
-                  onExploreClick={scrollToLibrary}
-                  onNavigateTab={(tab) => {
-                    setActiveTab(tab);
-                    if (typeof window !== 'undefined') {
-                      window.history.pushState(null, '', `/${tab}`);
-                    }
-                  }}
+                  onExploreClick={() => handleNavigateUrl('/pdf-library')}
+                  onNavigateTab={(tab) => handleSelectTabWithFilter(tab)}
                   totalResourcesCount={publishedResources.length}
                   totalArticlesCount={publishedArticles.length}
                   lang={lang}
                   resources={publishedResources}
                 />
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  {/* Resume where you left off banner */}
-                  <ResumeStudyBanner
-                    lastRead={lastRead}
-                    completedCount={completedIds.length}
-                    totalCount={publishedResources.length}
-                    onResume={handleResumeLastRead}
-                    lang={lang}
-                  />
-                </div>
-
-                {/* Ad Placement: Clean, hidden if no live AdSense code */}
-                {settings.enableAdPlacements && (
-                  <AdPlacement slotType="header-banner" lang={lang} />
-                )}
-
-                {/* Featured Subject Divisions with bespoke colors and symbols */}
-                <FeaturedCategories
-                  categories={categoriesList}
-                  onSelectCategory={(courseType) => {
-                    if (courseType) setSelectedCourse(courseType);
-                    scrollToLibrary();
-                  }}
-                  lang={lang}
-                />
-
-                {/* Dedicated DIB Exam Papers organized by year with Mark as Read */}
-                <DiplomaExamSection
-                  resources={publishedResources}
-                  onPreview={handlePreviewResource}
-                  onDownloadIncrement={handleDownloadIncrement}
-                  bookmarks={bookmarks}
-                  onToggleBookmark={handleToggleBookmark}
-                  lang={lang}
-                  completedIds={completedIds}
-                  onToggleComplete={handleToggleComplete}
-                />
-
-                {/* Bilingual Banking Articles Section with distinct URLs & keywords */}
-                <ArticlesSection
+                {/* 2. Highlighted Section: up to two articles where featured is true; hidden if none */}
+                <HighlightedArticlesSection
                   articles={publishedArticles}
-                  resources={publishedResources}
                   onOpenArticle={handleOpenArticle}
-                  onWriteArticle={isAdminAuthenticated ? () => {
-                    setEditingArticleForEditor(null);
-                    setIsContentEditorOpen(true);
-                  } : undefined}
+                  onNavigateUrl={handleNavigateUrl}
                   lang={lang}
-                  menuFilter={articleMenuFilter}
-                  onSelectMenuFilter={(m) => {
-                    const targetUrl = m ? `/articles?menu=${m}` : '/articles';
-                    handleNavigateUrl(targetUrl);
-                  }}
                 />
 
-            {/* Complete Interactive PDF Library Section */}
-            <div ref={librarySectionRef} className="py-10 sm:py-14 bg-[#F8FAF5] border-t border-stone-200">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
-                  <div>
-                    <div className="text-xs font-bold text-[#047857] tracking-wider uppercase mb-1">
-                      {lang === 'bn' ? 'সম্পূর্ণ আর্কাইভ অনুসন্ধান' : 'Master PDF Archive'}
-                    </div>
-                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-stone-900">
-                      {lang === 'bn' ? 'সকল শিক্ষামূলক পিডিএফ ও স্টাডি ডকুমেন্টস' : 'All Islamic Banking & DIB PDF Resources'}
-                    </h2>
-                  </div>
-                  <div className="text-xs text-stone-500 font-medium">
-                    {lang === 'bn'
-                      ? `মোট ${filteredResources.length} টি রিসোর্স প্রদর্শিত`
-                      : `Displaying ${filteredResources.length} educational documents`}
-                  </div>
-                </div>
+                {/* 3. Recent Articles Section: 3 newest articles by publishedAt with "সব দেখুন" link to /articles */}
+                <RecentArticlesSection
+                  articles={publishedArticles}
+                  onOpenArticle={handleOpenArticle}
+                  onNavigateUrl={handleNavigateUrl}
+                  lang={lang}
+                />
 
-                {/* Resource Multi-filter Component */}
-                <div className="mb-6">
-                  <ResourceFilters
-                    selectedCourse={selectedCourse}
-                    setSelectedCourse={setSelectedCourse}
-                    selectedSubject={selectedSubject}
-                    setSelectedSubject={setSelectedSubject}
-                    selectedYear={selectedYear}
-                    setSelectedYear={setSelectedYear}
-                    selectedSession={selectedSession}
-                    setSelectedSession={setSelectedSession}
-                    selectedLanguage={selectedLanguage}
-                    setSelectedLanguage={setSelectedLanguage}
-                    selectedCategory={selectedCategory}
-                    setSelectedCategory={setSelectedCategory}
-                    onReset={handleResetFilters}
-                    activeFilterCount={activeFilterCount}
-                    lang={lang}
-                  />
-                </div>
-
-                {/* Grid */}
-                {filteredResources.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredResources.map((res) => (
-                      <PdfCard
-                        key={res.id}
-                        resource={res}
-                        onPreview={handlePreviewResource}
-                        onDownloadIncrement={handleDownloadIncrement}
-                        isBookmarked={bookmarks.includes(res.id)}
-                        onToggleBookmark={handleToggleBookmark}
-                        lang={lang}
-                        isCompleted={completedIds.includes(res.id)}
-                        onToggleComplete={handleToggleComplete}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center max-w-lg mx-auto shadow-xs">
-                    <Search className="w-10 h-10 text-stone-300 mx-auto mb-3" />
-                    <h3 className="text-base font-bold text-stone-900 mb-1">
-                      {lang === 'bn' ? 'কোনো রিসোর্স পাওয়া যায়নি' : 'No Resources Found'}
-                    </h3>
-                    <p className="text-xs text-stone-500 mb-4 font-bengali">
-                      {lang === 'bn'
-                        ? 'আপনার বর্তমান ফিল্টারের সাথে মিলে এমন কোনো ফাইল নেই। ফিল্টার রিসেট করে আবার চেষ্টা করুন।'
-                        : 'No files match your current filter settings. Try resetting your filters.'}
-                    </p>
-                    <button
-                      onClick={handleResetFilters}
-                      className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl"
-                    >
-                      {lang === 'bn' ? 'ফিল্টার রিসেট করুন' : 'Reset Filters'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bottom Ad Placement: Clean */}
-            {settings.enableAdPlacements && (
-              <AdPlacement slotType="bottom-wide" lang={lang} />
+                {/* 4. Three Category Cards: "ডিআইবি পরীক্ষা", "আর্টিকেলসমূহ", "পিডিএফ কর্নার" */}
+                <FeaturedCategories
+                  onNavigateUrl={handleNavigateUrl}
+                  dibCount={totalDibCount}
+                  articlesCount={publishedArticles.length}
+                  pdfCount={publishedResources.length}
+                  lang={lang}
+                />
+              </>
             )}
-          </>
-        )}
 
         {/* 2. DEDICATED PRACTICE & MOCK TEST MODE */}
         {activeTab === 'mock-test' && (
@@ -728,7 +621,7 @@ export default function App() {
           activeTab === 'quran-hadith' || 
           activeTab === 'fiqh-fatwa' || 
           activeTab === 'pdf-library') && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-bengali">
+          <div ref={librarySectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-bengali">
             {/* Header info */}
             <div className="mb-6 border-b border-stone-200 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -755,6 +648,22 @@ export default function App() {
                 </button>
               </div>
             </div>
+
+            {/* Dedicated DIB Exam Papers organized by year with Mark as Read for previous questions */}
+            {activeTab === 'previous-questions' && (
+              <div className="mb-10">
+                <DiplomaExamSection
+                  resources={publishedResources}
+                  onPreview={handlePreviewResource}
+                  onDownloadIncrement={handleDownloadIncrement}
+                  bookmarks={bookmarks}
+                  onToggleBookmark={handleToggleBookmark}
+                  lang={lang}
+                  completedIds={completedIds}
+                  onToggleComplete={handleToggleComplete}
+                />
+              </div>
+            )}
 
             {/* Filter toolbar */}
             <div className="mb-6">
