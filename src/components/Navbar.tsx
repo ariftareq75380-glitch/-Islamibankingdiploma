@@ -27,7 +27,8 @@ import {
   FileCheck,
   Type,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Calculator
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 
@@ -113,6 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     icon: React.ReactNode;
     descBn: string;
     isHighlight?: boolean;
+    href?: string;
   }
 
   interface DrawerMenuGroup {
@@ -127,6 +129,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       titleBn: 'সাহায্য ও তথ্য',
       titleEn: 'Help & Information',
       items: [
+        { 
+          tab: 'zakat-calculator' as ActiveTab, 
+          labelBn: 'যাকাত ক্যালকুলেটর', 
+          labelEn: 'Zakat Calculator',
+          icon: <Calculator className="w-4 h-4 text-emerald-700" />,
+          descBn: 'নিসাব ও যাকাত হিসাবের ডিজিটাল ক্যালকুলেটর',
+          href: '/zakat-calculator'
+        },
         { 
           tab: 'bookmarks-view' as ActiveTab, 
           labelBn: 'সংরক্ষিত প্রশ্ন ও বই (Bookmarks)', 
@@ -164,6 +174,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { tab: 'home' as ActiveTab, labelBn: 'হোম', labelEn: 'Home' },
     { tab: 'previous-questions' as ActiveTab, labelBn: 'বিগত প্রশ্ন', labelEn: 'Past Papers' },
     { tab: 'mock-test' as ActiveTab, labelBn: 'মডেল টেস্ট', labelEn: 'Mock Test', isNew: true },
+    { tab: 'zakat-calculator' as ActiveTab, labelBn: 'যাকাত ক্যালকুলেটর', labelEn: 'Zakat Calculator' },
     { tab: 'faq' as ActiveTab, labelBn: 'এফএকিউ', labelEn: 'FAQ' },
   ];
 
@@ -618,45 +629,54 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                   {/* Group Items */}
                   <div className="grid grid-cols-1 gap-1">
-                    {group.items.map((item) => (
-                      <button
-                        key={item.tab}
-                        onClick={() => {
-                          setActiveTab(item.tab);
-                          setMobileMenuOpen(false);
-                        }}
-                        className={`text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-between min-h-[44px] cursor-pointer ${
-                          activeTab === item.tab
-                            ? 'bg-emerald-50 text-[#14532D] font-bold border border-emerald-300 shadow-2xs'
-                            : 'text-stone-700 hover:bg-stone-50 border border-transparent'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={`p-1.5 rounded-lg shrink-0 ${activeTab === item.tab ? 'bg-emerald-100 text-[#047857]' : 'bg-stone-100 text-stone-600'}`}>
-                            {item.icon}
-                          </div>
-                          <div className="truncate">
-                            <div className="font-semibold truncate leading-snug">
-                              {lang === 'bn' ? item.labelBn : item.labelEn}
+                    {group.items.map((item) => {
+                      const itemHref = item.href || (item.tab === 'home' ? '/' : `/${item.tab}`);
+                      return (
+                        <a
+                          key={item.tab}
+                          href={itemHref}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (item.href) {
+                              handleNavigate(item.href, item.tab);
+                            } else {
+                              setActiveTab(item.tab);
+                            }
+                            setMobileMenuOpen(false);
+                          }}
+                          className={`text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-between min-h-[44px] cursor-pointer ${
+                            activeTab === item.tab
+                              ? 'bg-emerald-50 text-[#14532D] font-bold border border-emerald-300 shadow-2xs'
+                              : 'text-stone-700 hover:bg-stone-50 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className={`p-1.5 rounded-lg shrink-0 ${activeTab === item.tab ? 'bg-emerald-100 text-[#047857]' : 'bg-stone-100 text-stone-600'}`}>
+                              {item.icon}
                             </div>
-                            {item.descBn && (
-                              <div className="text-[10px] text-stone-500 font-normal truncate">
-                                {lang === 'bn' ? item.descBn : ''}
+                            <div className="truncate">
+                              <div className="font-semibold truncate leading-snug">
+                                {lang === 'bn' ? item.labelBn : item.labelEn}
                               </div>
-                            )}
+                              {item.descBn && (
+                                <div className="text-[10px] text-stone-500 font-normal truncate">
+                                  {lang === 'bn' ? item.descBn : ''}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-1 shrink-0 ml-2">
-                          {item.isHighlight && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#14532D] border border-[#D4AF37]/40">
-                              {lang === 'bn' ? 'কুইজ' : 'Quiz'}
-                            </span>
-                          )}
-                          <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
-                        </div>
-                      </button>
-                    ))}
+                          <div className="flex items-center gap-1 shrink-0 ml-2">
+                            {item.isHighlight && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#14532D] border border-[#D4AF37]/40">
+                                {lang === 'bn' ? 'কুইজ' : 'Quiz'}
+                              </span>
+                            )}
+                            <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                          </div>
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

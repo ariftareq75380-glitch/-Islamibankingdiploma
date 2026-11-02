@@ -148,4 +148,12 @@
     <priority>0.4</priority>
   </url>
 
+  <!-- 5. Interactive Educational Tools -->
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/zakat-calculator</loc>
+    <lastmod>2026-11-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
 </urlset>

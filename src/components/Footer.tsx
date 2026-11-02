@@ -317,6 +317,23 @@ export const Footer: React.FC<FooterProps> = ({
                 <span>ডিআইবি পার্ট ১ ও ২ (সব আর্টিকেল)</span>
               </a>
             </li>
+            <li>
+              <a
+                href="/zakat-calculator"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveTab('zakat-calculator');
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/zakat-calculator');
+                  }
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="text-stone-300 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+              >
+                <span className="text-[#D4AF37]">›</span>
+                <span>যাকাত ক্যালকুলেটর</span>
+              </a>
+            </li>
           </ul>
         </div>
 

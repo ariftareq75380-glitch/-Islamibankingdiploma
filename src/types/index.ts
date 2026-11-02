@@ -132,5 +132,6 @@ export type ActiveTab =
   | 'privacy' 
   | 'disclaimer'
   | 'wp-blueprint'
+  | 'zakat-calculator'
   | 'not-found';
 

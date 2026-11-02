@@ -17,6 +17,7 @@ import { ResumeStudyBanner } from './components/ResumeStudyBanner';
 import { FeaturedCategories } from './components/FeaturedCategories';
 import { DiplomaExamSection } from './components/DiplomaExamSection';
 import { HighlightedArticlesSection, RecentArticlesSection } from './components/HomeArticleSections';
+import { ZakatCalculator } from './components/ZakatCalculator';
 import { PracticeMockTest } from './components/PracticeMockTest';
 import { BookmarksView } from './components/BookmarksView';
 import { FaqSection } from './components/FaqSection';
@@ -259,10 +260,22 @@ export default function App() {
       }
     }
 
+    if (pathname === 'zakat-calculator') {
+      setActiveTab('zakat-calculator');
+      setSelectedArticleForRead(null);
+      updateSEOMetadata({
+        title: 'যাকাত ক্যালকুলেটর (Zakat Calculator) | ইসলামী ব্যাংকিং ডিপ্লোমা',
+        description: 'আপনার সম্পদের পরিমাণ লিখে নিসাব অনুযায়ী যাকাতের আনুমানিক হিসাব জানুন। নিসাবের টাকার মূল্য আপনার দেওয়া দামের ভিত্তিতে হিসাব হয়।',
+        canonicalPath: '/zakat-calculator'
+      });
+      return;
+    }
+
     const validTabs: ActiveTab[] = [
       'home', 'banking', 'diploma', 'previous-questions', 'islamic-studies',
       'quran-hadith', 'fiqh-fatwa', 'pdf-library', 'articles', 'mock-test',
-      'faq', 'bookmarks-view', 'about', 'contact', 'privacy', 'disclaimer', 'wp-blueprint'
+      'faq', 'bookmarks-view', 'about', 'contact', 'privacy', 'disclaimer', 'wp-blueprint',
+      'zakat-calculator'
     ];
     if (validTabs.includes(pathname as ActiveTab)) {
       setActiveTab(pathname as ActiveTab);
@@ -324,10 +337,18 @@ export default function App() {
       const targetPath = tab === 'home' ? '/' : `/${tab}`;
       window.history.pushState(null, '', targetPath);
     }
-    updateSEOMetadata({
-      title: `${tab.toUpperCase()} | ইসলামী ব্যাংকিং ডিপ্লোমা`,
-      canonicalPath: tab === 'home' ? '/' : `/${tab}`
-    });
+    if (tab === 'zakat-calculator') {
+      updateSEOMetadata({
+        title: 'যাকাত ক্যালকুলেটর (Zakat Calculator) | ইসলামী ব্যাংকিং ডিপ্লোমা',
+        description: 'আপনার সম্পদের পরিমাণ লিখে নিসাব অনুযায়ী যাকাতের আনুমানিক হিসাব জানুন। নিসাবের টাকার মূল্য আপনার দেওয়া দামের ভিত্তিতে হিসাব হয়।',
+        canonicalPath: '/zakat-calculator'
+      });
+    } else {
+      updateSEOMetadata({
+        title: `${tab.toUpperCase()} | ইসলামী ব্যাংকিং ডিপ্লোমা`,
+        canonicalPath: tab === 'home' ? '/' : `/${tab}`
+      });
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Auto preset filters according to top nav tabs
@@ -753,6 +774,11 @@ export default function App() {
             settings={settings}
             lang={lang}
           />
+        )}
+
+        {/* 8. ZAKAT CALCULATOR VIEW */}
+        {activeTab === 'zakat-calculator' && (
+          <ZakatCalculator lang={lang} onNavigateUrl={handleNavigateUrl} />
         )}
 
         {/* 8. 404 NOT FOUND VIEW */}
