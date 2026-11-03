@@ -39,7 +39,7 @@ import { formatFileSize, isValidUrl } from '../utils/pdfUtils';
 import { subjectsList, examYearsList } from '../data/mockData';
 import { AdminSeoAuditTab } from './AdminSeoAuditTab';
 import contentData from '../data/content.json';
-import { supabase } from '../utils/supabase';
+import { supabase, setSupabaseAuthHeader } from '../utils/supabase';
 import type { Session } from '@supabase/supabase-js';
 
 interface AdminPanelProps {
@@ -132,6 +132,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
       if (data.session) {
         setSession(data.session);
+        if (data.session.access_token) {
+          setSupabaseAuthHeader(data.session.access_token);
+        }
+        console.log('Admin login successful, session user ID:', data.session.user.id);
         onAuthChange?.(true);
       }
     } catch (err: any) {
@@ -143,6 +147,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleLogout = async () => {
+    setSupabaseAuthHeader(null);
     await supabase.auth.signOut();
     setSession(null);
     onAuthChange?.(false);
@@ -169,6 +174,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         setIsSupabaseImporting(false);
         return;
       }
+
+      // Log the session user id before the write (as required)
+      console.log('Session user ID before write:', activeSession.user.id);
+
+      // Ensure the Authorization header is sent with the logged-in session access token
+      if (activeSession.access_token) {
+        setSupabaseAuthHeader(activeSession.access_token);
+      }
+      console.log('Authorization header status:', Boolean((supabase as any).rest?.headers?.get?.('Authorization') || (supabase as any).rest?.headers?.['Authorization']) ? 'Attached' : 'Missing');
+
       const importedArticles = (contentData as any)?.articles;
       const importedResources = (contentData as any)?.resources;
 
@@ -216,6 +231,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         .upsert(articleRows, { onConflict: 'id' });
 
       if (artError) {
+        console.error('Articles upsert error:', artError);
         errorDetail += `Articles: ${artError.message}`;
       } else {
         writtenArticles = processedArticles.length;
@@ -233,6 +249,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         .upsert(resourceRows, { onConflict: 'id' });
 
       if (resError) {
+        console.error('Resources upsert error:', resError);
         errorDetail += (errorDetail ? '; ' : '') + `Resources: ${resError.message}`;
       } else {
         writtenResources = importedResources.length;
