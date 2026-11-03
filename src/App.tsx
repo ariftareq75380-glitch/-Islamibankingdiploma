@@ -36,6 +36,7 @@ import { Footer } from './components/Footer';
 import { IslamicCalendarModal } from './components/IslamicCalendarModal';
 import { PrayerTimesModal } from './components/PrayerTimesModal';
 import { updateSEOMetadata } from './utils/seo';
+import { supabase } from './utils/supabase';
 
 import { 
   FileText, 
@@ -78,12 +79,7 @@ export default function App() {
   const [selectedPdfForPreview, setSelectedPdfForPreview] = useState<PdfResource | null>(null);
   const [selectedArticleForRead, setSelectedArticleForRead] = useState<Article | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isAdminVisible, setIsAdminVisible] = useState<boolean>(() => {
-    return localStorage.getItem('dib_admin_visible') === 'true';
-  });
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('dib_admin_auth') === 'true';
-  });
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [isBlueprintOpen, setIsBlueprintOpen] = useState(false);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
@@ -99,30 +95,42 @@ export default function App() {
 
   const librarySectionRef = useRef<HTMLDivElement>(null);
 
-  const handleSecretAdminTrigger = () => {
-    setIsAdminVisible(true);
-    localStorage.setItem('dib_admin_visible', 'true');
+  // Monitor Supabase session for admin authentication state
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAdminAuthenticated(Boolean(session));
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdminAuthenticated(Boolean(session));
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleOpenAdmin = () => {
     setIsAdminOpen(true);
   };
 
-  const handleHideAdmin = () => {
-    setIsAdminVisible(false);
-    localStorage.removeItem('dib_admin_visible');
+  const handleSecretAdminTrigger = () => {
+    handleOpenAdmin();
   };
 
-  // Secret admin access triggers (Keyboard: Ctrl+Shift+A or Alt+A, or URL query: ?admin=1 / #admin)
+  // Admin access triggers (Keyboard: Ctrl+Shift+A or Alt+A, or URL query: ?admin=1 / #admin)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) || (e.altKey && (e.key === 'a' || e.key === 'A'))) {
         e.preventDefault();
-        handleSecretAdminTrigger();
+        handleOpenAdmin();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     const params = new URLSearchParams(window.location.search);
     if (params.get('admin') === '1' || params.get('admin') === 'true' || window.location.hash === '#admin') {
-      handleSecretAdminTrigger();
+      handleOpenAdmin();
     }
 
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -525,8 +533,7 @@ export default function App() {
         openBookmarks={() => setIsBookmarksDrawerOpen(true)}
         siteName={settings.siteName}
         siteNameBn={settings.siteNameBn}
-        isAdminVisible={isAdminVisible}
-        onHideAdmin={handleHideAdmin}
+        isAdminVisible={isAdminAuthenticated}
         theme={theme}
         onThemeChange={handleThemeChange}
         fontSize={fontSize}
@@ -961,7 +968,7 @@ export default function App() {
         lang={lang}
       />
 
-      {/* 3. Admin Panel Modal (PIN Protected, secret) */}
+      {/* 3. Admin Panel Modal (Supabase Auth Protected) */}
       {isAdminOpen && (
         <AdminPanel
           resources={resources}
@@ -970,7 +977,6 @@ export default function App() {
           onRefreshData={loadAllData}
           onClose={() => setIsAdminOpen(false)}
           lang={lang}
-          onHideAdmin={handleHideAdmin}
           onAuthChange={(auth) => setIsAdminAuthenticated(auth)}
           onPreviewResource={handlePreviewResource}
         />

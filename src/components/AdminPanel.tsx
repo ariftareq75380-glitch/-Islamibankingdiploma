@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Plus, 
@@ -40,6 +40,7 @@ import { subjectsList, examYearsList } from '../data/mockData';
 import { AdminSeoAuditTab } from './AdminSeoAuditTab';
 import contentData from '../data/content.json';
 import { supabase } from '../utils/supabase';
+import type { Session } from '@supabase/supabase-js';
 
 interface AdminPanelProps {
   resources: PdfResource[];
@@ -64,51 +65,87 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onAuthChange,
   onPreviewResource
 }) => {
-  // Authentication state - protected by PIN code (Default PIN: 7538)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('dib_admin_auth') === 'true';
-  });
-  const [pinInput, setPinInput] = useState('');
-  const [authError, setAuthError] = useState(false);
-  const [showPin, setShowPin] = useState(false);
-  const [newPinInput, setNewPinInput] = useState('');
-  const [pinChangeMsg, setPinChangeMsg] = useState<string | null>(null);
+  // Supabase Auth Session State
+  const [session, setSession] = useState<Session | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authErrorMsg, setAuthErrorMsg] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const getSavedPin = () => {
-    return localStorage.getItem('dib_admin_pin') || '7538';
-  };
+  // Monitor Supabase Auth state
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      if (mounted) {
+        setSession(currentSession);
+        setIsCheckingSession(false);
+        onAuthChange?.(Boolean(currentSession));
+      }
+    }).catch(() => {
+      if (mounted) {
+        setIsCheckingSession(false);
+      }
+    });
 
-  const handlePinSubmit = (e: React.FormEvent) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      if (mounted) {
+        setSession(currentSession);
+        onAuthChange?.(Boolean(currentSession));
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [onAuthChange]);
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const correctPin = getSavedPin();
-    if (pinInput.trim() === correctPin || pinInput.trim() === '7538') {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('dib_admin_auth', 'true');
-      onAuthChange?.(true);
-      setAuthError(false);
-      setPinInput('');
-    } else {
-      setAuthError(true);
+    setAuthErrorMsg(null);
+    setIsLoggingIn(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: emailInput.trim(),
+        password: passwordInput
+      });
+
+      // Clear password from state immediately (do not store password anywhere)
+      setPasswordInput('');
+
+      if (error) {
+        let msg = 'ইমেইল বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে পুনরায় চেষ্টা করুন।';
+        const raw = error.message.toLowerCase();
+        if (raw.includes('invalid login credentials') || raw.includes('invalid credentials')) {
+          msg = 'ভুল ইমেইল বা পাসওয়ার্ড! সঠিক তথ্য প্রদান করুন।';
+        } else if (raw.includes('email not confirmed')) {
+          msg = 'আপনার ইমেইলটি এখনও নিশ্চিত (confirm) করা হয়নি।';
+        } else {
+          msg = `লগইন ত্রুটি: ${error.message}`;
+        }
+        setAuthErrorMsg(msg);
+        return;
+      }
+
+      if (data.session) {
+        setSession(data.session);
+        onAuthChange?.(true);
+      }
+    } catch (err: any) {
+      setPasswordInput('');
+      setAuthErrorMsg(`লগইন করতে সমস্যা হয়েছে: ${err?.message || 'নেটওয়ার্ক ত্রুটি'}`);
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem('dib_admin_auth');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
     onAuthChange?.(false);
-    setPinInput('');
-  };
-
-  const handleChangePin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPinInput.trim().length < 4) {
-      setPinChangeMsg(lang === 'bn' ? 'পিন কমপক্ষে ৪ অক্ষরের হতে হবে।' : 'PIN must be at least 4 characters.');
-      return;
-    }
-    localStorage.setItem('dib_admin_pin', newPinInput.trim());
-    setPinChangeMsg(lang === 'bn' ? 'পিন সফলভাবে আপডেট হয়েছে!' : 'PIN successfully updated!');
-    setNewPinInput('');
-    setTimeout(() => setPinChangeMsg(null), 3000);
   };
 
   // Supabase import states & handler
@@ -124,6 +161,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setSupabaseIsError(false);
 
     try {
+      // Ensure active session exists so auth.uid() matches admin
+      const { data: { session: activeSession } } = await supabase.auth.getSession();
+      if (!activeSession) {
+        setSupabaseResultMsg('ত্রুটি: কোনো সক্রিয় লগইন সেশন পাওয়া যায়নি। অনুগ্রহ করে লগইন করুন।');
+        setSupabaseIsError(true);
+        setIsSupabaseImporting(false);
+        return;
+      }
       const importedArticles = (contentData as any)?.articles;
       const importedResources = (contentData as any)?.resources;
 
@@ -686,16 +731,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     reader.readAsText(file);
   };
 
-  if (!isAuthenticated) {
+  if (isCheckingSession) {
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+        <div className="bg-white rounded-2xl max-w-md w-full p-8 flex flex-col items-center justify-center shadow-2xl border border-stone-200 text-center animate-in fade-in duration-200 font-bengali">
+          <div className="w-10 h-10 border-4 border-emerald-800 border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-sm font-semibold text-stone-700">অ্যাডমিন সেশন যাচাই করা হচ্ছে...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 font-bengali">
         <div 
           className="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 flex flex-col shadow-2xl border border-stone-200 text-center relative animate-in fade-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100 transition-colors"
+            className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+            title="বন্ধ করুন"
           >
             <X className="w-5 h-5" />
           </button>
@@ -705,80 +762,78 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
 
           <h2 className="text-xl font-bold text-stone-900 mb-1">
-            {lang === 'bn' ? 'অ্যাডমিন সিকিউরিটি লক' : 'Admin Security Lock'}
+            অ্যাডমিন লগইন
           </h2>
           <p className="text-xs text-stone-500 mb-6 leading-relaxed">
-            {lang === 'bn' 
-              ? 'এই পোর্টালটি শুধুমাত্র সাইট অ্যাডমিনিস্ট্রেটরের জন্য সংরক্ষিত। প্রবেশ করতে আপনার গোপন পিন (PIN) কোড দিন।'
-              : 'Restricted area. Please provide your admin PIN code to access the management hub.'}
+            সাইট পরিচালনা ও ডেটা নিয়ন্ত্রণের জন্য আপনার অনুমোদিত ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করুন।
           </p>
 
-          <form onSubmit={handlePinSubmit} className="space-y-4 text-left" autoComplete="off">
+          <form onSubmit={handleLoginSubmit} className="space-y-4 text-left" autoComplete="off">
+            {authErrorMsg && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{authErrorMsg}</span>
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
-                <span>{lang === 'bn' ? 'অ্যাডমিন পিন কোড (Admin PIN)' : 'Admin PIN Code'}</span>
+              <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                ইমেইল
+              </label>
+              <input
+                type="email"
+                required
+                autoFocus
+                value={emailInput}
+                onChange={(e) => {
+                  setEmailInput(e.target.value);
+                  if (authErrorMsg) setAuthErrorMsg(null);
+                }}
+                placeholder="admin@example.com"
+                className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700 font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                পাসওয়ার্ড
               </label>
               <div className="relative">
                 <input
-                  type="text"
-                  name="dib_security_code"
-                  id="dib_security_code"
-                  autoComplete="one-time-code"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  data-lpignore="true"
-                  data-1p-ignore="true"
-                  data-form-type="other"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  type={showPassword ? 'text' : 'password'}
                   required
-                  autoFocus
-                  value={pinInput}
+                  value={passwordInput}
                   onChange={(e) => {
-                    setPinInput(e.target.value);
-                    if (authError) setAuthError(false);
+                    setPasswordInput(e.target.value);
+                    if (authErrorMsg) setAuthErrorMsg(null);
                   }}
-                  placeholder="••••"
-                  style={{
-                    WebkitTextSecurity: showPin ? 'none' : 'disc'
-                  } as React.CSSProperties}
-                  className={`w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-900 font-mono text-center text-xl tracking-[0.25em] focus:outline-none focus:ring-2 ${
-                    authError 
-                      ? 'border-red-500 focus:ring-red-300 bg-red-50/30' 
-                      : 'border-stone-200 focus:ring-emerald-700/20 focus:border-emerald-700'
-                  }`}
+                  placeholder="••••••••"
+                  className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700 pr-10 font-sans"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPin(!showPin)}
+                  onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer"
                 >
-                  {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {authError && (
-                <p className="text-xs text-red-600 mt-2 font-medium flex items-center gap-1 justify-center">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  {lang === 'bn' ? 'ভুল পিন কোড! সঠিক পিন প্রদান করুন।' : 'Invalid PIN code. Access denied.'}
-                </p>
-              )}
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 bg-emerald-900 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm cursor-pointer"
+              disabled={isLoggingIn}
+              className="w-full py-3 bg-emerald-900 hover:bg-emerald-800 disabled:opacity-50 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm cursor-pointer"
             >
               <Lock className="w-4 h-4 text-emerald-300" />
-              <span>{lang === 'bn' ? 'আনলক করুন ও প্রবেশ করুন' : 'Unlock & Access'}</span>
+              <span>{isLoggingIn ? 'যাচাই করা হচ্ছে...' : 'লগইন'}</span>
             </button>
           </form>
 
           <div className="mt-5 pt-4 border-t border-stone-100 text-[11px] text-stone-500 flex items-center justify-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-            <span>{lang === 'bn' ? 'সাইট অ্যাডমিনিস্ট্রেটর সিকিউরিটি পোর্টাল' : 'Secure Administrator Portal'}</span>
+            <span>সুরক্ষিত অ্যাডমিনিস্ট্রেটর পোর্টাল</span>
           </div>
         </div>
       </div>
@@ -807,6 +862,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {session?.user?.email && (
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-stone-800 rounded-lg text-xs text-emerald-400 font-mono border border-stone-700/60">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{session.user.email}</span>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setIsSupabaseConfirmOpen(true)}
@@ -817,30 +878,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <Database className="w-3.5 h-3.5 text-emerald-300" />
               <span>{isSupabaseImporting ? 'আপলোড হচ্ছে...' : 'Supabase-এ ডেটা তুলুন'}</span>
             </button>
-            {onHideAdmin && (
-              <button
-                onClick={() => {
-                  onHideAdmin();
-                  onClose();
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white rounded-lg transition-colors text-xs font-semibold cursor-pointer border border-stone-700/60"
-                title={lang === 'bn' ? 'অ্যাডমিন বাটন সাইট থেকে লুকিয়ে ফেলুন' : 'Hide admin trigger from site view'}
-              >
-                <EyeOff className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">{lang === 'bn' ? 'বাটন লুকান' : 'Hide Button'}</span>
-              </button>
-            )}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 hover:bg-red-900/40 text-stone-300 hover:text-red-300 rounded-lg transition-colors text-xs font-semibold cursor-pointer"
-              title={lang === 'bn' ? 'অ্যাডমিন সেশন লক করুন' : 'Lock Admin Session'}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 hover:bg-red-900/60 text-stone-200 hover:text-red-200 rounded-lg transition-colors text-xs font-semibold cursor-pointer border border-stone-700/60"
+              title="সেশন থেকে লগআউট করুন"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>{lang === 'bn' ? 'লক করুন' : 'Lock'}</span>
+              <span>লগআউট</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white rounded-lg transition-colors"
+              className="p-2 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+              title="বন্ধ করুন"
             >
               <X className="w-5 h-5" />
             </button>
@@ -2054,55 +2103,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
-              {/* Security & PIN Settings */}
+              {/* Supabase Admin Account Info */}
               <div className="p-5 bg-stone-50 rounded-xl border border-stone-200 space-y-3">
                 <div className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-emerald-800" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-800" />
                   <div className="font-bold text-stone-900 text-sm">
-                    {lang === 'bn' ? 'অ্যাডমিন সিকিউরিটি পিন পরিবর্তন' : 'Change Admin Security PIN'}
+                    {lang === 'bn' ? 'সক্রিয় অ্যাডমিন অ্যাকাউন্ট' : 'Active Admin Account'}
                   </div>
                 </div>
-                <p className="text-stone-600">
-                  {lang === 'bn' 
-                    ? `আপনার অ্যাডমিন সিকিউরিটি পিন আপডেট করুন। বর্তমান সক্রিয় পিন: ${getSavedPin()}`
-                    : `Update your personal security PIN. Current active PIN: ${getSavedPin()}`}
-                </p>
-
-                {pinChangeMsg && (
-                  <div className="p-2.5 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-emerald-700" />
-                    <span>{pinChangeMsg}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleChangePin} className="flex flex-wrap items-center gap-3" autoComplete="off">
-                  <input
-                    type="text"
-                    name="dib_update_code"
-                    id="dib_update_code"
-                    autoComplete="one-time-code"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-form-type="other"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    required
-                    minLength={4}
-                    value={newPinInput}
-                    onChange={(e) => setNewPinInput(e.target.value)}
-                    placeholder={lang === 'bn' ? 'নতুন ৪ বা ৬ ডিজিটের পিন' : 'New 4+ digit PIN'}
-                    className="p-2 bg-white border border-stone-300 rounded-lg font-mono text-xs w-56 text-stone-900 tracking-wider"
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-white rounded-lg font-semibold text-xs"
-                  >
-                    {lang === 'bn' ? 'নতুন পিন সংরক্ষণ করুন' : 'Save New PIN'}
-                  </button>
-                </form>
+                <div className="text-stone-600 space-y-1">
+                  <p>
+                    <span className="font-semibold text-stone-700">{lang === 'bn' ? 'ইমেইল: ' : 'Email: '}</span>
+                    <span className="font-mono text-emerald-800 font-medium">{session?.user?.email || 'N/A'}</span>
+                  </p>
+                  <p className="text-[11px] text-stone-500">
+                    <span className="font-semibold">{lang === 'bn' ? 'ইউজার আইডি: ' : 'User ID: '}</span>
+                    <span className="font-mono">{session?.user?.id || 'N/A'}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-4 py-2 bg-stone-800 hover:bg-red-900 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>{lang === 'bn' ? 'লগআউট' : 'Logout'}</span>
+                </button>
               </div>
 
               <div className="pt-4 border-t border-stone-200">
