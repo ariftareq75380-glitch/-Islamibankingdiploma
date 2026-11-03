@@ -1,5 +1,7 @@
 import { PdfResource, Article, SiteSettings } from '../types';
 import { samplePdfResources, sampleArticles, initialSiteSettings } from '../data/mockData';
+import contentData from '../data/content.json';
+import { supabase } from '../utils/supabase';
 
 const STORAGE_KEYS = {
   RESOURCES: 'ikl_pdf_resources_v1',
@@ -9,27 +11,185 @@ const STORAGE_KEYS = {
 };
 
 export const StorageService = {
-  getResources(): PdfResource[] {
+  // --- Task 1 & Task 2: Public Reads from Supabase with content.json Fallback ---
+
+  async getArticles(): Promise<Article[]> {
+    try {
+      const { data, error } = await supabase
+        .from('articles')
+        .select('data');
+
+      if (error) {
+        console.warn('[Data Source Fallback] Supabase query error reading articles, using fallback content.json:', error.message);
+        return this.getFallbackArticles();
+      }
+
+      if (!data || data.length === 0) {
+        console.warn('[Data Source Fallback] Supabase articles table returned 0 rows, using fallback content.json');
+        return this.getFallbackArticles();
+      }
+
+      const articles = data.map((row: any) => row.data as Article).filter(Boolean);
+      if (articles.length === 0) {
+        console.warn('[Data Source Fallback] Mapped articles array from Supabase is empty, using fallback content.json');
+        return this.getFallbackArticles();
+      }
+
+      // Order by data->>'publishedAt' descending, falling back to data->>'publishedDate'
+      articles.sort((a, b) => {
+        const dateA = a.publishedAt || a.publishedDate || '';
+        const dateB = b.publishedAt || b.publishedDate || '';
+        return dateB.localeCompare(dateA);
+      });
+
+      console.log(`[Data Source: Supabase] Articles loaded successfully (${articles.length} items)`);
+      return articles;
+    } catch (err: any) {
+      console.warn('[Data Source Fallback] Exception reading articles from Supabase, using fallback content.json:', err?.message);
+      return this.getFallbackArticles();
+    }
+  },
+
+  async getPdfResources(): Promise<PdfResource[]> {
+    try {
+      const { data, error } = await supabase
+        .from('resources')
+        .select('data');
+
+      if (error) {
+        console.warn('[Data Source Fallback] Supabase query error reading resources, using fallback content.json:', error.message);
+        return this.getFallbackResources();
+      }
+
+      if (!data || data.length === 0) {
+        console.warn('[Data Source Fallback] Supabase resources table returned 0 rows, using fallback content.json');
+        return this.getFallbackResources();
+      }
+
+      const resources = data.map((row: any) => row.data as PdfResource).filter(Boolean);
+      if (resources.length === 0) {
+        console.warn('[Data Source Fallback] Mapped resources array from Supabase is empty, using fallback content.json');
+        return this.getFallbackResources();
+      }
+
+      console.log(`[Data Source: Supabase] PDF Resources loaded successfully (${resources.length} items)`);
+      return resources;
+    } catch (err: any) {
+      console.warn('[Data Source Fallback] Exception reading resources from Supabase, using fallback content.json:', err?.message);
+      return this.getFallbackResources();
+    }
+  },
+
+  async getResources(): Promise<PdfResource[]> {
+    return this.getPdfResources();
+  },
+
+  async getSiteSettings(): Promise<SiteSettings> {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('data')
+        .maybeSingle();
+
+      if (error || !data || !data.data) {
+        if (error) {
+          console.warn('[Data Source Fallback] Supabase site_settings query error, using fallback content.json:', error.message);
+        } else {
+          console.warn('[Data Source Fallback] Supabase site_settings returned 0 rows, using fallback content.json');
+        }
+        return this.getFallbackSettings();
+      }
+
+      console.log('[Data Source: Supabase] Site settings loaded successfully');
+      return data.data as SiteSettings;
+    } catch (err: any) {
+      console.warn('[Data Source Fallback] Exception reading site_settings from Supabase, using fallback content.json:', err?.message);
+      return this.getFallbackSettings();
+    }
+  },
+
+  async getSettings(): Promise<SiteSettings> {
+    return this.getSiteSettings();
+  },
+
+  // --- Synchronous Fallbacks using static content.json and local storage ---
+
+  getFallbackArticles(): Article[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.ARTICLES);
+      if (stored) {
+        const parsed: Article[] = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.sort((a, b) => {
+            const dateA = a.publishedAt || a.publishedDate || '';
+            const dateB = b.publishedAt || b.publishedDate || '';
+            return dateB.localeCompare(dateA);
+          });
+        }
+      }
+    } catch {
+      // Fallback to content.json
+    }
+
+    const raw = ((contentData as any)?.articles as Article[]) || sampleArticles;
+    const items = raw.map(art => {
+      if (art.id === 'art-1793470369985') {
+        return {
+          ...art,
+          slug: 'bfiu-circular-26-summary'
+        };
+      }
+      return art;
+    });
+
+    return items.sort((a, b) => {
+      const dateA = a.publishedAt || a.publishedDate || '';
+      const dateB = b.publishedAt || b.publishedDate || '';
+      return dateB.localeCompare(dateA);
+    });
+  },
+
+  getFallbackResources(): PdfResource[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.RESOURCES);
       if (stored) {
         const parsed: PdfResource[] = JSON.parse(stored);
-        // Merge missing sample items (by id) and preserve user items
-        const existingIds = new Set(parsed.map(r => r.id));
-        const missingSamples = samplePdfResources.filter(s => !existingIds.has(s.id));
-        if (missingSamples.length > 0) {
-          const merged = [...parsed, ...missingSamples];
-          this.saveResources(merged);
-          return merged;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
         }
-        return parsed;
       }
     } catch {
-      // Fallback to sample data
+      // Fallback
     }
-    this.saveResources(samplePdfResources);
-    return samplePdfResources;
+    return ((contentData as any)?.resources as PdfResource[]) || samplePdfResources;
   },
+
+  getFallbackSettings(): SiteSettings {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.siteName) return parsed;
+      }
+    } catch {
+      // Fallback
+    }
+    return ((contentData as any)?.siteSettings as SiteSettings) || initialSiteSettings;
+  },
+
+  getSyncArticles(): Article[] {
+    return this.getFallbackArticles();
+  },
+
+  getSyncResources(): PdfResource[] {
+    return this.getFallbackResources();
+  },
+
+  getSyncSettings(): SiteSettings {
+    return this.getFallbackSettings();
+  },
+
+  // --- Admin Writes & Storage Helpers ---
 
   saveResources(resources: PdfResource[]): void {
     try {
@@ -40,7 +200,7 @@ export const StorageService = {
   },
 
   addResource(newResource: Omit<PdfResource, 'id' | 'publicationDate' | 'downloadsCount' | 'viewsCount'>): PdfResource {
-    const resources = this.getResources();
+    const resources = this.getFallbackResources();
     const created: PdfResource = {
       ...newResource,
       id: `resource-${Date.now()}`,
@@ -56,7 +216,7 @@ export const StorageService = {
   },
 
   updateResource(updatedResource: PdfResource): void {
-    const resources = this.getResources();
+    const resources = this.getFallbackResources();
     const index = resources.findIndex(r => r.id === updatedResource.id);
     if (index !== -1) {
       resources[index] = updatedResource;
@@ -65,12 +225,12 @@ export const StorageService = {
   },
 
   deleteResource(id: string): void {
-    const resources = this.getResources().filter(r => r.id !== id);
+    const resources = this.getFallbackResources().filter(r => r.id !== id);
     this.saveResources(resources);
   },
 
   incrementView(id: string): void {
-    const resources = this.getResources();
+    const resources = this.getFallbackResources();
     const target = resources.find(r => r.id === id);
     if (target) {
       target.viewsCount = (target.viewsCount || 0) + 1;
@@ -79,66 +239,12 @@ export const StorageService = {
   },
 
   incrementDownload(id: string): void {
-    const resources = this.getResources();
+    const resources = this.getFallbackResources();
     const target = resources.find(r => r.id === id);
     if (target) {
       target.downloadsCount = (target.downloadsCount || 0) + 1;
       this.saveResources(resources);
     }
-  },
-
-  getArticles(): Article[] {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.ARTICLES);
-      if (stored) {
-        const parsed: Article[] = JSON.parse(stored);
-        const existingIds = new Set(parsed.map(a => a.id));
-        const missingSamples = sampleArticles.filter(s => !existingIds.has(s.id));
-        let needSave = false;
-        let result = parsed;
-        if (missingSamples.length > 0) {
-          result = [...missingSamples, ...result];
-          needSave = true;
-        }
-        // Ensure standard sample articles receive updated metadata if cached
-        result = result.map(art => {
-          const sample = sampleArticles.find(s => s.id === art.id);
-          if (sample) {
-            let updated = false;
-            const patched = { ...art };
-            if (!patched.menuCategory && sample.menuCategory) {
-              patched.menuCategory = sample.menuCategory;
-              updated = true;
-            }
-            if (patched.publishedAt === undefined && sample.publishedAt !== undefined) {
-              patched.publishedAt = sample.publishedAt;
-              updated = true;
-            }
-            if (patched.pdfId === undefined && sample.pdfId !== undefined) {
-              patched.pdfId = sample.pdfId;
-              updated = true;
-            }
-            if (patched.featured === undefined && sample.featured !== undefined) {
-              patched.featured = sample.featured;
-              updated = true;
-            }
-            if (updated) {
-              needSave = true;
-              return patched;
-            }
-          }
-          return art;
-        });
-        if (needSave) {
-          this.saveArticles(result);
-        }
-        return result;
-      }
-    } catch {
-      // Fallback
-    }
-    this.saveArticles(sampleArticles);
-    return sampleArticles;
   },
 
   saveArticles(articles: Article[]): void {
@@ -150,7 +256,7 @@ export const StorageService = {
   },
 
   addArticle(newArticle: Omit<Article, 'id' | 'publishedDate'>): Article {
-    const articles = this.getArticles();
+    const articles = this.getFallbackArticles();
     const created: Article = {
       ...newArticle,
       id: `art-${Date.now()}`,
@@ -167,7 +273,7 @@ export const StorageService = {
   },
 
   updateArticle(updatedArticle: Article): void {
-    const articles = this.getArticles();
+    const articles = this.getFallbackArticles();
     const index = articles.findIndex(a => a.id === updatedArticle.id);
     if (index !== -1) {
       articles[index] = updatedArticle;
@@ -176,29 +282,8 @@ export const StorageService = {
   },
 
   deleteArticle(id: string): void {
-    const articles = this.getArticles().filter(a => a.id !== id);
+    const articles = this.getFallbackArticles().filter(a => a.id !== id);
     this.saveArticles(articles);
-  },
-
-  getSettings(): SiteSettings {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.siteName !== 'Islami Banking Diploma' || !parsed.siteName) {
-          parsed.siteName = initialSiteSettings.siteName;
-          parsed.siteNameBn = initialSiteSettings.siteNameBn;
-          parsed.subtitle = initialSiteSettings.subtitle;
-          parsed.subtitleBn = initialSiteSettings.subtitleBn;
-          parsed.contactEmail = initialSiteSettings.contactEmail;
-          this.saveSettings(parsed);
-        }
-        return parsed;
-      }
-    } catch {
-      // fallback
-    }
-    return initialSiteSettings;
   },
 
   saveSettings(settings: SiteSettings): void {
@@ -237,7 +322,6 @@ export const StorageService = {
     return isBookmarked;
   },
 
-  // Reading Progress: Marked as Completed/Read
   getCompletedResources(): string[] {
     try {
       const stored = localStorage.getItem('ikl_completed_resources_v1');
@@ -266,7 +350,6 @@ export const StorageService = {
     return isCompleted;
   },
 
-  // Last Read Resource Tracker for "Resume Where You Left Off"
   getLastReadResource(): { id: string; title: string; titleBn: string; timestamp: number } | null {
     try {
       const stored = localStorage.getItem('ikl_last_read_v1');
@@ -289,7 +372,6 @@ export const StorageService = {
     }
   },
 
-  // Reader Preferences: Theme & Font Size
   getTheme(): 'light' | 'sepia' | 'dark' {
     try {
       const theme = localStorage.getItem('ikl_reader_theme');
@@ -340,9 +422,9 @@ export const StorageService = {
     const data = {
       exportVersion: '1.0',
       exportedAt: new Date().toISOString(),
-      siteSettings: this.getSettings(),
-      resources: this.getResources(),
-      articles: this.getArticles()
+      siteSettings: this.getSyncSettings(),
+      resources: this.getSyncResources(),
+      articles: this.getSyncArticles()
     };
     return JSON.stringify(data, null, 2);
   },
@@ -370,8 +452,5 @@ export const StorageService = {
     localStorage.removeItem(STORAGE_KEYS.RESOURCES);
     localStorage.removeItem(STORAGE_KEYS.ARTICLES);
     localStorage.removeItem(STORAGE_KEYS.SETTINGS);
-    this.saveResources(samplePdfResources);
-    this.saveArticles(sampleArticles);
-    this.saveSettings(initialSiteSettings);
   }
 };

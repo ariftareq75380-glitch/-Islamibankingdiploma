@@ -55,12 +55,13 @@ export default function App() {
   // Primary state
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [lang, setLang] = useState<'bn' | 'en'>('bn'); // Default to Bengali as primary audience is Bangladesh
-  const [resources, setResources] = useState<PdfResource[]>([]);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [settings, setSettings] = useState<SiteSettings>(StorageService.getSettings());
+  const [resources, setResources] = useState<PdfResource[]>(() => StorageService.getSyncResources());
+  const [articles, setArticles] = useState<Article[]>(() => StorageService.getSyncArticles());
+  const [settings, setSettings] = useState<SiteSettings>(() => StorageService.getSyncSettings());
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [lastRead, setLastRead] = useState<{ id: string; title: string; titleBn: string; timestamp: number } | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
 
   // Reading Experience: Theme & Font Size
   const [theme, setThemeState] = useState<'light' | 'sepia' | 'dark'>(() => StorageService.getTheme());
@@ -146,10 +147,22 @@ export default function App() {
     loadAllData();
   }, []);
 
-  const loadAllData = () => {
-    setResources(StorageService.getResources());
-    setArticles(StorageService.getArticles());
-    setSettings(StorageService.getSettings());
+  const loadAllData = async () => {
+    setIsLoadingData(true);
+    try {
+      const [fetchedResources, fetchedArticles, fetchedSettings] = await Promise.all([
+        StorageService.getPdfResources(),
+        StorageService.getArticles(),
+        StorageService.getSiteSettings()
+      ]);
+      setResources(fetchedResources);
+      setArticles(fetchedArticles);
+      setSettings(fetchedSettings);
+    } catch (err) {
+      console.warn('Error loading data in loadAllData:', err);
+    } finally {
+      setIsLoadingData(false);
+    }
     setBookmarks(StorageService.getBookmarks());
     setCompletedIds(StorageService.getCompletedResources());
     setLastRead(StorageService.getLastReadResource());
