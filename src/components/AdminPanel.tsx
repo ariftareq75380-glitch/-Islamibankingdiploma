@@ -163,6 +163,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
       console.log('Session user ID before upsert:', session?.user?.id);
 
       if (!session) {
