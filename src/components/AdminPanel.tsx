@@ -39,7 +39,7 @@ import { formatFileSize, isValidUrl } from '../utils/pdfUtils';
 import { subjectsList, examYearsList } from '../data/mockData';
 import { AdminSeoAuditTab } from './AdminSeoAuditTab';
 import contentData from '../data/content.json';
-import { supabase, setSupabaseAuthHeader } from '../utils/supabase';
+import { supabase } from '../utils/supabase';
 import type { Session } from '@supabase/supabase-js';
 
 interface AdminPanelProps {
@@ -132,9 +132,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
       if (data.session) {
         setSession(data.session);
-        if (data.session.access_token) {
-          setSupabaseAuthHeader(data.session.access_token);
-        }
         console.log('Admin login successful, session user ID:', data.session.user.id);
         onAuthChange?.(true);
       }
@@ -147,7 +144,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleLogout = async () => {
-    setSupabaseAuthHeader(null);
     await supabase.auth.signOut();
     setSession(null);
     onAuthChange?.(false);
@@ -166,31 +162,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setSupabaseIsError(false);
 
     try {
-      // Ensure active session exists so auth.uid() matches admin
-      const { data: { session: activeSession } } = await supabase.auth.getSession();
-      if (!activeSession) {
-        setSupabaseResultMsg('ত্রুটি: কোনো সক্রিয় লগইন সেশন পাওয়া যায়নি। অনুগ্রহ করে লগইন করুন।');
-        setSupabaseIsError(true);
-        setIsSupabaseImporting(false);
-        return;
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session user ID before upsert:', session?.user?.id);
 
-      // Verify user with auth.getUser() and log session user id and token before write
-      const { data: { user: currentUser }, error: userErr } = await supabase.auth.getUser();
-      console.log('=== SUPABASE AUTH DEBUG BEFORE UPSERT ===');
-      console.log('Session user ID:', activeSession.user.id);
-      console.log('Session user Email:', activeSession.user.email);
-      console.log('Auth getUser ID:', currentUser?.id, 'Error:', userErr?.message);
-      
-      if (activeSession.access_token) {
-        setSupabaseAuthHeader(activeSession.access_token);
-      }
-      const authHeaderVal = (supabase as any).rest?.headers?.get?.('Authorization') || (supabase as any).rest?.headers?.['Authorization'];
-      console.log('Authorization header value:', authHeaderVal);
-      console.log('==========================================');
-
-      if (!currentUser) {
-        setSupabaseResultMsg('ত্রুটি: সেশন যাচাই ব্যর্থ হয়েছে (User not found)। অনুগ্রহ করে পুনরায় লগইন করুন।');
+      if (!session) {
+        setSupabaseResultMsg('প্রথমে লগইন করুন');
         setSupabaseIsError(true);
         setIsSupabaseImporting(false);
         return;
