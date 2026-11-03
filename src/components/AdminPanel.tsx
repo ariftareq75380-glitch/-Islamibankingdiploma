@@ -38,6 +38,8 @@ import { StorageService } from '../services/storage';
 import { formatFileSize, isValidUrl } from '../utils/pdfUtils';
 import { subjectsList, examYearsList } from '../data/mockData';
 import { AdminSeoAuditTab } from './AdminSeoAuditTab';
+import contentData from '../data/content.json';
+import { supabase } from '../utils/supabase';
 
 interface AdminPanelProps {
   resources: PdfResource[];
@@ -107,6 +109,100 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setPinChangeMsg(lang === 'bn' ? 'পিন সফলভাবে আপডেট হয়েছে!' : 'PIN successfully updated!');
     setNewPinInput('');
     setTimeout(() => setPinChangeMsg(null), 3000);
+  };
+
+  // Supabase import states & handler
+  const [isSupabaseConfirmOpen, setIsSupabaseConfirmOpen] = useState(false);
+  const [isSupabaseImporting, setIsSupabaseImporting] = useState(false);
+  const [supabaseResultMsg, setSupabaseResultMsg] = useState<string | null>(null);
+  const [supabaseIsError, setSupabaseIsError] = useState(false);
+
+  const handleSupabaseImport = async () => {
+    setIsSupabaseConfirmOpen(false);
+    setIsSupabaseImporting(true);
+    setSupabaseResultMsg(null);
+    setSupabaseIsError(false);
+
+    try {
+      const importedArticles = (contentData as any)?.articles;
+      const importedResources = (contentData as any)?.resources;
+
+      // Validation: verify that articles count is exactly 7 and resources count is exactly 10
+      if (
+        !Array.isArray(importedArticles) ||
+        importedArticles.length !== 7 ||
+        !Array.isArray(importedResources) ||
+        importedResources.length !== 10
+      ) {
+        const errorMsg = `ত্রুটি: আর্টিকেলের সংখ্যা ৭ (পাওয়া গেছে ${Array.isArray(importedArticles) ? importedArticles.length : 0}) বা পিডিএফের সংখ্যা ১০ (পাওয়া গেছে ${Array.isArray(importedResources) ? importedResources.length : 0}) নয়। অপারেশন বন্ধ করা হয়েছে।`;
+        setSupabaseResultMsg(errorMsg);
+        setSupabaseIsError(true);
+        setIsSupabaseImporting(false);
+        return;
+      }
+
+      // Task 1: Slug fix in memory only (do not modify content.json)
+      // Change the slug of the article whose id is "art-1793470369985" from "bfiu-circuler-26" to "bfiu-circular-26-summary".
+      // Keep the slug of "art-bfiu-26" as "bfiu-circuler-26".
+      const processedArticles = importedArticles.map((art: any) => {
+        if (art.id === 'art-1793470369985') {
+          return {
+            ...art,
+            slug: 'bfiu-circular-26-summary'
+          };
+        }
+        return art;
+      });
+
+      let errorDetail = '';
+      let writtenArticles = 0;
+      let writtenResources = 0;
+
+      // Write each article to the Supabase table "articles" with columns id (text) and data (the full article object as jsonb), using upsert by id. Set updated_at to now.
+      const nowIso = new Date().toISOString();
+      const articleRows = processedArticles.map((art: any) => ({
+        id: art.id,
+        data: art,
+        updated_at: nowIso
+      }));
+
+      const { error: artError } = await supabase
+        .from('articles')
+        .upsert(articleRows, { onConflict: 'id' });
+
+      if (artError) {
+        errorDetail += `Articles: ${artError.message}`;
+      } else {
+        writtenArticles = processedArticles.length;
+      }
+
+      // Write each resource to the Supabase table "resources" the same way.
+      const resourceRows = importedResources.map((res: any) => ({
+        id: res.id,
+        data: res,
+        updated_at: nowIso
+      }));
+
+      const { error: resError } = await supabase
+        .from('resources')
+        .upsert(resourceRows, { onConflict: 'id' });
+
+      if (resError) {
+        errorDetail += (errorDetail ? '; ' : '') + `Resources: ${resError.message}`;
+      } else {
+        writtenResources = importedResources.length;
+      }
+
+      const summaryText = `আর্টিকেল: ${writtenArticles} টি, PDF: ${writtenResources} টি লেখা হয়েছে${errorDetail ? ` (ত্রুটি: ${errorDetail})` : ''}`;
+      setSupabaseResultMsg(summaryText);
+      setSupabaseIsError(Boolean(artError || resError));
+    } catch (err: any) {
+      const summaryText = `আর্টিকেল: 0 টি, PDF: 0 টি লেখা হয়েছে (ত্রুটি: ${err?.message || 'অজানা ত্রুটি'})`;
+      setSupabaseResultMsg(summaryText);
+      setSupabaseIsError(true);
+    } finally {
+      setIsSupabaseImporting(false);
+    }
   };
 
   const [activeTab, setActiveTab] = useState<'resources' | 'new-resource' | 'seo-audit' | 'articles' | 'new-article' | 'settings' | 'backup'>('resources');
@@ -711,6 +807,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsSupabaseConfirmOpen(true)}
+              disabled={isSupabaseImporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg transition-colors text-xs font-semibold cursor-pointer border border-emerald-600 shadow-xs disabled:opacity-50"
+              title="src/data/content.json থেকে Supabase-এ ডেটা তুলুন"
+            >
+              <Database className="w-3.5 h-3.5 text-emerald-300" />
+              <span>{isSupabaseImporting ? 'আপলোড হচ্ছে...' : 'Supabase-এ ডেটা তুলুন'}</span>
+            </button>
             {onHideAdmin && (
               <button
                 onClick={() => {
@@ -798,6 +904,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* Tab Body */}
         <div className="overflow-y-auto p-6 space-y-6">
+          {/* Supabase Action Result Message */}
+          {supabaseResultMsg && (
+            <div
+              className={`p-4 rounded-xl text-xs font-semibold flex items-center justify-between gap-3 ${
+                supabaseIsError
+                  ? 'bg-red-50 text-red-900 border border-red-200'
+                  : 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                {supabaseIsError ? (
+                  <AlertTriangle className="w-4 h-4 text-red-700 shrink-0" />
+                ) : (
+                  <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+                )}
+                <span>{supabaseResultMsg}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSupabaseResultMsg(null)}
+                className="p-1 hover:bg-black/5 rounded text-stone-500 hover:text-stone-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Supabase Confirmation Dialog */}
+          {isSupabaseConfirmOpen && (
+            <div className="fixed inset-0 z-[60] bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 font-bengali space-y-4">
+                <div className="flex items-center gap-3 text-amber-800">
+                  <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200">
+                    <AlertTriangle className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-stone-900">Supabase ডেটা মাইগ্রেশন</h4>
+                    <p className="text-xs text-stone-500 font-sans">Database Import Confirmation</p>
+                  </div>
+                </div>
+
+                <p className="text-stone-800 text-sm leading-relaxed bg-amber-50/70 p-4 rounded-xl border border-amber-200 font-medium">
+                  এটি Supabase-এর ডেটা প্রতিস্থাপন করবে। নিশ্চিত হলে 'হ্যাঁ' চাপুন।
+                </p>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSupabaseConfirmOpen(false)}
+                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                  >
+                    বাতিল
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSupabaseImport}
+                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
+                  >
+                    হ্যাঁ
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {/* TAB 1: ALL RESOURCES LIST & BROKEN LINK CHECK */}
           {activeTab === 'resources' && (
             <div className="space-y-4">
@@ -1858,6 +2028,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     onChange={handleImportJsonFile}
                     className="text-stone-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-stone-800 file:text-white"
                   />
+                </div>
+
+                <div className="p-5 bg-emerald-50/70 rounded-xl border border-emerald-200 space-y-3 sm:col-span-2">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-emerald-800" />
+                    <div className="font-bold text-stone-900 text-sm">
+                      {lang === 'bn' ? 'Supabase ক্লাউড ডাটাবেজ আপলোড (One-Time Import)' : 'Supabase Cloud Database Upsert'}
+                    </div>
+                  </div>
+                  <p className="text-stone-600">
+                    {lang === 'bn' 
+                      ? 'src/data/content.json থেকে ৭টি আর্টিকেল এবং ১০টি পিডিএফ রিসোর্স Supabase ডাটাবেজের articles ও resources টেবিলে আপসার্ট করুন।'
+                      : 'Upsert 7 articles and 10 PDF resources from src/data/content.json directly into Supabase articles and resources tables.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsSupabaseConfirmOpen(true)}
+                    disabled={isSupabaseImporting}
+                    className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs text-xs"
+                  >
+                    <Database className="w-4 h-4" />
+                    <span>{isSupabaseImporting ? 'আপলোড হচ্ছে...' : 'Supabase-এ ডেটা তুলুন'}</span>
+                  </button>
                 </div>
               </div>
 
