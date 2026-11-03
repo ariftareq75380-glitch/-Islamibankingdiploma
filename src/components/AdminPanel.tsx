@@ -175,14 +175,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         return;
       }
 
-      // Log the session user id before the write (as required)
-      console.log('Session user ID before write:', activeSession.user.id);
-
-      // Ensure the Authorization header is sent with the logged-in session access token
+      // Verify user with auth.getUser() and log session user id and token before write
+      const { data: { user: currentUser }, error: userErr } = await supabase.auth.getUser();
+      console.log('=== SUPABASE AUTH DEBUG BEFORE UPSERT ===');
+      console.log('Session user ID:', activeSession.user.id);
+      console.log('Session user Email:', activeSession.user.email);
+      console.log('Auth getUser ID:', currentUser?.id, 'Error:', userErr?.message);
+      
       if (activeSession.access_token) {
         setSupabaseAuthHeader(activeSession.access_token);
       }
-      console.log('Authorization header status:', Boolean((supabase as any).rest?.headers?.get?.('Authorization') || (supabase as any).rest?.headers?.['Authorization']) ? 'Attached' : 'Missing');
+      const authHeaderVal = (supabase as any).rest?.headers?.get?.('Authorization') || (supabase as any).rest?.headers?.['Authorization'];
+      console.log('Authorization header value:', authHeaderVal);
+      console.log('==========================================');
+
+      if (!currentUser) {
+        setSupabaseResultMsg('ত্রুটি: সেশন যাচাই ব্যর্থ হয়েছে (User not found)। অনুগ্রহ করে পুনরায় লগইন করুন।');
+        setSupabaseIsError(true);
+        setIsSupabaseImporting(false);
+        return;
+      }
 
       const importedArticles = (contentData as any)?.articles;
       const importedResources = (contentData as any)?.resources;
