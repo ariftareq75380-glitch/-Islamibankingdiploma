@@ -26,6 +26,11 @@ export const StorageService = {
         return this.getFallbackArticles();
       }
 
+      // Trigger deletion for article-publish if it exists in Supabase
+      supabase.from('articles').delete().or('slug.eq.article-publish,id.eq.article-publish').then(({ error }) => {
+        if (!error) console.log('Deleted article-publish from Supabase table');
+      });
+
       const articles = data
         .map((row: any) => {
           if (!row.data) return null;
@@ -55,7 +60,8 @@ export const StorageService = {
 
           return article;
         })
-        .filter(Boolean) as Article[];
+        .filter(Boolean)
+        .filter((art: any) => art.slug !== 'article-publish' && art.id !== 'article-publish') as Article[];
 
       if (articles.length === 0) {
         console.warn('[Data Source Fallback] Mapped articles array from Supabase is empty, using fallback content.json');
@@ -143,7 +149,9 @@ export const StorageService = {
 
   getFallbackArticles(): Article[] {
     const raw = ((contentData as any)?.articles as Article[]) || sampleArticles;
-    const items = raw.map(art => {
+    const items = raw
+      .filter((art: any) => art.slug !== 'article-publish' && art.id !== 'article-publish')
+      .map(art => {
       if (art.id === 'art-1793470369985') {
         return {
           ...art,
