@@ -8,6 +8,7 @@ interface DeleteArticleButtonProps {
   articleId: string;
   pdfUrl?: string;
   title?: string;
+  showLabel?: boolean;
   onDeleteSuccess?: () => void;
   className?: string;
 }
@@ -16,6 +17,7 @@ export const DeleteArticleButton: React.FC<DeleteArticleButtonProps> = ({
   articleId,
   pdfUrl,
   title,
+  showLabel = false,
   onDeleteSuccess,
   className = ''
 }) => {
@@ -47,17 +49,21 @@ export const DeleteArticleButton: React.FC<DeleteArticleButtonProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer ${className}`}
-        title="Delete Article"
+        className={
+          className || (showLabel
+            ? 'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer'
+            : 'inline-flex items-center justify-center p-1.5 text-stone-600 hover:text-red-700 rounded-lg hover:bg-red-50 transition-colors cursor-pointer')
+        }
+        title="Delete Article / আর্টিকেল মুছুন"
       >
-        <Trash2 className="w-3.5 h-3.5" />
-        <span>মুছুন</span>
+        <Trash2 className={showLabel ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+        {showLabel && <span>মুছুন</span>}
       </button>
 
       {isOpen && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-stone-950/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div 
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3">
@@ -72,7 +78,10 @@ export const DeleteArticleButton: React.FC<DeleteArticleButtonProps> = ({
 
             <p className="text-xs text-stone-700 leading-relaxed font-bengali">
               Are you sure you want to delete this article{title ? ` "${title}"` : ''}? This action cannot be undone.
-              (আপনি কি নিশ্চিতভাবে এই আর্টিকেলটি মুছে ফেলতে চান? এটি Supabase ডাটাবেজ এবং স্টোরেজ থেকে স্থায়ীভাবে মুছে যাবে।)
+              <br />
+              <span className="text-stone-500 mt-1 block">
+                (আপনি কি নিশ্চিতভাবে এই আর্টিকেলটি মুছে ফেলতে চান? এটি Supabase ডাটাবেজ এবং ক্লাউড স্টোরেজ থেকে স্থায়ীভাবে মুছে যাবে।)
+              </span>
             </p>
 
             {errorMessage && (
@@ -81,7 +90,7 @@ export const DeleteArticleButton: React.FC<DeleteArticleButtonProps> = ({
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-stone-100">
               <button
                 type="button"
                 disabled={isPending}

@@ -1751,12 +1751,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               </button>
                             </td>
                             <td className="p-3 text-stone-500 whitespace-nowrap">{art.publishedDate}</td>
-                            <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
+                            <td className="p-3 text-right space-x-1 whitespace-nowrap">
                               <a
                                 href={`/diploma/${art.slug}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center p-1.5 text-stone-600 hover:text-emerald-800 rounded-lg hover:bg-stone-100 transition-colors"
+                                className="inline-flex items-center p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100 transition-colors"
                                 title="পাবলিক পেজ দেখুন"
                               >
                                 <ExternalLink className="w-4 h-4" />
@@ -1764,16 +1764,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleEditArticle(art)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100 transition-colors cursor-pointer"
                                 title="আর্টিকেল এডিট করুন"
                               >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                <span>এডিট</span>
+                                <Edit3 className="w-4 h-4" />
                               </button>
                               <DeleteArticleButton
                                 articleId={art.id}
                                 pdfUrl={art.pdfUrl || art.pdf_url || undefined}
                                 title={art.titleBn || art.title}
+                                showLabel={false}
                                 onDeleteSuccess={() => {
                                   onRefreshData();
                                   showToast('আর্টিকেল এবং সম্পর্কিত ফাইল সফলভাবে মুছে ফেলা হয়েছে!', 'success');
