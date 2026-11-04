@@ -63,7 +63,20 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
 
     onDownloadIncrement(resource.id);
 
-    if (hasDriveLink && !hasDirectPdf) {
+    // If direct Supabase Storage PDF is available, open / trigger download
+    if (resource.pdfFileUrl) {
+      const a = document.createElement('a');
+      a.href = resource.pdfFileUrl;
+      a.target = '_blank';
+      a.rel = 'noopener,noreferrer';
+      a.download = `${resource.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    if (hasDriveLink) {
       window.open(resource.googleDriveUrl, '_blank', 'noopener,noreferrer');
       return;
     }
@@ -81,9 +94,7 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
       const filename = `${resource.title.replace(/[^a-zA-Z0-9]/g, '_')}_DIB_Resource.html`;
       triggerDownload(blob, filename);
     } catch {
-      if (resource.pdfFileUrl) {
-        window.open(resource.pdfFileUrl, '_blank');
-      }
+      // fallback
     }
   };
 
@@ -209,7 +220,42 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
             </div>
 
             <div className="relative rounded-xl border border-stone-300 bg-stone-100 overflow-hidden min-h-[300px] flex flex-col justify-center items-center p-6 text-center">
-              {resource.googleDriveUrl ? (
+              {resource.pdfFileUrl ? (
+                <div className="w-full space-y-4">
+                  <div className="max-w-md mx-auto text-xs text-stone-600 bg-white p-5 rounded-xl border border-stone-200 shadow-xs space-y-3">
+                    <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <p className="font-bold text-stone-900 text-sm">
+                      {lang === 'bn' ? 'Supabase ক্লাউড পিডিএফ ডকুমেন্ট' : 'Supabase Cloud PDF Document'}
+                    </p>
+                    <p className="leading-relaxed">
+                      {lang === 'bn'
+                        ? 'এই ডকুমেন্টটি Supabase Storage "pdfs" বাকেটে সুরক্ষিতভাবে সংরক্ষিত রয়েছে।'
+                        : 'This document is securely stored on Supabase Storage "pdfs" bucket.'}
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                      <a
+                        href={resource.pdfFileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
+                      >
+                        <span>{lang === 'bn' ? 'নতুন ট্যাবে সরাসরি পড়ুন' : 'Read in New Tab'}</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleDownload}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg font-medium transition-colors cursor-pointer border border-stone-300"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>{lang === 'bn' ? 'ডাউনলোড' : 'Download'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : resource.googleDriveUrl ? (
                 <div className="w-full space-y-4">
                   <div className="max-w-md mx-auto text-xs text-stone-600 bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
                     <p className="font-semibold text-stone-900 mb-1">

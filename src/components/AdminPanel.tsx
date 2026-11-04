@@ -227,7 +227,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [artFeatured, setArtFeatured] = useState<boolean>(false);
   const [artPdfUrl, setArtPdfUrl] = useState<string>('');
   const [isUploadingPdf, setIsUploadingPdf] = useState<boolean>(false);
+  const [artPdfUploadProgress, setArtPdfUploadProgress] = useState<number | null>(null);
   const [isUploadingCover, setIsUploadingCover] = useState<boolean>(false);
+  const [coverUploadProgress, setCoverUploadProgress] = useState<number | null>(null);
 
   const artContentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const artImageInputRef = useRef<HTMLInputElement>(null);
@@ -238,32 +240,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setFormErrorMessage(lang === 'bn' ? 'অনুগ্রহ করে শুধুমাত্র ছবি ফাইল (JPG, PNG, WebP) নির্বাচন করুন।' : 'Please choose an image file.');
+      const msg = lang === 'bn' ? 'অনুগ্রহ করে শুধুমাত্র ছবি ফাইল (JPG, PNG, WebP) নির্বাচন করুন।' : 'Please choose an image file.';
+      setFormErrorMessage(msg);
+      showToast(msg, 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      const msg = lang === 'bn' ? `ছবির সাইজ (${(file.size / (1024 * 1024)).toFixed(1)} MB) ৫ MB সীমার চেয়ে বেশি। অনুগ্রহ করে ৫ MB-র ছোট ছবি দিন।` : 'Image exceeds 5 MB limit.';
+      setFormErrorMessage(msg);
+      showToast(msg, 'error');
       return;
     }
     
     setIsUploadingCover(true);
+    setCoverUploadProgress(30);
     setFormErrorMessage(null);
     try {
+      setCoverUploadProgress(65);
       const res = await StorageService.uploadCoverToStorage(file);
       if (res.success && res.url) {
+        setCoverUploadProgress(100);
         setArtCoverImage(res.url);
-        setFormSuccessMessage(lang === 'bn' ? 'Supabase Storage-এ কভার ছবি আপলোড সফল হয়েছে!' : 'Cover image uploaded to Supabase Storage!');
+        const successMsg = lang === 'bn' ? 'Supabase Storage "covers" বাকেটে কভার ছবি সফলভাবে আপলোড হয়েছে!' : 'Cover image uploaded to Supabase Storage!';
+        setFormSuccessMessage(successMsg);
+        showToast(successMsg, 'success');
       } else {
-        // Fallback to local Base64 preview if bucket policy throws
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            setArtCoverImage(reader.result);
-            setFormSuccessMessage(lang === 'bn' ? 'কভার ছবি যুক্ত হয়েছে!' : 'Cover image attached!');
-          }
-        };
-        reader.readAsDataURL(file);
+        const errMsg = res.error || 'কভার আপলোড ব্যর্থ হয়েছে';
+        setFormErrorMessage(errMsg);
+        showToast(errMsg, 'error');
       }
     } catch (err: any) {
-      setFormErrorMessage(err?.message || 'কভার আপলোড ব্যর্থ হয়েছে');
+      const errMsg = err?.message || 'কভার আপলোড ব্যর্থ হয়েছে';
+      setFormErrorMessage(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setIsUploadingCover(false);
+      setTimeout(() => setCoverUploadProgress(null), 1200);
     }
   };
 
@@ -272,24 +285,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      setFormErrorMessage(lang === 'bn' ? 'অনুগ্রহ করে শুধুমাত্র পিডিএফ ফাইল আপলোড করুন।' : 'Please upload a PDF file.');
+      const msg = lang === 'bn' ? 'অনুগ্রহ করে শুধুমাত্র পিডিএফ ফাইল (.pdf) আপলোড করুন।' : 'Please upload a PDF file.';
+      setFormErrorMessage(msg);
+      showToast(msg, 'error');
+      return;
+    }
+
+    if (file.size > 30 * 1024 * 1024) {
+      const msg = lang === 'bn' ? `পিডিএফ সাইজ (${(file.size / (1024 * 1024)).toFixed(1)} MB) ৩০ MB সীমার চেয়ে বেশি।` : 'PDF exceeds 30 MB limit.';
+      setFormErrorMessage(msg);
+      showToast(msg, 'error');
       return;
     }
 
     setIsUploadingPdf(true);
+    setArtPdfUploadProgress(30);
     setFormErrorMessage(null);
     try {
-      const res = await StorageService.uploadPdfToStorage(file);
+      setArtPdfUploadProgress(70);
+      const res = await StorageService.uploadPdfToStorage(file, 'articles');
       if (res.success && res.url) {
+        setArtPdfUploadProgress(100);
         setArtPdfUrl(res.url);
-        setFormSuccessMessage(lang === 'bn' ? 'Supabase Storage-এ PDF সফলভাবে আপলোড হয়েছে!' : 'PDF uploaded to Supabase Storage!');
+        const successMsg = lang === 'bn' ? 'Supabase Storage "pdfs" বাকেটে PDF সফলভাবে আপলোড হয়েছে!' : 'PDF uploaded to Supabase Storage!';
+        setFormSuccessMessage(successMsg);
+        showToast(successMsg, 'success');
       } else {
-        setFormErrorMessage(res.error || 'PDF আপলোড করতে সমস্যা হয়েছে');
+        const errMsg = res.error || 'PDF আপলোড করতে সমস্যা হয়েছে';
+        setFormErrorMessage(errMsg);
+        showToast(errMsg, 'error');
       }
     } catch (err: any) {
-      setFormErrorMessage(err?.message || 'PDF আপলোড ব্যর্থ হয়েছে');
+      const errMsg = err?.message || 'PDF আপলোড ব্যর্থ হয়েছে';
+      setFormErrorMessage(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setIsUploadingPdf(false);
+      setTimeout(() => setArtPdfUploadProgress(null), 1200);
     }
   };
 
@@ -357,55 +389,55 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Backup state
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
 
-  // Handle File Upload from disk with validation & progress
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle File Upload directly to Supabase Storage 'pdfs' bucket with validation & progress
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      setFormErrorMessage(
-        lang === 'bn' 
-          ? 'অনুগ্রহ করে শুধুমাত্র বৈধ পিডিএফ (.pdf) ফাইল আপলোড করুন।' 
-          : 'Please upload a valid PDF (.pdf) file only.'
-      );
+      const msg = lang === 'bn' 
+        ? 'অনুগ্রহ করে শুধুমাত্র বৈধ পিডিএফ (.pdf) ফাইল আপলোড করুন।' 
+        : 'Please upload a valid PDF (.pdf) file only.';
+      setFormErrorMessage(msg);
+      showToast(msg, 'error');
       return;
     }
 
-    const sizeInMB = file.size / (1024 * 1024);
-    if (sizeInMB > 4.5) {
-      setFormErrorMessage(
-        lang === 'bn'
-          ? `সতর্কতা: ফাইল সাইজ (${formatFileSize(file.size)}) ব্রাউজারের সরাসরি স্টোরেজ সীমা (৪.৫ MB)-এর বেশি। ডাটাবেজে স্থায়ী সুরক্ষার জন্য গুগল ড্রাইভ শেয়ারেবল ব্যাকআপ লিঙ্ক (Option B) যুক্ত করুন।`
-          : `Notice: File size (${formatFileSize(file.size)}) exceeds browser direct storage limits (4.5 MB). For persistent access across devices, please provide a Google Drive share link (Option B).`
-      );
-    } else {
-      setFormErrorMessage(null);
+    if (file.size > 30 * 1024 * 1024) {
+      const msg = lang === 'bn'
+        ? `পিডিএফ সাইজ (${formatFileSize(file.size)}) ৩০ MB সীমার চেয়ে বেশি।`
+        : `PDF file size exceeds 30 MB limit.`;
+      setFormErrorMessage(msg);
+      showToast(msg, 'error');
+      return;
     }
 
+    setFormErrorMessage(null);
     setUploadFileName(file.name);
     setResFileSize(formatFileSize(file.size));
-    setUploadProgress(20);
+    setUploadProgress(25);
 
-    const reader = new FileReader();
-    reader.onprogress = (evt) => {
-      if (evt.lengthComputable) {
-        setUploadProgress(Math.round((evt.loaded / evt.total) * 90));
-      }
-    };
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setResFileUrl(reader.result);
+    try {
+      setUploadProgress(65);
+      const res = await StorageService.uploadPdfToStorage(file, 'resources');
+      if (res.success && res.url) {
         setUploadProgress(100);
-        setTimeout(() => setUploadProgress(null), 1200);
+        setResFileUrl(res.url);
+        const msg = lang === 'bn' ? 'Supabase Storage "pdfs" বাকেটে PDF সফলভাবে আপলোড হয়েছে!' : 'Uploaded to Supabase Storage "pdfs" bucket!';
+        setFormSuccessMessage(msg);
+        showToast(msg, 'success');
+      } else {
+        const errMsg = res.error || 'পিডিএফ আপলোড করতে সমস্যা হয়েছে';
+        setFormErrorMessage(errMsg);
+        showToast(errMsg, 'error');
       }
-    };
-    reader.onerror = () => {
-      setFormErrorMessage(
-        lang === 'bn' ? 'ফাইল পড়তে ত্রুটি হয়েছে। পুনরায় চেষ্টা করুন।' : 'Error reading file. Please try again.'
-      );
-      setUploadProgress(null);
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      const errMsg = err?.message || 'ফাইল আপলোড ব্যর্থ হয়েছে';
+      setFormErrorMessage(errMsg);
+      showToast(errMsg, 'error');
+    } finally {
+      setTimeout(() => setUploadProgress(null), 1200);
+    }
   };
 
   const handleEditResource = (res: PdfResource) => {
@@ -478,15 +510,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       viewsCount: existing?.viewsCount || 0
     };
 
+    const isEdit = Boolean(editingResourceId);
     const result = await StorageService.saveResourceToSupabase(resourcePayload);
 
     if (!result.success) {
       setFormErrorMessage(result.message);
+      showToast(result.message || 'রিসোর্স সেভ করা ব্যর্থ হয়েছে', 'error');
       return;
     }
 
     await onRefreshData();
-    setFormSuccessMessage('সেভ হয়েছে');
+    const successMsg = isEdit 
+      ? 'পিডিএফ রিসোর্স সফলভাবে আপডেট করা হয়েছে!' 
+      : 'নতুন পিডিএফ রিসোর্স সফলভাবে যুক্ত হয়েছে!';
+    setFormSuccessMessage(successMsg);
+    showToast(successMsg, 'success');
     setTimeout(() => {
       setFormSuccessMessage(null);
       resetResourceForm();
@@ -509,14 +547,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setUploadFileName('');
   };
 
-  const handleDeleteResource = async (id: string) => {
-    if (confirm(lang === 'bn' ? 'আপনি কি নিশ্চিতভাবে এই রিসোর্সটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this resource?')) {
+  const handleDeleteResource = async (id: string, title?: string) => {
+    const confirmMsg = lang === 'bn' 
+      ? `আপনি কি নিশ্চিতভাবে "${title || 'এই রিসোর্সটি'}" মুছে ফেলতে চান? এটি Supabase থেকে স্থায়ীভাবে ডিলিট হবে।` 
+      : `Are you sure you want to delete "${title || 'this resource'}" permanently?`;
+    if (confirm(confirmMsg)) {
       const result = await StorageService.deleteResourceFromSupabase(id);
       if (!result.success) {
-        alert(result.message);
+        showToast(result.message || 'রিসোর্স মুছতে ব্যর্থ হয়েছে', 'error');
         return;
       }
       await onRefreshData();
+      showToast('পিডিএফ রিসোর্স সফলভাবে মুছে ফেলা হয়েছে!', 'success');
     }
   };
 
@@ -529,10 +571,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     };
     const result = await StorageService.saveResourceToSupabase(updatedRes);
     if (!result.success) {
-      alert(result.message);
+      showToast(result.message || 'স্ট্যাটাস আপডেট ব্যর্থ হয়েছে', 'error');
       return;
     }
     await onRefreshData();
+    showToast(newStatus === 'published' ? 'রিসোর্স লাইভ করা হয়েছে!' : 'রিসোর্স ড্রাফট করা হয়েছে', 'success');
   };
 
   // Article Actions
@@ -1182,7 +1225,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                   <Edit3 className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteResource(res.id)}
+                                  onClick={() => handleDeleteResource(res.id, res.titleBn || res.title)}
                                   className="p-1.5 text-stone-600 hover:text-red-700 rounded hover:bg-red-50 transition-colors"
                                   title="Delete Resource"
                                 >
@@ -1380,7 +1423,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   {/* Direct upload */}
                   <div>
-                    <label className="block font-medium text-stone-700 mb-1">Option A: Direct PDF Upload</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-stone-700">Option A: Direct PDF Upload (Supabase 'pdfs')</label>
+                      <span className="text-[10px] text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200">সর্বোচ্চ ৩০ MB</span>
+                    </div>
                     <div className="border-2 border-dashed border-stone-300 rounded-lg p-3 text-center bg-white hover:bg-stone-50 transition-colors">
                       <Upload className="w-5 h-5 text-stone-400 mx-auto mb-1" />
                       <input
@@ -1914,9 +1960,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               {/* Cover Image with Supabase Storage 'covers' Bucket */}
               <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="font-semibold text-stone-700">
-                    কভার ছবি / থাম্বনেল (Cover Image)
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="font-semibold text-stone-700">
+                      কভার ছবি / থাম্বনেল (Cover Image)
+                    </label>
+                    <span className="text-[10px] text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200">সর্বোচ্চ ৫ MB (JPG, PNG, WebP)</span>
+                  </div>
                   <span className="text-[11px] text-emerald-800 font-medium">Supabase Storage 'covers' বাকেট</span>
                 </div>
 
@@ -1935,7 +1984,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#047857] hover:bg-[#065f46] disabled:opacity-50 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs transition-all"
                   >
                     <Upload className="w-3.5 h-3.5" />
-                    <span>{isUploadingCover ? 'আপলোড হচ্ছে...' : 'কভার ছবি আপলোড (Supabase)'}</span>
+                    <span>{isUploadingCover ? 'আপলোড হচ্ছে...' : 'কভার ছবি আপলোড (Supabase Storage)'}</span>
                   </button>
 
                   <button
@@ -1953,6 +2002,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     ডিআইবি পাঠাগার
                   </button>
                 </div>
+
+                {coverUploadProgress !== null && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] text-stone-500">
+                      <span>Supabase 'covers' বাকেটে আপলোড হচ্ছে...</span>
+                      <span>{coverUploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-emerald-600 h-full transition-all duration-300" 
+                        style={{ width: `${coverUploadProgress}%` }} 
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {artCoverImage && (
                   <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-stone-200">
@@ -1980,10 +2044,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               {/* PDF Document Upload with Supabase Storage 'pdfs' Bucket */}
               <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="font-semibold text-stone-700">
-                    সংযুক্ত পিডিএফ ডকুমেন্ট (PDF Attachment - Supabase 'pdfs' Bucket)
-                  </label>
-                  <span className="text-[11px] text-emerald-800 font-medium">রিয়েল-টাইম ক্লাউড স্টোরেজ</span>
+                  <div className="flex items-center gap-2">
+                    <label className="font-semibold text-stone-700">
+                      সংযুক্ত পিডিএফ ডকুমেন্ট (PDF Attachment)
+                    </label>
+                    <span className="text-[10px] text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200">সর্বোচ্চ ৩০ MB (.pdf)</span>
+                  </div>
+                  <span className="text-[11px] text-emerald-800 font-medium">Supabase 'pdfs' বাকেট</span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -2004,6 +2071,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <span>{isUploadingPdf ? 'PDF আপলোড হচ্ছে...' : 'PDF ফাইল আপলোড (Supabase Storage)'}</span>
                   </button>
                 </div>
+
+                {artPdfUploadProgress !== null && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] text-stone-500">
+                      <span>Supabase 'pdfs' বাকেটে আপলোড হচ্ছে...</span>
+                      <span>{artPdfUploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-emerald-600 h-full transition-all duration-300" 
+                        style={{ width: `${artPdfUploadProgress}%` }} 
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {artPdfUrl && (
                   <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-stone-200">

@@ -48,6 +48,11 @@ export const StorageService = {
             article.pdf_url = row.pdf_url;
           }
 
+          // Sync cover_image
+          if (row.cover_image) {
+            article.coverImage = row.cover_image;
+          }
+
           return article;
         })
         .filter(Boolean) as Article[];
@@ -211,21 +216,29 @@ export const StorageService = {
   },
 
   // --- Supabase Storage Bucket Upload Helpers ---
-  async uploadPdfToStorage(file: File): Promise<{ success: boolean; url?: string; error?: string }> {
+  async uploadPdfToStorage(file: File, folder: string = 'articles'): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         return { success: false, error: 'প্রথমে লগইন করুন' };
       }
 
+      // Max 30 MB size limit
+      const maxBytes = 30 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        const mb = (file.size / (1024 * 1024)).toFixed(1);
+        return { success: false, error: `পিডিএফ ফাইলের আকার ৩০ MB এর বেশি হতে পারবে না (বর্তমান আকার: ${mb} MB)` };
+      }
+
       const fileExt = file.name.split('.').pop() || 'pdf';
-      const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const filePath = `articles/${Date.now()}_${cleanFileName}`;
+      const cleanFileName = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filePath = `${folder}/${Date.now()}_${cleanFileName}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('pdfs')
         .upload(filePath, file, {
           cacheControl: '3600',
+          contentType: 'application/pdf',
           upsert: true
         });
 
@@ -250,13 +263,22 @@ export const StorageService = {
         return { success: false, error: 'প্রথমে লগইন করুন' };
       }
 
-      const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const filePath = `covers/${Date.now()}_${cleanFileName}`;
+      // Max 5 MB size limit
+      const maxBytes = 5 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        const mb = (file.size / (1024 * 1024)).toFixed(1);
+        return { success: false, error: `কভার ছবির আকার ৫ MB এর বেশি হতে পারবে না (বর্তমান আকার: ${mb} MB)` };
+      }
+
+      const fileExt = file.name.split('.').pop() || 'png';
+      const cleanFileName = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filePath = `covers/${Date.now()}_${cleanFileName}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('covers')
         .upload(filePath, file, {
           cacheControl: '3600',
+          contentType: file.type || 'image/jpeg',
           upsert: true
         });
 
