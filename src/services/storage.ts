@@ -375,6 +375,52 @@ export const StorageService = {
     return { success: true, message: 'আর্টিকেল ও সম্পর্কিত ফাইল সফলভাবে মুছে ফেলা হয়েছে' };
   },
 
+  async deleteSelectedArticlesFromSupabase(articles: { id: string; pdfUrl?: string }[]): Promise<{ success: boolean; count: number; message: string }> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return { success: false, count: 0, message: 'প্রথমে লগইন করুন' };
+    }
+
+    if (!articles || articles.length === 0) {
+      return { success: false, count: 0, message: 'কোনো আর্টিকেল সিলেক্ট করা হয়নি' };
+    }
+
+    const ids = articles.map(a => a.id).filter(Boolean);
+    const pdfPaths: string[] = [];
+
+    for (const item of articles) {
+      if (item.pdfUrl && item.pdfUrl.trim() !== '') {
+        const bucketMarker = '/pdfs/';
+        const idx = item.pdfUrl.indexOf(bucketMarker);
+        let path: string | null = null;
+        if (idx !== -1) {
+          path = item.pdfUrl.substring(idx + bucketMarker.length);
+        } else if (!item.pdfUrl.startsWith('http://') && !item.pdfUrl.startsWith('https://')) {
+          path = item.pdfUrl;
+        }
+        if (path) {
+          pdfPaths.push(path.split('?')[0]);
+        }
+      }
+    }
+
+    if (pdfPaths.length > 0) {
+      try {
+        await supabase.storage.from('pdfs').remove(pdfPaths);
+      } catch (err: any) {
+        console.warn('[StorageService] Notice during batch PDF removal:', err?.message);
+      }
+    }
+
+    const { error } = await supabase.from('articles').delete().in('id', ids);
+
+    if (error) {
+      return { success: false, count: 0, message: error.message };
+    }
+
+    return { success: true, count: ids.length, message: `${ids.length}টি নির্বাচিত আর্টিকেল সফলভাবে মুছে ফেলা হয়েছে` };
+  },
+
   async deleteResourceFromSupabase(id: string): Promise<{ success: boolean; message: string }> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {

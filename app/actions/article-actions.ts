@@ -7,6 +7,11 @@ const revalidatePath = (_path: string) => {
   // Safe fallback if revalidatePath is not provided in standard Vite runtime
 };
 
+export interface BatchDeleteArticleItem {
+  id: string;
+  pdfUrl?: string;
+}
+
 export async function deleteArticle(
   articleId: string,
   pdfUrl?: string
@@ -78,6 +83,85 @@ export async function deleteArticle(
     return {
       success: false,
       error: err?.message || 'An unexpected error occurred while deleting the article.'
+    };
+  }
+}
+
+export async function deleteSelectedArticles(
+  articles: BatchDeleteArticleItem[]
+): Promise<{ success: boolean; count: number; error?: string }> {
+  try {
+    if (!articles || articles.length === 0) {
+      return { success: false, count: 0, error: 'No articles selected for deletion' };
+    }
+
+    const supabase = await createClient();
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return { success: false, count: 0, error: 'প্রথমে এডমিন অ্যাকাউন্টে লগইন করুন (Please log in first)' };
+    }
+
+    const articleIds = articles.map(a => a.id).filter(Boolean);
+    const pdfPaths: string[] = [];
+
+    // 1. Collect all associated PDF file paths to remove from 'pdfs' storage bucket
+    for (const item of articles) {
+      if (item.pdfUrl && item.pdfUrl.trim() !== '') {
+        const bucketMarker = '/pdfs/';
+        const idx = item.pdfUrl.indexOf(bucketMarker);
+        let path: string | null = null;
+        if (idx !== -1) {
+          path = item.pdfUrl.substring(idx + bucketMarker.length);
+        } else if (!item.pdfUrl.startsWith('http://') && !item.pdfUrl.startsWith('https://')) {
+          path = item.pdfUrl;
+        }
+        if (path) {
+          pdfPaths.push(path.split('?')[0]);
+        }
+      }
+    }
+
+    if (pdfPaths.length > 0) {
+      try {
+        const { error: storageError } = await supabase.storage
+          .from('pdfs')
+          .remove(pdfPaths);
+
+        if (storageError) {
+          console.warn('[Supabase Storage] Notice during batch PDF removal:', storageError.message);
+        } else {
+          console.log(`[Supabase Storage] Batch removed ${pdfPaths.length} PDF files from pdfs bucket.`);
+        }
+      } catch (stErr: any) {
+        console.warn('[Supabase Storage] Exception in batch PDF removal:', stErr?.message);
+      }
+    }
+
+    // 2. Batch delete article rows from 'articles' database table
+    const { error: dbError } = await supabase
+      .from('articles')
+      .delete()
+      .in('id', articleIds);
+
+    if (dbError) {
+      return { success: false, count: 0, error: dbError.message };
+    }
+
+    // 3. Clear cache / revalidate paths
+    try {
+      revalidatePath('/dashboard');
+      revalidatePath('/articles');
+    } catch {
+      // Safe fallback
+    }
+
+    return { success: true, count: articleIds.length };
+  } catch (err: any) {
+    return {
+      success: false,
+      count: 0,
+      error: err?.message || 'An unexpected error occurred during batch article deletion.'
     };
   }
 }

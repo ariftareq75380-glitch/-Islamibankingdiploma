@@ -44,6 +44,7 @@ import { AdminSeoAuditTab } from './AdminSeoAuditTab';
 import contentData from '../data/content.json';
 import { supabase } from '../utils/supabase';
 import DeleteArticleButton from './DeleteArticleButton';
+import { deleteSelectedArticles } from '../actions/article-actions';
 import type { Session } from '@supabase/supabase-js';
 
 interface AdminPanelProps {
@@ -166,6 +167,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Search & Filter state for Admin articles archive
   const [articleSearch, setArticleSearch] = useState('');
   const [articleFilterStatus, setArticleFilterStatus] = useState<'ALL' | 'published' | 'draft'>('ALL');
+
+  // Batch Article selection state
+  const [selectedArticleIds, setSelectedArticleIds] = useState<string[]>([]);
+  const [isBatchDeleting, setIsBatchDeleting] = useState<boolean>(false);
 
   // File upload state & feedback
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -715,6 +720,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
     await onRefreshData();
     showToast(newStatus === 'published' ? 'আর্টিকেল প্রকাশিত করা হয়েছে!' : 'আর্টিকেল ড্রাফট করা হয়েছে', 'success');
+  };
+
+  const handleDeleteSelectedArticles = async () => {
+    if (selectedArticleIds.length === 0) return;
+
+    const count = selectedArticleIds.length;
+    const confirmMsg = lang === 'bn'
+      ? `আপনি কি নিশ্চিতভাবে নির্বাচিত ${count}টি আর্টিকেল এবং সেগুলোর সাথে সংযুক্ত সকল PDF ফাইল মুছে ফেলতে চান? এটি স্থায়ীভাবে ডিলিট হবে।`
+      : `Are you sure you want to delete ${count} selected articles and their associated PDFs permanently?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    setIsBatchDeleting(true);
+    try {
+      const selectedItems = articles
+        .filter((a) => selectedArticleIds.includes(a.id))
+        .map((a) => ({ id: a.id, pdfUrl: a.pdfUrl || a.pdf_url || undefined }));
+
+      const actionRes = await deleteSelectedArticles(selectedItems);
+
+      if (actionRes.success) {
+        setSelectedArticleIds([]);
+        await onRefreshData();
+        const msg = lang === 'bn'
+          ? `সফলভাবে ${actionRes.count}টি আর্টিকেল এবং PDF ফাইল মুছে ফেলা হয়েছে!`
+          : `Successfully deleted ${actionRes.count} articles and associated PDFs!`;
+        showToast(msg, 'success');
+      } else {
+        // Fallback to client StorageService
+        const fallbackRes = await StorageService.deleteSelectedArticlesFromSupabase(selectedItems);
+        if (fallbackRes.success) {
+          setSelectedArticleIds([]);
+          await onRefreshData();
+          const msg = lang === 'bn'
+            ? `সফলভাবে ${fallbackRes.count}টি আর্টিকেল মুছে ফেলা হয়েছে!`
+            : `Successfully deleted ${fallbackRes.count} articles!`;
+          showToast(msg, 'success');
+        } else {
+          showToast(fallbackRes.message || actionRes.error || 'আর্টিকেল ডিলিট করতে সমস্যা হয়েছে', 'error');
+        }
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'ব্যাচ ডিলিট ব্যর্থ হয়েছে', 'error');
+    } finally {
+      setIsBatchDeleting(false);
+    }
   };
 
   const resetArticleForm = () => {
@@ -1586,7 +1637,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
 
               {/* Articles Search & Filter Toolbar */}
-              <div className="bg-stone-50 border border-stone-200 p-3 rounded-xl flex flex-wrap items-center gap-2 text-xs">
+              <div className="bg-stone-50 border border-stone-200 p-3 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div className="relative flex-1 min-w-[200px]">
                   <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -1607,6 +1658,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {selectedArticleIds.length > 0 && (
+                    <button
+                      type="button"
+                      disabled={isBatchDeleting}
+                      onClick={handleDeleteSelectedArticles}
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                      title="নির্বাচিত আর্টিকেল ও PDF ফাইলগুলো স্থায়ীভাবে ডিলিট করুন"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>
+                        {isBatchDeleting
+                          ? (lang === 'bn' ? 'মুছে ফেলা হচ্ছে...' : 'Deleting...')
+                          : (lang === 'bn' ? `নির্বাচিতগুলো মুছুন (${selectedArticleIds.length})` : `Delete Selected (${selectedArticleIds.length})`)}
+                      </span>
+                    </button>
+                  )}
+
                   <select
                     value={articleFilterStatus}
                     onChange={(e) => setArticleFilterStatus(e.target.value as 'ALL' | 'published' | 'draft')}
@@ -1635,6 +1703,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <table className="w-full text-xs text-left">
                   <thead className="bg-stone-50 text-stone-600 font-semibold border-b border-stone-200">
                     <tr>
+                      <th className="p-3 text-center w-10">
+                        <input
+                          type="checkbox"
+                          checked={
+                            adminFilteredArticles.length > 0 &&
+                            adminFilteredArticles.every((art) => selectedArticleIds.includes(art.id))
+                          }
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              const allIds = adminFilteredArticles.map((art) => art.id);
+                              setSelectedArticleIds((prev) => Array.from(new Set([...prev, ...allIds])));
+                            } else {
+                              const currentFilteredIds = new Set(adminFilteredArticles.map((art) => art.id));
+                              setSelectedArticleIds((prev) => prev.filter((id) => !currentFilteredIds.has(id)));
+                            }
+                          }}
+                          className="w-4 h-4 text-emerald-800 rounded border-stone-300 focus:ring-emerald-700 cursor-pointer"
+                          title="সবগুলো আর্টিকেল নির্বাচন করুন"
+                        />
+                      </th>
                       <th className="p-3">Title / শিরোনাম</th>
                       <th className="p-3">Category / ক্যাটাগরি</th>
                       <th className="p-3">Author / লেখক</th>
@@ -1649,16 +1737,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       adminFilteredArticles.map((art) => {
                         const isDraft = art.status === 'draft' || art.isDraft;
                         const isHighlighted = art.featured === true;
+                        const isSelected = selectedArticleIds.includes(art.id);
 
                         return (
                           <tr 
                             key={art.id} 
                             className={`transition-colors ${
-                              isHighlighted 
+                              isSelected
+                                ? 'bg-emerald-50/60'
+                                : isHighlighted 
                                 ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-4 border-l-amber-500' 
                                 : 'hover:bg-stone-50'
                             }`}
                           >
+                            <td className="p-3 text-center w-10" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  const id = art.id;
+                                  if (e.target.checked) {
+                                    setSelectedArticleIds((prev) => [...prev, id]);
+                                  } else {
+                                    setSelectedArticleIds((prev) => prev.filter((item) => item !== id));
+                                  }
+                                }}
+                                className="w-4 h-4 text-emerald-800 rounded border-stone-300 focus:ring-emerald-700 cursor-pointer"
+                              />
+                            </td>
                             <td className="p-3 font-medium text-stone-900 max-w-xs">
                               <div className="flex items-start gap-2">
                                 {isHighlighted ? (
@@ -1785,7 +1891,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       })
                     ) : (
                       <tr>
-                        <td colSpan={7} className="p-6 text-center text-stone-500">
+                        <td colSpan={8} className="p-6 text-center text-stone-500">
                           {lang === 'bn' ? 'কোনো আর্টিকেল পাওয়া যায়নি।' : 'No articles match your search or filter.'}
                         </td>
                       </tr>
