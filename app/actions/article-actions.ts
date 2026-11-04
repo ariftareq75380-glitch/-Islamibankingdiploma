@@ -18,6 +18,11 @@ export async function deleteArticle(
 
     const supabase = await createClient();
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return { success: false, error: 'প্রথমে এডমিন অ্যাকাউন্টে লগইন করুন (Please log in first)' };
+    }
+
     // 1. Delete associated PDF file from 'pdfs' storage bucket using pdfUrl (if provided)
     if (pdfUrl && pdfUrl.trim() !== '') {
       try {

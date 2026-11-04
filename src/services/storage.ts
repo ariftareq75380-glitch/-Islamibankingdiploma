@@ -315,19 +315,56 @@ export const StorageService = {
     return { success: true, message: 'সেভ হয়েছে' };
   },
 
-  async deleteArticleFromSupabase(id: string): Promise<{ success: boolean; message: string }> {
+  async deleteArticleFromSupabase(id: string, pdfUrl?: string, coverImage?: string): Promise<{ success: boolean; message: string }> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       return { success: false, message: 'প্রথমে লগইন করুন' };
     }
 
+    // 1. Delete associated PDF file from 'pdfs' storage bucket if present
+    if (pdfUrl && pdfUrl.trim() !== '') {
+      try {
+        let filePath: string | null = null;
+        const bucketMarker = '/pdfs/';
+        const idx = pdfUrl.indexOf(bucketMarker);
+
+        if (idx !== -1) {
+          filePath = pdfUrl.substring(idx + bucketMarker.length);
+        } else if (!pdfUrl.startsWith('http://') && !pdfUrl.startsWith('https://')) {
+          filePath = pdfUrl;
+        }
+
+        if (filePath) {
+          filePath = filePath.split('?')[0];
+          await supabase.storage.from('pdfs').remove([filePath]);
+        }
+      } catch (err: any) {
+        console.warn('[StorageService] Notice deleting PDF file:', err?.message);
+      }
+    }
+
+    // 2. Delete associated cover image from 'covers' storage bucket if present
+    if (coverImage && coverImage.includes('/covers/')) {
+      try {
+        const bucketMarker = '/covers/';
+        const idx = coverImage.indexOf(bucketMarker);
+        if (idx !== -1) {
+          const coverPath = coverImage.substring(idx + bucketMarker.length).split('?')[0];
+          await supabase.storage.from('covers').remove([coverPath]);
+        }
+      } catch (err: any) {
+        console.warn('[StorageService] Notice deleting cover image:', err?.message);
+      }
+    }
+
+    // 3. Delete article row from 'articles' database table
     const { error } = await supabase.from('articles').delete().eq('id', id);
 
     if (error) {
       return { success: false, message: error.message };
     }
 
-    return { success: true, message: 'মুছে ফেলা হয়েছে' };
+    return { success: true, message: 'আর্টিকেল ও সম্পর্কিত ফাইল সফলভাবে মুছে ফেলা হয়েছে' };
   },
 
   async deleteResourceFromSupabase(id: string): Promise<{ success: boolean; message: string }> {

@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { deleteArticle } from '@/app/actions/article-actions';
+import { StorageService } from '@/src/services/storage';
 
 interface DeleteArticleButtonProps {
   articleId: string;
@@ -28,18 +29,23 @@ export const DeleteArticleButton: React.FC<DeleteArticleButtonProps> = ({
   const handleDelete = () => {
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await deleteArticle(articleId, pdfUrl);
+      let result = await deleteArticle(articleId, pdfUrl);
+      if (!result.success) {
+        // Fallback to client StorageService deletion
+        const clientRes = await StorageService.deleteArticleFromSupabase(articleId, pdfUrl);
+        result = { success: clientRes.success, error: clientRes.message };
+      }
+
       if (result.success) {
         setIsOpen(false);
         if (onDeleteSuccess) {
           onDeleteSuccess();
         } else {
-          alert('আর্টিকেল সফলভাবে মুছে ফেলা হয়েছে!');
+          alert('আর্টিকেল এবং ফাইল সফলভাবে মুছে ফেলা হয়েছে!');
         }
       } else {
         const err = result.error || 'Failed to delete article';
         setErrorMessage(err);
-        alert(`ত্রুটি: ${err}`);
       }
     });
   };
