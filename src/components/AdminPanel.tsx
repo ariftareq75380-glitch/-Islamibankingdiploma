@@ -31,7 +31,10 @@ import {
   List,
   Quote,
   Minus,
-  Smartphone
+  Smartphone,
+  Star,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { PdfResource, Article, CourseType, ExamSession, ResourceCategory, SiteSettings } from '../types';
 import { StorageService } from '../services/storage';
@@ -189,6 +192,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [resStatus, setResStatus] = useState<'published' | 'draft'>('published');
   const [formSuccessMessage, setFormSuccessMessage] = useState<string | null>(null);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
+
+  // Toast Notification State & Dispatcher
+  const [toast, setToast] = useState<{ id: number; message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToast({ id: Date.now(), message, type });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
 
   // Article Form State
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
@@ -519,13 +536,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   // Article Actions
+  const handleEditArticle = (art: Article) => {
+    setEditingArticleId(art.id);
+    setArtTitle(art.title || '');
+    setArtTitleBn(art.titleBn || art.title || '');
+    setArtSlug(art.slug || '');
+    setArtAuthor(art.author || 'মুহাম্মদ আরিফুর রহমান');
+    setArtAuthorDesignation(art.authorDesignation || 'সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+    setArtCategory(art.category || 'Diploma in Islamic Banking (Part 1)');
+    setArtCategoryBn(art.categoryBn || 'ডিআইবি পার্ট-১ ও মূলনীতি');
+    setArtSummary(art.summary || '');
+    setArtSummaryBn(art.summaryBn || '');
+    setArtContentEn(art.contentMarkdownEn || '');
+    setArtContentBn(art.contentMarkdownBn || '');
+    setArtTags((art.tags || []).join(', '));
+    setArtKeywords((art.keywords || art.tags || []).join(', '));
+    setArtCoverImage(art.coverImage || '/images/banner_bangladesh_banking_1793322325377.webp');
+    setArtFeatured(art.featured === true);
+    setArtPdfUrl(art.pdfUrl || art.pdf_url || '');
+    setArtStatus(art.status || (art.isDraft ? 'draft' : 'published'));
+    setFormErrorMessage(null);
+    setFormSuccessMessage(null);
+    setActiveTab('new-article');
+    showToast('আর্টিকেল এডিট ফর্মে লোড হয়েছে', 'info');
+  };
+
   const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormSuccessMessage(null);
     setFormErrorMessage(null);
 
     if (!artTitle || !artContentBn) {
-      setFormErrorMessage(lang === 'bn' ? 'অনুগ্রহ করে আর্টিকেল শিরোনাম ও মূল বক্তব্য বাংলায় পূরণ করুন।' : 'Please fill out article title and content.');
+      const err = lang === 'bn' ? 'অনুগ্রহ করে আর্টিকেল শিরোনাম ও মূল বক্তব্য বাংলায় পূরণ করুন।' : 'Please fill out article title and content.';
+      setFormErrorMessage(err);
+      showToast(err, 'error');
       return;
     }
 
@@ -535,6 +579,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'article-note';
 
+    const isEdit = Boolean(editingArticleId);
     const existing = editingArticleId ? articles.find(a => a.id === editingArticleId) : null;
     const articlePayload: Article = {
       id: editingArticleId || `art-${Date.now()}`,
@@ -566,35 +611,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
     if (!result.success) {
       setFormErrorMessage(result.message);
+      showToast(result.message || 'আর্টিকেল সেভ করা সম্ভব হয়নি', 'error');
       return;
     }
 
     await onRefreshData();
-    setFormSuccessMessage('সেভ হয়েছে');
+    const successMsg = isEdit 
+      ? 'আর্টিকেল সফলভাবে আপডেট করা হয়েছে!' 
+      : 'নতুন আর্টিকেল সফলভাবে তৈরি হয়েছে!';
+    setFormSuccessMessage(successMsg);
+    showToast(successMsg, 'success');
     setTimeout(() => {
       setFormSuccessMessage(null);
-      setEditingArticleId(null);
+      resetArticleForm();
       setActiveTab('articles');
     }, 1200);
   };
 
   const handleToggleArticleHighlight = async (art: Article) => {
+    const nextHighlightState = !art.featured;
     const result = await StorageService.toggleArticleHighlight(art);
     if (!result.success) {
-      alert(result.message);
+      showToast(result.message || 'হাইলাইট স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে', 'error');
       return;
     }
     await onRefreshData();
+    const msg = nextHighlightState
+      ? 'আর্টিকেলটি সফলভাবে হাইলাইট করা হয়েছে! ⭐'
+      : 'আর্টিকেলের হাইলাইট বাতিল করা হয়েছে';
+    showToast(msg, 'success');
   };
 
-  const handleDeleteArticle = async (id: string) => {
-    if (confirm(lang === 'bn' ? 'আপনি কি নিশ্চিতভাবে এই আর্টিকেলটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this article?')) {
+  const handleDeleteArticle = async (id: string, title?: string) => {
+    const confirmMsg = lang === 'bn' 
+      ? `আপনি কি নিশ্চিতভাবে "${title || 'এই আর্টিকেলটি'}" মুছে ফেলতে চান? এটি Supabase থেকে স্থায়ীভাবে ডিলিট হবে।` 
+      : `Are you sure you want to delete "${title || 'this article'}" permanently?`;
+    if (confirm(confirmMsg)) {
       const result = await StorageService.deleteArticleFromSupabase(id);
       if (!result.success) {
-        alert(result.message);
+        showToast(result.message || 'আর্টিকেল মুছে ফেলা ব্যর্থ হয়েছে', 'error');
         return;
       }
       await onRefreshData();
+      showToast('আর্টিকেল সফলভাবে মুছে ফেলা হয়েছে!', 'success');
     }
   };
 
@@ -607,10 +666,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     };
     const result = await StorageService.saveArticleToSupabase(updatedArt);
     if (!result.success) {
-      alert(result.message);
+      showToast(result.message || 'স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে', 'error');
       return;
     }
     await onRefreshData();
+    showToast(newStatus === 'published' ? 'আর্টিকেল প্রকাশিত করা হয়েছে!' : 'আর্টিকেল ড্রাফট করা হয়েছে', 'success');
   };
 
   const resetArticleForm = () => {
@@ -807,6 +867,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div className="fixed top-5 right-5 z-[100] max-w-md animate-in fade-in slide-in-from-top-3 duration-300">
+          <div
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border text-sm font-medium ${
+              toast.type === 'success'
+                ? 'bg-emerald-950 text-white border-emerald-600 shadow-emerald-950/50'
+                : toast.type === 'error'
+                ? 'bg-red-950 text-white border-red-600 shadow-red-950/50'
+                : 'bg-stone-900 text-white border-stone-700 shadow-stone-950/50'
+            }`}
+          >
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
+            {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />}
+            {toast.type === 'info' && <Sparkles className="w-5 h-5 text-amber-400 shrink-0" />}
+            <span className="flex-1 font-bengali text-xs leading-relaxed">{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="p-1 text-white/70 hover:text-white rounded-md hover:bg-white/10 transition-colors cursor-pointer"
+              title="বন্ধ করুন"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div 
         className="bg-white rounded-2xl max-w-5xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -1516,10 +1604,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         const isHighlighted = art.featured === true;
 
                         return (
-                          <tr key={art.id} className="hover:bg-stone-50 transition-colors">
-                            <td className="p-3 font-medium text-stone-900 max-w-xs truncate">
-                              <div className="font-semibold text-stone-900">{art.titleBn}</div>
-                              <div className="text-[11px] text-stone-400 truncate">/{art.slug}</div>
+                          <tr 
+                            key={art.id} 
+                            className={`transition-colors ${
+                              isHighlighted 
+                                ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-4 border-l-amber-500' 
+                                : 'hover:bg-stone-50'
+                            }`}
+                          >
+                            <td className="p-3 font-medium text-stone-900 max-w-xs">
+                              <div className="flex items-start gap-2">
+                                {isHighlighted ? (
+                                  <div 
+                                    className="p-1.5 bg-amber-100 text-amber-600 rounded-lg shrink-0 mt-0.5 shadow-2xs" 
+                                    title="হোমপেজে হাইলাইটেড আর্টিকেল"
+                                  >
+                                    <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                                  </div>
+                                ) : (
+                                  <div 
+                                    className="p-1.5 bg-stone-100 text-stone-400 rounded-lg shrink-0 mt-0.5" 
+                                    title="সাধারণ আর্টিকেল"
+                                  >
+                                    <Star className="w-4 h-4 text-stone-300" />
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-stone-900 flex items-center gap-1.5 flex-wrap">
+                                    <span>{art.titleBn}</span>
+                                    {isHighlighted && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                        <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />
+                                        <span>হাইলাইটেড</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-stone-400 font-mono truncate">/{art.slug}</div>
+                                </div>
+                              </div>
                             </td>
                             <td className="p-3 text-stone-600 whitespace-nowrap">
                               <span className="px-2 py-0.5 bg-stone-100 text-stone-700 rounded text-[11px]">
@@ -1528,19 +1650,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             </td>
                             <td className="p-3 text-stone-600 whitespace-nowrap">{art.author}</td>
                             <td className="p-3 text-center whitespace-nowrap">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleArticleHighlight(art)}
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-all ${
-                                  isHighlighted
-                                    ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
-                                    : 'bg-stone-100 text-stone-500 border border-stone-200 hover:bg-stone-200'
-                                }`}
-                                title={lang === 'bn' ? 'হোমপেজে হাইলাইট করতে ক্লিক করুন' : 'Click to toggle highlight on homepage'}
-                              >
-                                <Sparkles className={`w-3 h-3 ${isHighlighted ? 'text-amber-600 fill-amber-500' : 'text-stone-400'}`} />
-                                <span>{isHighlighted ? 'হাইলাইটেড' : 'সাধারণ'}</span>
-                              </button>
+                              {/* Highlight Switch / Checkbox Toggle */}
+                              <div className="inline-flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  role="switch"
+                                  aria-checked={isHighlighted}
+                                  onClick={() => handleToggleArticleHighlight(art)}
+                                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 ${
+                                    isHighlighted ? 'bg-amber-500' : 'bg-stone-300'
+                                  }`}
+                                  title={isHighlighted ? 'হাইলাইট বন্ধ করতে ক্লিক করুন' : 'হোমপেজে হাইলাইট করতে ক্লিক করুন'}
+                                >
+                                  <span
+                                    className={`pointer-events-none inline-flex h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out items-center justify-center ${
+                                      isHighlighted ? 'translate-x-5' : 'translate-x-0'
+                                    }`}
+                                  >
+                                    <Star
+                                      className={`w-3 h-3 ${
+                                        isHighlighted ? 'fill-amber-400 text-amber-500' : 'text-stone-400'
+                                      }`}
+                                    />
+                                  </span>
+                                </button>
+                                <span className={`text-[11px] font-bold ${isHighlighted ? 'text-amber-800' : 'text-stone-400'}`}>
+                                  {isHighlighted ? 'চালু ⭐' : 'বন্ধ'}
+                                </span>
+                              </div>
                             </td>
                             <td className="p-3 whitespace-nowrap">
                               <button
@@ -1567,49 +1704,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               </button>
                             </td>
                             <td className="p-3 text-stone-500 whitespace-nowrap">{art.publishedDate}</td>
-                            <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                            <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
                               <a
                                 href={`/diploma/${art.slug}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-block p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100"
-                                title="View Public Article"
+                                className="inline-flex items-center p-1.5 text-stone-600 hover:text-emerald-800 rounded-lg hover:bg-stone-100 transition-colors"
+                                title="পাবলিক পেজ দেখুন"
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </a>
                               <button
-                                onClick={() => {
-                                  setEditingArticleId(art.id);
-                                  setArtTitle(art.title);
-                                  setArtTitleBn(art.titleBn);
-                                  setArtSlug(art.slug || '');
-                                  setArtAuthor(art.author);
-                                  setArtAuthorDesignation(art.authorDesignation || '');
-                                  setArtCategory(art.category || 'Diploma in Islamic Banking (Part 1)');
-                                  setArtCategoryBn(art.categoryBn || 'ডিআইবি পার্ট-১ ও মূলনীতি');
-                                  setArtSummary(art.summary);
-                                  setArtSummaryBn(art.summaryBn);
-                                  setArtContentEn(art.contentMarkdownEn);
-                                  setArtContentBn(art.contentMarkdownBn);
-                                  setArtTags((art.tags || []).join(', '));
-                                  setArtKeywords((art.keywords || art.tags || []).join(', '));
-                                  setArtCoverImage(art.coverImage || '/images/banner_bangladesh_banking_1793322325377.webp');
-                                  setArtFeatured(art.featured === true);
-                                  setArtPdfUrl(art.pdfUrl || art.pdf_url || '');
-                                  setArtStatus(art.status || (art.isDraft ? 'draft' : 'published'));
-                                  setActiveTab('new-article');
-                                }}
-                                className="p-1.5 text-stone-600 hover:text-emerald-800 rounded hover:bg-stone-100"
-                                title="Edit Article"
+                                type="button"
+                                onClick={() => handleEditArticle(art)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
+                                title="আর্টিকেল এডিট করুন"
                               >
-                                <Edit3 className="w-4 h-4" />
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>এডিট</span>
                               </button>
                               <button
-                                onClick={() => handleDeleteArticle(art.id)}
-                                className="p-1.5 text-stone-600 hover:text-red-700 rounded hover:bg-red-50"
-                                title="Delete Article"
+                                type="button"
+                                onClick={() => handleDeleteArticle(art.id, art.titleBn || art.title)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer"
+                                title="আর্টিকেল মুছুন"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>মুছুন</span>
                               </button>
                             </td>
                           </tr>
@@ -1632,9 +1753,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           {activeTab === 'new-article' && (
             <form onSubmit={handleSaveArticle} className="space-y-4 text-xs">
               <div className="flex items-center justify-between border-b border-stone-200 pb-2">
-                <h3 className="text-base font-bold text-stone-900">
-                  {editingArticleId ? 'Edit Banking Article' : 'Compose New Bilingual Banking Article'}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-stone-900">
+                    {editingArticleId ? 'আর্টিকেল সম্পাদনা (Edit Article)' : 'নতুন ব্যাংকিং আর্টিকেল লিখুন (New Article)'}
+                  </h3>
+                  {editingArticleId && (
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[11px] font-semibold border border-amber-300">
+                      এডিটিং মোড
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-3">
                   <span className="text-stone-600 font-medium">স্ট্যাটাস:</span>
                   <label className="flex items-center gap-1 cursor-pointer">
@@ -2024,16 +2152,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-200">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('articles')}
-                  className="px-4 py-2 bg-stone-100 text-stone-700 text-xs font-semibold rounded-lg"
+                  onClick={() => {
+                    resetArticleForm();
+                    setActiveTab('articles');
+                  }}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
                 >
-                  Cancel
+                  বাতিল করুন (Cancel)
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-emerald-800 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700"
+                  className="px-6 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
                 >
-                  Save & Publish Article
+                  {editingArticleId ? 'আপডেট সেভ করুন (Update)' : 'সেভ ও প্রকাশ করুন (Publish)'}
                 </button>
               </div>
             </form>
