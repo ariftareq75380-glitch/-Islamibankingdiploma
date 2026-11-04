@@ -85,10 +85,14 @@ export const AdminSeoAuditTab: React.FC<AdminSeoAuditTabProps> = ({
   }, [resources, auditsMap, filterRating, searchQuery]);
 
   // Handle single resource optimization
-  const handleOptimizeSingle = (res: PdfResource) => {
+  const handleOptimizeSingle = async (res: PdfResource) => {
     const { optimized, appliedChanges } = autoOptimizeResource(res);
-    StorageService.updateResource(optimized);
-    onRefreshData();
+    const result = await StorageService.saveResourceToSupabase(optimized);
+    if (!result.success) {
+      alert(`ত্রুটি: ${result.message}`);
+      return;
+    }
+    await onRefreshData();
     setOptimizationNotice({ id: res.id, changes: appliedChanges });
     setTimeout(() => {
       setOptimizationNotice(null);
@@ -96,7 +100,7 @@ export const AdminSeoAuditTab: React.FC<AdminSeoAuditTabProps> = ({
   };
 
   // Handle batch optimization of entire catalog
-  const handleBatchOptimizeAll = () => {
+  const handleBatchOptimizeAll = async () => {
     if (!confirm(lang === 'bn' 
       ? 'আপনি কি সম্পূর্ণ লাইব্রেরির সকল প্রশ্নপত্র ও রিসোর্সের মেটাডাটা গুগল এসইও অনুযায়ী স্বয়ংক্রিয়ভাবে অপ্টিমাইজ করতে চান?' 
       : 'Auto-optimize metadata for all resources in the catalog for Google search ranking?')) {
@@ -104,16 +108,18 @@ export const AdminSeoAuditTab: React.FC<AdminSeoAuditTabProps> = ({
     }
 
     let optimizedCount = 0;
-    resources.forEach(res => {
+    for (const res of resources) {
       const { optimized } = autoOptimizeResource(res);
-      StorageService.updateResource(optimized);
-      optimizedCount++;
-    });
+      const result = await StorageService.saveResourceToSupabase(optimized);
+      if (result.success) {
+        optimizedCount++;
+      }
+    }
 
-    onRefreshData();
+    await onRefreshData();
     setBatchSuccessNotice(
       lang === 'bn'
-        ? `সফলভাবে ${optimizedCount}টি রিসোর্সের মেটাডাটা গুগল সার্চ র‍্যাংকিংয়ের জন্য অপ্টিমাইজ করা হয়েছে!`
+        ? `সফলভাবে ${optimizedCount}টি রিসোর্সের মেটাডাটা অপ্টিমাইজ এবং সেভ করা হয়েছে!`
         : `Successfully optimized SEO metadata for ${optimizedCount} resources!`
     );
     setTimeout(() => setBatchSuccessNotice(null), 4000);

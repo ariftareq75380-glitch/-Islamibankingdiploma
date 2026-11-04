@@ -332,7 +332,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
     setTimeout(() => setCopiedUrl(false), 2000);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
 
@@ -384,14 +384,22 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
       pdfId: existingArticle?.pdfId ?? null
     };
 
-    if (existingArticle) {
-      StorageService.updateArticle(articlePayload);
-    } else {
-      StorageService.addArticle(articlePayload);
+    setValidationError(null);
+    setUploadMessage('সংরক্ষণ হচ্ছে...');
+
+    const result = await StorageService.saveArticleToSupabase(articlePayload);
+
+    if (!result.success) {
+      setUploadMessage(null);
+      setValidationError(result.message);
+      return;
     }
 
+    setUploadMessage('সেভ হয়েছে');
     onArticleSaved(articlePayload);
-    onClose();
+    setTimeout(() => {
+      onClose();
+    }, 600);
   };
 
   if (!isOpen) return null;

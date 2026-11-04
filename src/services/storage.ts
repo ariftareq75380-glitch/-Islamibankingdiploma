@@ -4,14 +4,11 @@ import contentData from '../data/content.json';
 import { supabase } from '../utils/supabase';
 
 const STORAGE_KEYS = {
-  RESOURCES: 'ikl_pdf_resources_v1',
-  ARTICLES: 'ikl_articles_v1',
-  SETTINGS: 'ikl_site_settings_v1',
   BOOKMARKS: 'ikl_bookmarked_ids_v1'
 };
 
 export const StorageService = {
-  // --- Task 1 & Task 2: Public Reads from Supabase with content.json Fallback ---
+  // --- Public & Admin Reads from Supabase ---
 
   async getArticles(): Promise<Article[]> {
     try {
@@ -112,25 +109,9 @@ export const StorageService = {
     return this.getSiteSettings();
   },
 
-  // --- Synchronous Fallbacks using static content.json and local storage ---
+  // --- Synchronous Fallbacks using static content.json ---
 
   getFallbackArticles(): Article[] {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.ARTICLES);
-      if (stored) {
-        const parsed: Article[] = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.sort((a, b) => {
-            const dateA = a.publishedAt || a.publishedDate || '';
-            const dateB = b.publishedAt || b.publishedDate || '';
-            return dateB.localeCompare(dateA);
-          });
-        }
-      }
-    } catch {
-      // Fallback to content.json
-    }
-
     const raw = ((contentData as any)?.articles as Article[]) || sampleArticles;
     const items = raw.map(art => {
       if (art.id === 'art-1793470369985') {
@@ -150,30 +131,10 @@ export const StorageService = {
   },
 
   getFallbackResources(): PdfResource[] {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.RESOURCES);
-      if (stored) {
-        const parsed: PdfResource[] = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch {
-      // Fallback
-    }
     return ((contentData as any)?.resources as PdfResource[]) || samplePdfResources;
   },
 
   getFallbackSettings(): SiteSettings {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.siteName) return parsed;
-      }
-    } catch {
-      // Fallback
-    }
     return ((contentData as any)?.siteSettings as SiteSettings) || initialSiteSettings;
   },
 
@@ -189,110 +150,77 @@ export const StorageService = {
     return this.getFallbackSettings();
   },
 
-  // --- Admin Writes & Storage Helpers ---
+  // --- Admin Supabase Write & Delete Functions (Task 2 & Task 3) ---
 
-  saveResources(resources: PdfResource[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(resources));
-    } catch (e) {
-      console.warn('Failed to save to localStorage:', e);
+  async saveArticleToSupabase(article: Article): Promise<{ success: boolean; message: string }> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return { success: false, message: 'প্রথমে লগইন করুন' };
     }
-  },
 
-  addResource(newResource: Omit<PdfResource, 'id' | 'publicationDate' | 'downloadsCount' | 'viewsCount'>): PdfResource {
-    const resources = this.getFallbackResources();
-    const created: PdfResource = {
-      ...newResource,
-      id: `resource-${Date.now()}`,
-      publicationDate: new Date().toISOString().split('T')[0],
-      downloadsCount: 0,
-      viewsCount: 1,
-      status: newResource.status || 'published',
-      isDraft: newResource.status === 'draft' || Boolean(newResource.isDraft)
-    };
-    const updated = [created, ...resources];
-    this.saveResources(updated);
-    return created;
-  },
+    const { error } = await supabase.from('articles').upsert({
+      id: article.id,
+      data: article,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
 
-  updateResource(updatedResource: PdfResource): void {
-    const resources = this.getFallbackResources();
-    const index = resources.findIndex(r => r.id === updatedResource.id);
-    if (index !== -1) {
-      resources[index] = updatedResource;
-      this.saveResources(resources);
+    if (error) {
+      return { success: false, message: error.message };
     }
+
+    return { success: true, message: 'সেভ হয়েছে' };
   },
 
-  deleteResource(id: string): void {
-    const resources = this.getFallbackResources().filter(r => r.id !== id);
-    this.saveResources(resources);
-  },
-
-  incrementView(id: string): void {
-    const resources = this.getFallbackResources();
-    const target = resources.find(r => r.id === id);
-    if (target) {
-      target.viewsCount = (target.viewsCount || 0) + 1;
-      this.saveResources(resources);
+  async saveResourceToSupabase(resource: PdfResource): Promise<{ success: boolean; message: string }> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return { success: false, message: 'প্রথমে লগইন করুন' };
     }
-  },
 
-  incrementDownload(id: string): void {
-    const resources = this.getFallbackResources();
-    const target = resources.find(r => r.id === id);
-    if (target) {
-      target.downloadsCount = (target.downloadsCount || 0) + 1;
-      this.saveResources(resources);
+    const { error } = await supabase.from('resources').upsert({
+      id: resource.id,
+      data: resource,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+
+    if (error) {
+      return { success: false, message: error.message };
     }
+
+    return { success: true, message: 'সেভ হয়েছে' };
   },
 
-  saveArticles(articles: Article[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(articles));
-    } catch (e) {
-      console.warn('Failed to save articles:', e);
+  async deleteArticleFromSupabase(id: string): Promise<{ success: boolean; message: string }> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return { success: false, message: 'প্রথমে লগইন করুন' };
     }
-  },
 
-  addArticle(newArticle: Omit<Article, 'id' | 'publishedDate'>): Article {
-    const articles = this.getFallbackArticles();
-    const created: Article = {
-      ...newArticle,
-      id: `art-${Date.now()}`,
-      publishedDate: new Date().toISOString().split('T')[0],
-      publishedAt: newArticle.publishedAt !== undefined ? newArticle.publishedAt : new Date().toISOString().split('T')[0],
-      featured: newArticle.featured ?? false,
-      pdfId: newArticle.pdfId ?? null,
-      status: newArticle.status || 'published',
-      isDraft: newArticle.status === 'draft' || Boolean(newArticle.isDraft)
-    };
-    const updated = [created, ...articles];
-    this.saveArticles(updated);
-    return created;
-  },
+    const { error } = await supabase.from('articles').delete().eq('id', id);
 
-  updateArticle(updatedArticle: Article): void {
-    const articles = this.getFallbackArticles();
-    const index = articles.findIndex(a => a.id === updatedArticle.id);
-    if (index !== -1) {
-      articles[index] = updatedArticle;
-      this.saveArticles(articles);
+    if (error) {
+      return { success: false, message: error.message };
     }
+
+    return { success: true, message: 'মুছে ফেলা হয়েছে' };
   },
 
-  deleteArticle(id: string): void {
-    const articles = this.getFallbackArticles().filter(a => a.id !== id);
-    this.saveArticles(articles);
-  },
-
-  saveSettings(settings: SiteSettings): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-    } catch (e) {
-      console.warn('Failed to save settings:', e);
+  async deleteResourceFromSupabase(id: string): Promise<{ success: boolean; message: string }> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return { success: false, message: 'প্রথমে লগইন করুন' };
     }
+
+    const { error } = await supabase.from('resources').delete().eq('id', id);
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, message: 'মুছে ফেলা হয়েছে' };
   },
+
+  // --- Local User Preference Storage Helpers ---
 
   getBookmarks(): string[] {
     try {
@@ -418,6 +346,14 @@ export const StorageService = {
     }
   },
 
+  incrementView(_id: string): void {
+    // No-op for views count local save
+  },
+
+  incrementDownload(_id: string): void {
+    // No-op for downloads count local save
+  },
+
   exportDatabaseBackup(): string {
     const data = {
       exportVersion: '1.0',
@@ -433,13 +369,10 @@ export const StorageService = {
     try {
       const parsed = JSON.parse(jsonString);
       if (parsed.resources && Array.isArray(parsed.resources)) {
-        this.saveResources(parsed.resources);
+        parsed.resources.forEach((r: PdfResource) => this.saveResourceToSupabase(r));
       }
       if (parsed.articles && Array.isArray(parsed.articles)) {
-        this.saveArticles(parsed.articles);
-      }
-      if (parsed.siteSettings) {
-        this.saveSettings(parsed.siteSettings);
+        parsed.articles.forEach((a: Article) => this.saveArticleToSupabase(a));
       }
       return true;
     } catch (e) {
@@ -449,8 +382,6 @@ export const StorageService = {
   },
 
   resetToDefault(): void {
-    localStorage.removeItem(STORAGE_KEYS.RESOURCES);
-    localStorage.removeItem(STORAGE_KEYS.ARTICLES);
-    localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+    // Reset user client preferences
   }
 };

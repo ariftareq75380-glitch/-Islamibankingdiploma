@@ -478,7 +478,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setActiveTab('new-resource');
   };
 
-  const handleSaveResource = (e: React.FormEvent) => {
+  const handleSaveResource = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormErrorMessage(null);
 
@@ -495,66 +495,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const topicsArray = resKeyTopics.split(',').map(s => s.trim()).filter(Boolean);
     const tagsArray = resTags.split(',').map(s => s.trim()).filter(Boolean);
 
-    if (editingResourceId) {
-      const existing = resources.find(r => r.id === editingResourceId);
-      if (existing) {
-        StorageService.updateResource({
-          ...existing,
-          title: resTitle,
-          titleBn: resTitleBn || resTitle,
-          subject: resSubject,
-          subjectBn: resSubjectBn || resSubject,
-          course: resCourse,
-          examYear: resExamYear,
-          examSession: resExamSession,
-          language: resLanguage,
-          description: resDescription,
-          descriptionBn: resDescriptionBn || resDescription,
-          category: resCategory,
-          categoryBn: resCategory === 'Solved-Answer' ? 'সমাধানকৃত প্রশ্নপত্র' : 'প্রশ্নপত্র ও সহায়িকা',
-          tags: tagsArray,
-          pdfFileUrl: resFileUrl,
-          googleDriveUrl: resDriveUrl || undefined,
-          fileSize: resFileSize,
-          pageCount: resPageCount,
-          previewSupported: true,
-          keyTopics: topicsArray,
-          status: resStatus,
-          isDraft: resStatus === 'draft'
-        });
-      }
-    } else {
-      StorageService.addResource({
-        title: resTitle,
-        titleBn: resTitleBn || resTitle,
-        subject: resSubject,
-        subjectBn: resSubjectBn || resSubject,
-        course: resCourse,
-        examYear: resExamYear,
-        examSession: resExamSession,
-        language: resLanguage,
-        description: resDescription,
-        descriptionBn: resDescriptionBn || resDescription,
-        category: resCategory,
-        categoryBn: resCategory === 'Solved-Answer' ? 'সমাধানকৃত প্রশ্নপত্র' : 'প্রশ্নপত্র ও সহায়িকা',
-        tags: tagsArray,
-        pdfFileUrl: resFileUrl,
-        googleDriveUrl: resDriveUrl || undefined,
-        fileSize: resFileSize,
-        pageCount: resPageCount,
-        previewSupported: true,
-        keyTopics: topicsArray,
-        status: resStatus,
-        isDraft: resStatus === 'draft'
-      });
+    const existing = editingResourceId ? resources.find(r => r.id === editingResourceId) : null;
+    const resourcePayload: PdfResource = {
+      id: editingResourceId || `resource-${Date.now()}`,
+      title: resTitle,
+      titleBn: resTitleBn || resTitle,
+      subject: resSubject,
+      subjectBn: resSubjectBn || resSubject,
+      course: resCourse,
+      examYear: resExamYear,
+      examSession: resExamSession,
+      language: resLanguage,
+      description: resDescription,
+      descriptionBn: resDescriptionBn || resDescription,
+      category: resCategory,
+      categoryBn: resCategory === 'Solved-Answer' ? 'সমাধানকৃত প্রশ্নপত্র' : 'প্রশ্নপত্র ও সহায়িকা',
+      tags: tagsArray,
+      pdfFileUrl: resFileUrl,
+      googleDriveUrl: resDriveUrl || undefined,
+      fileSize: resFileSize,
+      pageCount: resPageCount,
+      previewSupported: true,
+      keyTopics: topicsArray,
+      status: resStatus,
+      isDraft: resStatus === 'draft',
+      publicationDate: existing?.publicationDate || new Date().toISOString().split('T')[0],
+      downloadsCount: existing?.downloadsCount || 0,
+      viewsCount: existing?.viewsCount || 0
+    };
+
+    const result = await StorageService.saveResourceToSupabase(resourcePayload);
+
+    if (!result.success) {
+      setFormErrorMessage(result.message);
+      return;
     }
 
-    onRefreshData();
-    setFormSuccessMessage(
-      lang === 'bn' 
-        ? (resStatus === 'published' ? 'রিসোর্সটি সফলভাবে লাইভ সাইটে প্রকাশিত হয়েছে!' : 'রিসোর্সটি ড্রাফট হিসেবে সংরক্ষিত হয়েছে!') 
-        : (resStatus === 'published' ? 'Resource published successfully to the public library!' : 'Resource saved as draft!')
-    );
+    await onRefreshData();
+    setFormSuccessMessage('সেভ হয়েছে');
     setTimeout(() => {
       setFormSuccessMessage(null);
       resetResourceForm();
@@ -577,28 +555,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setUploadFileName('');
   };
 
-  const handleDeleteResource = (id: string) => {
+  const handleDeleteResource = async (id: string) => {
     if (confirm(lang === 'bn' ? 'আপনি কি নিশ্চিতভাবে এই রিসোর্সটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this resource?')) {
-      StorageService.deleteResource(id);
-      onRefreshData();
+      const result = await StorageService.deleteResourceFromSupabase(id);
+      if (!result.success) {
+        alert(result.message);
+        return;
+      }
+      await onRefreshData();
     }
   };
 
-  const handleToggleResourceStatus = (res: PdfResource) => {
+  const handleToggleResourceStatus = async (res: PdfResource) => {
     const newStatus: 'published' | 'draft' = (res.status === 'draft' || res.isDraft) ? 'published' : 'draft';
-    StorageService.updateResource({
+    const updatedRes: PdfResource = {
       ...res,
       status: newStatus,
       isDraft: newStatus === 'draft'
-    });
-    onRefreshData();
+    };
+    const result = await StorageService.saveResourceToSupabase(updatedRes);
+    if (!result.success) {
+      alert(result.message);
+      return;
+    }
+    await onRefreshData();
   };
 
   // Article Actions
-  const handleSaveArticle = (e: React.FormEvent) => {
+  const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormSuccessMessage(null);
+    setFormErrorMessage(null);
+
     if (!artTitle || !artContentBn) {
-      alert(lang === 'bn' ? 'অনুগ্রহ করে আর্টিকেল শিরোনাম ও মূল বক্তব্য বাংলায় পূরণ করুন।' : 'Please fill out article title and content.');
+      setFormErrorMessage(lang === 'bn' ? 'অনুগ্রহ করে আর্টিকেল শিরোনাম ও মূল বক্তব্য বাংলায় পূরণ করুন।' : 'Please fill out article title and content.');
       return;
     }
 
@@ -608,73 +598,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'article-note';
 
-    if (editingArticleId) {
-      const existing = articles.find(a => a.id === editingArticleId);
-      if (existing) {
-        StorageService.updateArticle({
-          ...existing,
-          title: artTitle,
-          titleBn: artTitleBn || artTitle,
-          slug: cleanSlug,
-          author: artAuthor,
-          authorDesignation: artAuthorDesignation,
-          category: artCategory,
-          categoryBn: artCategoryBn,
-          summary: artSummary,
-          summaryBn: artSummaryBn,
-          contentMarkdownEn: artContentEn || artSummary,
-          contentMarkdownBn: artContentBn || artSummaryBn,
-          tags: tagsArray,
-          keywords: keywordsArray,
-          coverImage: artCoverImage,
-          status: artStatus,
-          isDraft: artStatus === 'draft'
-        });
-      }
-    } else {
-      StorageService.addArticle({
-        title: artTitle,
-        titleBn: artTitleBn || artTitle,
-        slug: cleanSlug,
-        author: artAuthor,
-        authorDesignation: artAuthorDesignation,
-        readTime: '6 min read',
-        category: artCategory,
-        categoryBn: artCategoryBn,
-        summary: artSummary,
-        summaryBn: artSummaryBn,
-        contentMarkdownEn: artContentEn || artSummary,
-        contentMarkdownBn: artContentBn || artSummaryBn,
-        tags: tagsArray,
-        keywords: keywordsArray,
-        coverImage: artCoverImage,
-        featured: false,
-        status: artStatus,
-        isDraft: artStatus === 'draft'
-      });
+    const existing = editingArticleId ? articles.find(a => a.id === editingArticleId) : null;
+    const articlePayload: Article = {
+      id: editingArticleId || `art-${Date.now()}`,
+      title: artTitle,
+      titleBn: artTitleBn || artTitle,
+      slug: cleanSlug,
+      author: artAuthor,
+      authorDesignation: artAuthorDesignation,
+      readTime: '6 min read',
+      category: artCategory,
+      categoryBn: artCategoryBn,
+      summary: artSummary,
+      summaryBn: artSummaryBn,
+      contentMarkdownEn: artContentEn || artSummary,
+      contentMarkdownBn: artContentBn || artSummaryBn,
+      tags: tagsArray,
+      keywords: keywordsArray,
+      coverImage: artCoverImage,
+      status: artStatus,
+      isDraft: artStatus === 'draft',
+      publishedDate: existing?.publishedDate || new Date().toISOString().split('T')[0],
+      publishedAt: existing?.publishedAt || existing?.publishedDate || new Date().toISOString().split('T')[0]
+    };
+
+    const result = await StorageService.saveArticleToSupabase(articlePayload);
+
+    if (!result.success) {
+      setFormErrorMessage(result.message);
+      return;
     }
 
-    onRefreshData();
-    setFormSuccessMessage(lang === 'bn' ? 'আর্টিকেল সফলভাবে সংরক্ষিত হয়েছে!' : 'Article saved successfully!');
-    setEditingArticleId(null);
-    setActiveTab('articles');
+    await onRefreshData();
+    setFormSuccessMessage('সেভ হয়েছে');
+    setTimeout(() => {
+      setFormSuccessMessage(null);
+      setEditingArticleId(null);
+      setActiveTab('articles');
+    }, 1200);
   };
 
-  const handleDeleteArticle = (id: string) => {
+  const handleDeleteArticle = async (id: string) => {
     if (confirm(lang === 'bn' ? 'আপনি কি নিশ্চিতভাবে এই আর্টিকেলটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this article?')) {
-      StorageService.deleteArticle(id);
-      onRefreshData();
+      const result = await StorageService.deleteArticleFromSupabase(id);
+      if (!result.success) {
+        alert(result.message);
+        return;
+      }
+      await onRefreshData();
     }
   };
 
-  const handleToggleArticleStatus = (art: Article) => {
+  const handleToggleArticleStatus = async (art: Article) => {
     const newStatus: 'published' | 'draft' = (art.status === 'draft' || art.isDraft) ? 'published' : 'draft';
-    StorageService.updateArticle({
+    const updatedArt: Article = {
       ...art,
       status: newStatus,
       isDraft: newStatus === 'draft'
-    });
-    onRefreshData();
+    };
+    const result = await StorageService.saveArticleToSupabase(updatedArt);
+    if (!result.success) {
+      alert(result.message);
+      return;
+    }
+    await onRefreshData();
   };
 
   // Filtered resources for Admin view
@@ -869,21 +856,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
           <div className="flex items-center gap-2">
             {session?.user?.email && (
-              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-stone-800 rounded-lg text-xs text-emerald-400 font-mono border border-stone-700/60">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-stone-800 rounded-lg text-xs text-emerald-400 font-mono border border-stone-700/60" title="সক্রিয় অ্যাডমিন অ্যাকাউন্ট">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span>{session.user.email}</span>
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => setIsSupabaseConfirmOpen(true)}
-              disabled={isSupabaseImporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg transition-colors text-xs font-semibold cursor-pointer border border-emerald-600 shadow-xs disabled:opacity-50"
-              title="src/data/content.json থেকে Supabase-এ ডেটা তুলুন"
-            >
-              <Database className="w-3.5 h-3.5 text-emerald-300" />
-              <span>{isSupabaseImporting ? 'আপলোড হচ্ছে...' : 'Supabase-এ ডেটা তুলুন'}</span>
-            </button>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 hover:bg-red-900/60 text-stone-200 hover:text-red-200 rounded-lg transition-colors text-xs font-semibold cursor-pointer border border-stone-700/60"
@@ -986,43 +963,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           )}
 
-          {/* Supabase Confirmation Dialog */}
-          {isSupabaseConfirmOpen && (
-            <div className="fixed inset-0 z-[60] bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 font-bengali space-y-4">
-                <div className="flex items-center gap-3 text-amber-800">
-                  <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200">
-                    <AlertTriangle className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-base font-bold text-stone-900">Supabase ডেটা মাইগ্রেশন</h4>
-                    <p className="text-xs text-stone-500 font-sans">Database Import Confirmation</p>
-                  </div>
-                </div>
-
-                <p className="text-stone-800 text-sm leading-relaxed bg-amber-50/70 p-4 rounded-xl border border-amber-200 font-medium">
-                  এটি Supabase-এর ডেটা প্রতিস্থাপন করবে। নিশ্চিত হলে 'হ্যাঁ' চাপুন।
-                </p>
-
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsSupabaseConfirmOpen(false)}
-                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
-                  >
-                    বাতিল
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSupabaseImport}
-                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
-                  >
-                    হ্যাঁ
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
           {/* TAB 1: ALL RESOURCES LIST & BROKEN LINK CHECK */}
           {activeTab === 'resources' && (
             <div className="space-y-4">
