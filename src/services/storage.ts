@@ -14,7 +14,7 @@ export const StorageService = {
     try {
       const { data, error } = await supabase
         .from('articles')
-        .select('data');
+        .select('id, data, is_highlighted, is_published, summary, category, author, cover_image, pdf_url, updated_at');
 
       if (error) {
         console.warn('[Data Source Fallback] Supabase query error reading articles, using fallback content.json:', error.message);
@@ -26,7 +26,26 @@ export const StorageService = {
         return this.getFallbackArticles();
       }
 
-      const articles = data.map((row: any) => row.data as Article).filter(Boolean);
+      const articles = data
+        .map((row: any) => {
+          if (!row.data) return null;
+          const article = { ...(row.data as Article) };
+
+          // Sync is_highlighted boolean to article.featured
+          if (typeof row.is_highlighted === 'boolean') {
+            article.featured = row.is_highlighted;
+          }
+
+          // Sync is_published to status and isDraft
+          if (row.is_published === false) {
+            article.status = 'draft';
+            article.isDraft = true;
+          }
+
+          return article;
+        })
+        .filter(Boolean) as Article[];
+
       if (articles.length === 0) {
         console.warn('[Data Source Fallback] Mapped articles array from Supabase is empty, using fallback content.json');
         return this.getFallbackArticles();
@@ -160,7 +179,13 @@ export const StorageService = {
 
     const { error } = await supabase.from('articles').upsert({
       id: article.id,
-      data: article,
+      data: { ...article, featured: article.featured === true },
+      is_highlighted: article.featured === true,
+      is_published: article.status !== 'draft' && article.isDraft !== true,
+      summary: article.summaryBn || article.summary || null,
+      category: article.categoryBn || article.category || null,
+      author: article.author || null,
+      cover_image: article.coverImage || null,
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
 
@@ -169,6 +194,11 @@ export const StorageService = {
     }
 
     return { success: true, message: 'সেভ হয়েছে' };
+  },
+
+  async toggleArticleHighlight(article: Article): Promise<{ success: boolean; message: string }> {
+    const updated = { ...article, featured: !article.featured };
+    return this.saveArticleToSupabase(updated);
   },
 
   async saveResourceToSupabase(resource: PdfResource): Promise<{ success: boolean; message: string }> {
