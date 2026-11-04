@@ -43,6 +43,7 @@ import { subjectsList, examYearsList } from '../data/mockData';
 import { AdminSeoAuditTab } from './AdminSeoAuditTab';
 import contentData from '../data/content.json';
 import { supabase } from '../utils/supabase';
+import DeleteArticleButton from './DeleteArticleButton';
 import type { Session } from '@supabase/supabase-js';
 
 interface AdminPanelProps {
@@ -1769,15 +1770,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 <Edit3 className="w-3.5 h-3.5" />
                                 <span>এডিট</span>
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteArticle(art.id, art.titleBn || art.title)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer"
-                                title="আর্টিকেল মুছুন"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>মুছুন</span>
-                              </button>
+                              <DeleteArticleButton
+                                articleId={art.id}
+                                pdfUrl={art.pdfUrl || art.pdf_url || undefined}
+                                title={art.titleBn || art.title}
+                                onDeleteSuccess={() => {
+                                  onRefreshData();
+                                  showToast('আর্টিকেল এবং সম্পর্কিত ফাইল সফলভাবে মুছে ফেলা হয়েছে!', 'success');
+                                }}
+                              />
                             </td>
                           </tr>
                         );
