@@ -292,11 +292,50 @@ export default function App() {
       return;
     }
 
+    if (pathname === 'admin' || pathname === 'login') {
+      setSelectedArticleForRead(null);
+      // Protected route: check Supabase session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        const isAuth = Boolean(session);
+        setIsAdminAuthenticated(isAuth);
+        if (pathname === 'admin') {
+          if (!isAuth) {
+            // Redirect unauthenticated user to /login
+            if (typeof window !== 'undefined') {
+              window.history.replaceState(null, '', '/login');
+            }
+            setActiveTab('login');
+            setIsAdminOpen(true);
+            updateSEOMetadata({
+              title: 'অ্যাডমিন লগইন | ইসলামী ব্যাংকিং ডিপ্লোমা',
+              canonicalPath: '/login'
+            });
+          } else {
+            setActiveTab('admin');
+            setIsAdminOpen(true);
+            updateSEOMetadata({
+              title: 'অ্যাডমিনিস্ট্রেটর পোর্টাল | ইসলামী ব্যাংকিং ডিপ্লোমা',
+              canonicalPath: '/admin'
+            });
+          }
+        } else {
+          // /login route
+          setActiveTab('login');
+          setIsAdminOpen(true);
+          updateSEOMetadata({
+            title: 'অ্যাডমিন লগইন | ইসলামী ব্যাংকিং ডিপ্লোমা',
+            canonicalPath: '/login'
+          });
+        }
+      });
+      return;
+    }
+
     const validTabs: ActiveTab[] = [
       'home', 'banking', 'diploma', 'previous-questions', 'islamic-studies',
       'quran-hadith', 'fiqh-fatwa', 'pdf-library', 'articles', 'mock-test',
       'faq', 'bookmarks-view', 'about', 'contact', 'privacy', 'disclaimer', 'wp-blueprint',
-      'zakat-calculator'
+      'zakat-calculator', 'admin', 'login'
     ];
     if (validTabs.includes(pathname as ActiveTab)) {
       setActiveTab(pathname as ActiveTab);
@@ -418,6 +457,22 @@ export default function App() {
       updateSEOMetadata({
         title: 'পাঠাগার | ইসলামী ব্যাংকিং ডিপ্লোমা',
         canonicalPath: '/pdf-library'
+      });
+    } else if (cleanPath === 'admin' || cleanPath === 'login') {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        const isAuth = Boolean(session);
+        setIsAdminAuthenticated(isAuth);
+        if (cleanPath === 'admin') {
+          if (!isAuth) {
+            if (typeof window !== 'undefined') window.history.replaceState(null, '', '/login');
+            setActiveTab('login');
+          } else {
+            setActiveTab('admin');
+          }
+        } else {
+          setActiveTab('login');
+        }
+        setIsAdminOpen(true);
       });
     } else {
       handleSelectTabWithFilter((cleanPath || 'home') as ActiveTab);
@@ -988,7 +1043,13 @@ export default function App() {
           articles={articles}
           settings={settings}
           onRefreshData={loadAllData}
-          onClose={() => setIsAdminOpen(false)}
+          onClose={() => {
+            setIsAdminOpen(false);
+            if (activeTab === 'admin' || activeTab === 'login') {
+              setActiveTab('home');
+              if (typeof window !== 'undefined') window.history.pushState(null, '', '/');
+            }
+          }}
           lang={lang}
           onAuthChange={(auth) => setIsAdminAuthenticated(auth)}
           onPreviewResource={handlePreviewResource}

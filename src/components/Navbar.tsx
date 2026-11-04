@@ -437,12 +437,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="font-semibold">{lang === 'bn' ? 'EN' : 'বাং'}</span>
             </button>
 
-            {/* Admin Management Button (Secret - Only shown when unlocked) */}
+            {/* Admin Management Button */}
             {isAdminVisible && (
               <div className="flex items-center gap-1 bg-emerald-950/20 p-0.5 rounded-md border border-emerald-800/40">
                 <button
-                  onClick={openAdminModal}
-                  title={lang === 'bn' ? 'অ্যাডমিন পোর্টাল' : 'Admin Portal'}
+                  onClick={() => {
+                    if (onNavigateUrl) {
+                      onNavigateUrl('/admin');
+                    } else {
+                      openAdminModal();
+                    }
+                  }}
+                  title={lang === 'bn' ? 'অ্যাডমিন পোর্টাল (/admin)' : 'Admin Portal (/admin)'}
                   className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-white bg-[#14532D] rounded-md hover:bg-[#047857] transition-colors whitespace-nowrap shadow-xs cursor-pointer border border-[#D4AF37]/40"
                 >
                   <Lock className="w-3 h-3 text-[#D4AF37]" />
@@ -686,13 +692,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="pt-3 border-t border-stone-200 flex items-center justify-between">
                   <button
                     onClick={() => {
-                      openAdminModal();
+                      if (onNavigateUrl) {
+                        onNavigateUrl('/admin');
+                      } else {
+                        openAdminModal();
+                      }
                       setMobileMenuOpen(false);
                     }}
                     className="px-3 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#14532D] hover:bg-[#047857] flex items-center justify-center gap-2 flex-1 shadow-xs cursor-pointer"
                   >
                     <Lock className="w-4 h-4 text-[#D4AF37]" />
-                    <span>{lang === 'bn' ? 'অ্যাডমিন পোর্টাল খুলুন' : 'Open Admin Portal'}</span>
+                    <span>{lang === 'bn' ? 'অ্যাডমিন পোর্টাল খুলুন (/admin)' : 'Open Admin Portal (/admin)'}</span>
                   </button>
                   {onHideAdmin && (
                     <button

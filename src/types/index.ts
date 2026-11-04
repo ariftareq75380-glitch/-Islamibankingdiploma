@@ -85,6 +85,8 @@ export interface Article {
   menuCategory?: 'dib-part-1' | 'dib-part-2' | 'islamic-economics' | 'islamic-essays' | 'miscellaneous';
   publishedAt?: string | null;
   pdfId?: string | null;
+  pdfUrl?: string | null;
+  pdf_url?: string | null;
 }
 
 export interface CategoryInfo {
@@ -133,5 +135,7 @@ export type ActiveTab =
   | 'disclaimer'
   | 'wp-blueprint'
   | 'zakat-calculator'
+  | 'admin'
+  | 'login'
   | 'not-found';
 

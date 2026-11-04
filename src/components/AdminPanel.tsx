@@ -196,8 +196,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [artTitleBn, setArtTitleBn] = useState('');
   const [artAuthor, setArtAuthor] = useState('Mohammad Arifur Rahman');
   const [artAuthorDesignation, setArtAuthorDesignation] = useState('Senior Islamic Banking Specialist & DIB Mentor');
-  const [artCategory, setArtCategory] = useState('Islamic Banking Insights');
-  const [artCategoryBn, setArtCategoryBn] = useState('ইসলামী ব্যাংকিং গবেষণা');
+  const [artCategory, setArtCategory] = useState('Diploma in Islamic Banking (Part 1)');
+  const [artCategoryBn, setArtCategoryBn] = useState('ডিআইবি পার্ট-১ ও মূলনীতি');
   const [artSummary, setArtSummary] = useState('');
   const [artSummaryBn, setArtSummaryBn] = useState('');
   const [artContentEn, setArtContentEn] = useState('');
@@ -207,31 +207,73 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [artSlug, setArtSlug] = useState('');
   const [artCoverImage, setArtCoverImage] = useState('/images/banner_bangladesh_banking_1793322325377.webp');
   const [artStatus, setArtStatus] = useState<'published' | 'draft'>('published');
+  const [artFeatured, setArtFeatured] = useState<boolean>(false);
+  const [artPdfUrl, setArtPdfUrl] = useState<string>('');
+  const [isUploadingPdf, setIsUploadingPdf] = useState<boolean>(false);
+  const [isUploadingCover, setIsUploadingCover] = useState<boolean>(false);
 
   const artContentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const artImageInputRef = useRef<HTMLInputElement>(null);
+  const artPdfInputRef = useRef<HTMLInputElement>(null);
 
-  // Phone storage / device upload for article thumbnail
-  const handleArtImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload Cover Image directly to Supabase Storage 'covers' bucket
+  const handleArtCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       setFormErrorMessage(lang === 'bn' ? 'অনুগ্রহ করে শুধুমাত্র ছবি ফাইল (JPG, PNG, WebP) নির্বাচন করুন।' : 'Please choose an image file.');
       return;
     }
-    const sizeInMB = file.size / (1024 * 1024);
-    if (sizeInMB > 4.5) {
-      setFormErrorMessage(lang === 'bn' ? 'ছবির সাইজ অনেক বড়। সর্বোচ্চ ৪.৫ মেগাবাইট ফাইল আপলোড করতে পারবেন।' : 'Image size exceeds 4.5MB limit.');
+    
+    setIsUploadingCover(true);
+    setFormErrorMessage(null);
+    try {
+      const res = await StorageService.uploadCoverToStorage(file);
+      if (res.success && res.url) {
+        setArtCoverImage(res.url);
+        setFormSuccessMessage(lang === 'bn' ? 'Supabase Storage-এ কভার ছবি আপলোড সফল হয়েছে!' : 'Cover image uploaded to Supabase Storage!');
+      } else {
+        // Fallback to local Base64 preview if bucket policy throws
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            setArtCoverImage(reader.result);
+            setFormSuccessMessage(lang === 'bn' ? 'কভার ছবি যুক্ত হয়েছে!' : 'Cover image attached!');
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err: any) {
+      setFormErrorMessage(err?.message || 'কভার আপলোড ব্যর্থ হয়েছে');
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  // Upload Article PDF directly to Supabase Storage 'pdfs' bucket
+  const handleArtPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setFormErrorMessage(lang === 'bn' ? 'অনুগ্রহ করে শুধুমাত্র পিডিএফ ফাইল আপলোড করুন।' : 'Please upload a PDF file.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setArtCoverImage(reader.result);
-        setFormSuccessMessage(lang === 'bn' ? 'ফোন স্টোরেজ থেকে থাম্বনেল যুক্ত হয়েছে!' : 'Device thumbnail attached successfully!');
+
+    setIsUploadingPdf(true);
+    setFormErrorMessage(null);
+    try {
+      const res = await StorageService.uploadPdfToStorage(file);
+      if (res.success && res.url) {
+        setArtPdfUrl(res.url);
+        setFormSuccessMessage(lang === 'bn' ? 'Supabase Storage-এ PDF সফলভাবে আপলোড হয়েছে!' : 'PDF uploaded to Supabase Storage!');
+      } else {
+        setFormErrorMessage(res.error || 'PDF আপলোড করতে সমস্যা হয়েছে');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      setFormErrorMessage(err?.message || 'PDF আপলোড ব্যর্থ হয়েছে');
+    } finally {
+      setIsUploadingPdf(false);
+    }
   };
 
   // Text formatting tool for Admin Article Content
@@ -511,6 +553,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       tags: tagsArray,
       keywords: keywordsArray,
       coverImage: artCoverImage,
+      featured: artFeatured,
+      pdfUrl: artPdfUrl || null,
+      pdf_url: artPdfUrl || null,
       status: artStatus,
       isDraft: artStatus === 'draft',
       publishedDate: existing?.publishedDate || new Date().toISOString().split('T')[0],
@@ -531,6 +576,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       setEditingArticleId(null);
       setActiveTab('articles');
     }, 1200);
+  };
+
+  const handleToggleArticleHighlight = async (art: Article) => {
+    const result = await StorageService.toggleArticleHighlight(art);
+    if (!result.success) {
+      alert(result.message);
+      return;
+    }
+    await onRefreshData();
   };
 
   const handleDeleteArticle = async (id: string) => {
@@ -557,6 +611,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       return;
     }
     await onRefreshData();
+  };
+
+  const resetArticleForm = () => {
+    setEditingArticleId(null);
+    setArtTitle('');
+    setArtTitleBn('');
+    setArtAuthor('মুহাম্মদ আরিফুর রহমান');
+    setArtAuthorDesignation('সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+    setArtCategory('Diploma in Islamic Banking (Part 1)');
+    setArtCategoryBn('ডিআইবি পার্ট-১ ও মূলনীতি');
+    setArtSummary('');
+    setArtSummaryBn('');
+    setArtContentEn('');
+    setArtContentBn('');
+    setArtTags('Islamic Banking, Bangladesh Economy, DIB');
+    setArtKeywords('মুদারাবা সংজ্ঞা, রব্বুল মাল, DIB Part 1, ইসলামিক ব্যাংকিং');
+    setArtSlug('');
+    setArtCoverImage('/images/banner_bangladesh_banking_1793322325377.webp');
+    setArtFeatured(false);
+    setArtPdfUrl('');
+    setArtStatus('published');
+    setFormErrorMessage(null);
+    setFormSuccessMessage(null);
   };
 
   // Filtered resources for Admin view
@@ -812,12 +889,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             {lang === 'bn' ? `আর্টিকেলসমূহ (${articles.length})` : `Articles (${articles.length})`}
           </button>
           <button
-            onClick={() => setActiveTab('new-article')}
+            onClick={() => { resetArticleForm(); setActiveTab('new-article'); }}
             className={`px-4 py-2 font-semibold rounded-t-lg transition-colors ${
               activeTab === 'new-article' ? 'bg-white text-emerald-900 border-t-2 border-emerald-800' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
-            {lang === 'bn' ? '+ নতুন আর্টিকেল লিখুন' : '+ Write Article'}
+            {editingArticleId
+              ? (lang === 'bn' ? 'আর্টিকেল সম্পাদনা' : 'Edit Article')
+              : (lang === 'bn' ? '+ নতুন আর্টিকেল লিখুন' : '+ Write Article')}
           </button>
           <button
             onClick={() => setActiveTab('backup')}
@@ -1422,7 +1501,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <thead className="bg-stone-50 text-stone-600 font-semibold border-b border-stone-200">
                     <tr>
                       <th className="p-3">Title / শিরোনাম</th>
+                      <th className="p-3">Category / ক্যাটাগরি</th>
                       <th className="p-3">Author / লেখক</th>
+                      <th className="p-3 text-center">হাইলাইট (Highlight)</th>
                       <th className="p-3">স্ট্যাটাস</th>
                       <th className="p-3">Published Date</th>
                       <th className="p-3 text-right">Actions</th>
@@ -1432,14 +1513,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     {adminFilteredArticles.length > 0 ? (
                       adminFilteredArticles.map((art) => {
                         const isDraft = art.status === 'draft' || art.isDraft;
+                        const isHighlighted = art.featured === true;
 
                         return (
                           <tr key={art.id} className="hover:bg-stone-50 transition-colors">
-                            <td className="p-3 font-medium text-stone-900 max-w-sm truncate">
-                              <div className="font-semibold">{art.titleBn}</div>
+                            <td className="p-3 font-medium text-stone-900 max-w-xs truncate">
+                              <div className="font-semibold text-stone-900">{art.titleBn}</div>
                               <div className="text-[11px] text-stone-400 truncate">/{art.slug}</div>
                             </td>
+                            <td className="p-3 text-stone-600 whitespace-nowrap">
+                              <span className="px-2 py-0.5 bg-stone-100 text-stone-700 rounded text-[11px]">
+                                {art.categoryBn || art.category || 'সাধারণ'}
+                              </span>
+                            </td>
                             <td className="p-3 text-stone-600 whitespace-nowrap">{art.author}</td>
+                            <td className="p-3 text-center whitespace-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleArticleHighlight(art)}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-all ${
+                                  isHighlighted
+                                    ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                                    : 'bg-stone-100 text-stone-500 border border-stone-200 hover:bg-stone-200'
+                                }`}
+                                title={lang === 'bn' ? 'হোমপেজে হাইলাইট করতে ক্লিক করুন' : 'Click to toggle highlight on homepage'}
+                              >
+                                <Sparkles className={`w-3 h-3 ${isHighlighted ? 'text-amber-600 fill-amber-500' : 'text-stone-400'}`} />
+                                <span>{isHighlighted ? 'হাইলাইটেড' : 'সাধারণ'}</span>
+                              </button>
+                            </td>
                             <td className="p-3 whitespace-nowrap">
                               <button
                                 type="button"
@@ -1483,13 +1585,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                   setArtSlug(art.slug || '');
                                   setArtAuthor(art.author);
                                   setArtAuthorDesignation(art.authorDesignation || '');
+                                  setArtCategory(art.category || 'Diploma in Islamic Banking (Part 1)');
+                                  setArtCategoryBn(art.categoryBn || 'ডিআইবি পার্ট-১ ও মূলনীতি');
                                   setArtSummary(art.summary);
                                   setArtSummaryBn(art.summaryBn);
                                   setArtContentEn(art.contentMarkdownEn);
                                   setArtContentBn(art.contentMarkdownBn);
                                   setArtTags((art.tags || []).join(', '));
                                   setArtKeywords((art.keywords || art.tags || []).join(', '));
-                                  setArtCoverImage(art.coverImage || '/src/assets/images/banner_bangladesh_banking_1793322325377.jpg');
+                                  setArtCoverImage(art.coverImage || '/images/banner_bangladesh_banking_1793322325377.webp');
+                                  setArtFeatured(art.featured === true);
+                                  setArtPdfUrl(art.pdfUrl || art.pdf_url || '');
                                   setArtStatus(art.status || (art.isDraft ? 'draft' : 'published'));
                                   setActiveTab('new-article');
                                 }}
@@ -1511,7 +1617,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       })
                     ) : (
                       <tr>
-                        <td colSpan={5} className="p-6 text-center text-stone-500">
+                        <td colSpan={7} className="p-6 text-center text-stone-500">
                           {lang === 'bn' ? 'কোনো আর্টিকেল পাওয়া যায়নি।' : 'No articles match your search or filter.'}
                         </td>
                       </tr>
@@ -1635,13 +1741,55 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
-              {/* Thumbnail / Cover Image with Phone Storage Upload */}
+              {/* Category & Highlight Settings */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-stone-50 p-3 rounded-xl border border-stone-200">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">ক্যাটাগরি (Category) *</label>
+                  <select
+                    value={artCategoryBn}
+                    onChange={(e) => {
+                      const bn = e.target.value;
+                      setArtCategoryBn(bn);
+                      if (bn === 'ডিআইবি পার্ট-১ ও মূলনীতি') setArtCategory('Diploma in Islamic Banking (Part 1)');
+                      else if (bn === 'ডিআইবি পার্ট-২ ও সমাধান') setArtCategory('Diploma in Islamic Banking (Part 2)');
+                      else if (bn === 'ইসলামী অর্থনীতি ও ব্যাংকিং') setArtCategory('Islamic Economics & Banking');
+                      else if (bn === 'ইসলামী প্রবন্ধ ও গবেষণা') setArtCategory('Islamic Essays & Research');
+                      else setArtCategory('Miscellaneous');
+                    }}
+                    className="w-full p-2 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs font-bengali"
+                  >
+                    <option value="ডিআইবি পার্ট-১ ও মূলনীতি">ডিআইবি পার্ট-১ ও মূলনীতি</option>
+                    <option value="ডিআইবি পার্ট-২ ও সমাধান">ডিআইবি পার্ট-২ ও সমাধান</option>
+                    <option value="ইসলামী অর্থনীতি ও ব্যাংকিং">ইসলামী অর্থনীতি ও ব্যাংকিং</option>
+                    <option value="ইসলামী প্রবন্ধ ও গবেষণা">ইসলামী প্রবন্ধ ও গবেষণা</option>
+                    <option value="বিবিধ ও সাধারণ">বিবিধ ও সাধারণ</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col justify-center">
+                  <label className="font-semibold text-stone-700 mb-1">হোমপেজ ফিচার ও হাইলাইট</label>
+                  <label className="flex items-center gap-2.5 p-2 bg-white border border-amber-200 rounded-lg cursor-pointer hover:bg-amber-50/50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={artFeatured}
+                      onChange={(e) => setArtFeatured(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 rounded border-stone-300 focus:ring-amber-500"
+                    />
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>হোমপেজের 'হাইলাইটেড আর্টিকেল' সেকশনে দেখান (Highlight)</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Cover Image with Supabase Storage 'covers' Bucket */}
               <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="font-semibold text-stone-700">
-                    কন্টেন্ট থাম্বনেল / কভার ছবি (Thumbnail)
+                    কভার ছবি / থাম্বনেল (Cover Image)
                   </label>
-                  <span className="text-[11px] text-stone-500">ফোন বা কম্পিউটার স্টোরেজ থেকে আপলোড সমর্থিত</span>
+                  <span className="text-[11px] text-emerald-800 font-medium">Supabase Storage 'covers' বাকেট</span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -1649,16 +1797,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     type="file"
                     ref={artImageInputRef}
                     accept="image/*"
-                    onChange={handleArtImageUpload}
+                    onChange={handleArtCoverUpload}
                     className="hidden"
                   />
                   <button
                     type="button"
+                    disabled={isUploadingCover}
                     onClick={() => artImageInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#047857] hover:bg-[#065f46] text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs transition-all"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#047857] hover:bg-[#065f46] disabled:opacity-50 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs transition-all"
                   >
-                    <Smartphone className="w-4 h-4" />
-                    <span>ফোন স্টোরেজ থেকে ছবি আপলোড</span>
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{isUploadingCover ? 'আপলোড হচ্ছে...' : 'কভার ছবি আপলোড (Supabase)'}</span>
                   </button>
 
                   <button
@@ -1675,13 +1824,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   >
                     ডিআইবি পাঠাগার
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setArtCoverImage('/images/category_quran_hadith_1793322326327.webp')}
-                    className="px-2.5 py-1.5 bg-white border border-stone-300 hover:border-emerald-600 rounded-lg text-stone-700 text-xs"
-                  >
-                    কুরআন ও হাদিস
-                  </button>
                 </div>
 
                 {artCoverImage && (
@@ -1692,12 +1834,68 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       className="w-20 h-14 object-cover rounded border border-stone-200 shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-[11px] font-semibold text-emerald-800">থাম্বনেল যুক্ত করা হয়েছে</div>
-                      <div className="text-[10px] text-stone-500 font-mono truncate">{artCoverImage.startsWith('data:') ? 'ডিভাইস ফাইল (Base64)' : artCoverImage}</div>
+                      <div className="text-[11px] font-semibold text-emerald-800">কভার ছবি যুক্ত হয়েছে</div>
+                      <div className="text-[10px] text-stone-500 font-mono truncate">{artCoverImage}</div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setArtCoverImage('')}
+                      className="text-stone-400 hover:text-red-600 p-1"
+                      title="মুছুন"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* PDF Document Upload with Supabase Storage 'pdfs' Bucket */}
+              <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-stone-700">
+                    সংযুক্ত পিডিএফ ডকুমেন্ট (PDF Attachment - Supabase 'pdfs' Bucket)
+                  </label>
+                  <span className="text-[11px] text-emerald-800 font-medium">রিয়েল-টাইম ক্লাউড স্টোরেজ</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="file"
+                    ref={artPdfInputRef}
+                    accept=".pdf,application/pdf"
+                    onChange={handleArtPdfUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={isUploadingPdf}
+                    onClick={() => artPdfInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-stone-800 hover:bg-stone-900 disabled:opacity-50 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs transition-all"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{isUploadingPdf ? 'PDF আপলোড হচ্ছে...' : 'PDF ফাইল আপলোড (Supabase Storage)'}</span>
+                  </button>
+                </div>
+
+                {artPdfUrl && (
+                  <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-stone-200">
+                    <FileText className="w-6 h-6 text-emerald-800 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-semibold text-emerald-800">পিডিএফ সংযুক্ত করা হয়েছে</div>
+                      <div className="text-[10px] text-stone-500 font-mono truncate">{artPdfUrl}</div>
+                    </div>
+                    <a
+                      href={artPdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1 text-stone-400 hover:text-emerald-800"
+                      title="দেখুন"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setArtPdfUrl('')}
                       className="text-stone-400 hover:text-red-600 p-1"
                       title="মুছুন"
                     >

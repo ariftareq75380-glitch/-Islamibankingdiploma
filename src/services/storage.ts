@@ -42,6 +42,12 @@ export const StorageService = {
             article.isDraft = true;
           }
 
+          // Sync pdf_url
+          if (row.pdf_url) {
+            article.pdfUrl = row.pdf_url;
+            article.pdf_url = row.pdf_url;
+          }
+
           return article;
         })
         .filter(Boolean) as Article[];
@@ -177,15 +183,18 @@ export const StorageService = {
       return { success: false, message: 'প্রথমে লগইন করুন' };
     }
 
+    const pdfUrl = article.pdfUrl || article.pdf_url || null;
+
     const { error } = await supabase.from('articles').upsert({
       id: article.id,
-      data: { ...article, featured: article.featured === true },
+      data: { ...article, featured: article.featured === true, pdfUrl, pdf_url: pdfUrl },
       is_highlighted: article.featured === true,
       is_published: article.status !== 'draft' && article.isDraft !== true,
       summary: article.summaryBn || article.summary || null,
       category: article.categoryBn || article.category || null,
       author: article.author || null,
       cover_image: article.coverImage || null,
+      pdf_url: pdfUrl,
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
 
@@ -199,6 +208,70 @@ export const StorageService = {
   async toggleArticleHighlight(article: Article): Promise<{ success: boolean; message: string }> {
     const updated = { ...article, featured: !article.featured };
     return this.saveArticleToSupabase(updated);
+  },
+
+  // --- Supabase Storage Bucket Upload Helpers ---
+  async uploadPdfToStorage(file: File): Promise<{ success: boolean; url?: string; error?: string }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return { success: false, error: 'প্রথমে লগইন করুন' };
+      }
+
+      const fileExt = file.name.split('.').pop() || 'pdf';
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `articles/${Date.now()}_${cleanFileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('pdfs')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        return { success: false, error: uploadError.message };
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('pdfs')
+        .getPublicUrl(filePath);
+
+      return { success: true, url: publicUrl };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'পিডিএফ আপলোড করতে সমস্যা হয়েছে' };
+    }
+  },
+
+  async uploadCoverToStorage(file: File): Promise<{ success: boolean; url?: string; error?: string }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return { success: false, error: 'প্রথমে লগইন করুন' };
+      }
+
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `covers/${Date.now()}_${cleanFileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('covers')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        return { success: false, error: uploadError.message };
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('covers')
+        .getPublicUrl(filePath);
+
+      return { success: true, url: publicUrl };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'কভার ছবি আপলোড করতে সমস্যা হয়েছে' };
+    }
   },
 
   async saveResourceToSupabase(resource: PdfResource): Promise<{ success: boolean; message: string }> {
