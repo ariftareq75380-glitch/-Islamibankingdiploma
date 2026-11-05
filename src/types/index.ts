@@ -102,6 +102,15 @@ export interface CategoryInfo {
   itemCount: number;
 }
 
+export interface AppSettings {
+  id?: string;
+  nisab_amount_bdt: number;
+  last_updated_date: string;
+  gold_rate_22k_per_gram: number;
+  silver_rate_per_gram: number;
+  updated_at?: string;
+}
+
 export interface SiteSettings {
   siteName: string;
   siteNameBn: string;
@@ -114,6 +123,11 @@ export interface SiteSettings {
   officeAddress: string;
   enableAdPlacements: boolean;
   adsensePublisherId: string;
+  // Zakat Calculator Settings
+  nisab_amount_bdt?: number;
+  last_updated_date?: string;
+  gold_rate_22k_per_gram?: number;
+  silver_rate_per_gram?: number;
 }
 
 export type ActiveTab = 

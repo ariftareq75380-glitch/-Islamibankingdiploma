@@ -1,5 +1,5 @@
-import { PdfResource, Article, SiteSettings } from '../types';
-import { samplePdfResources, sampleArticles, initialSiteSettings } from '../data/mockData';
+import { PdfResource, Article, SiteSettings, AppSettings } from '../types';
+import { samplePdfResources, sampleArticles, initialSiteSettings, defaultAppSettings } from '../data/mockData';
 import contentData from '../data/content.json';
 import { supabase } from '../utils/supabase';
 
@@ -134,10 +134,99 @@ export const StorageService = {
       }
 
       console.log('[Data Source: Supabase] Site settings loaded successfully');
-      return data.data as SiteSettings;
+      const loaded = data.data as SiteSettings;
+      return {
+        ...this.getFallbackSettings(),
+        ...loaded,
+        nisab_amount_bdt: loaded.nisab_amount_bdt ?? defaultAppSettings.nisab_amount_bdt,
+        last_updated_date: loaded.last_updated_date ?? defaultAppSettings.last_updated_date,
+        gold_rate_22k_per_gram: loaded.gold_rate_22k_per_gram ?? defaultAppSettings.gold_rate_22k_per_gram,
+        silver_rate_per_gram: loaded.silver_rate_per_gram ?? defaultAppSettings.silver_rate_per_gram
+      };
     } catch (err: any) {
       console.warn('[Data Source Fallback] Exception reading site_settings from Supabase, using fallback content.json:', err?.message);
       return this.getFallbackSettings();
+    }
+  },
+
+  async getAppSettings(): Promise<AppSettings> {
+    try {
+      // 1. Try querying app_settings table first
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        return {
+          id: data.id || 'default',
+          nisab_amount_bdt: Number(data.nisab_amount_bdt) || defaultAppSettings.nisab_amount_bdt,
+          last_updated_date: String(data.last_updated_date || defaultAppSettings.last_updated_date),
+          gold_rate_22k_per_gram: Number(data.gold_rate_22k_per_gram) || defaultAppSettings.gold_rate_22k_per_gram,
+          silver_rate_per_gram: Number(data.silver_rate_per_gram) || defaultAppSettings.silver_rate_per_gram,
+          updated_at: data.updated_at
+        };
+      }
+
+      // 2. Fallback to site_settings
+      const siteSettings = await this.getSiteSettings();
+      return {
+        id: 'default',
+        nisab_amount_bdt: siteSettings.nisab_amount_bdt || defaultAppSettings.nisab_amount_bdt,
+        last_updated_date: siteSettings.last_updated_date || defaultAppSettings.last_updated_date,
+        gold_rate_22k_per_gram: siteSettings.gold_rate_22k_per_gram || defaultAppSettings.gold_rate_22k_per_gram,
+        silver_rate_per_gram: siteSettings.silver_rate_per_gram || defaultAppSettings.silver_rate_per_gram
+      };
+    } catch (err: any) {
+      console.warn('Error reading app_settings from Supabase:', err?.message);
+      return defaultAppSettings;
+    }
+  },
+
+  async saveAppSettings(settings: AppSettings): Promise<{ success: boolean; message?: string }> {
+    try {
+      const payload = {
+        id: 'default',
+        nisab_amount_bdt: Number(settings.nisab_amount_bdt) || defaultAppSettings.nisab_amount_bdt,
+        last_updated_date: String(settings.last_updated_date || '').trim() || defaultAppSettings.last_updated_date,
+        gold_rate_22k_per_gram: Number(settings.gold_rate_22k_per_gram) || defaultAppSettings.gold_rate_22k_per_gram,
+        silver_rate_per_gram: Number(settings.silver_rate_per_gram) || defaultAppSettings.silver_rate_per_gram,
+        updated_at: new Date().toISOString()
+      };
+
+      // 1. Upsert to app_settings
+      const { error: appErr } = await supabase
+        .from('app_settings')
+        .upsert(payload);
+
+      if (appErr) {
+        console.warn('Notice saving to app_settings:', appErr.message);
+      }
+
+      // 2. Also sync to site_settings
+      try {
+        const currentSite = await this.getSiteSettings();
+        await supabase
+          .from('site_settings')
+          .upsert({
+            id: 'default',
+            data: {
+              ...currentSite,
+              nisab_amount_bdt: payload.nisab_amount_bdt,
+              last_updated_date: payload.last_updated_date,
+              gold_rate_22k_per_gram: payload.gold_rate_22k_per_gram,
+              silver_rate_per_gram: payload.silver_rate_per_gram
+            },
+            updated_at: new Date().toISOString()
+          });
+      } catch (siteErr: any) {
+        console.warn('Notice syncing site_settings:', siteErr?.message);
+      }
+
+      return { success: true, message: 'সেটিংস সফলভাবে সংরক্ষিত হয়েছে' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'সেটিংস সংরক্ষণ ব্যর্থ হয়েছে' };
     }
   },
 

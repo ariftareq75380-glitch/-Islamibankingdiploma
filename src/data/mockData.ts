@@ -1,4 +1,12 @@
-import { PdfResource, Article, CategoryInfo, SiteSettings } from '../types';
+import { PdfResource, Article, CategoryInfo, SiteSettings, AppSettings } from '../types';
+
+export const defaultAppSettings: AppSettings = {
+  id: 'default',
+  nisab_amount_bdt: 173250,
+  last_updated_date: '০৪/১১/২০২৬',
+  gold_rate_22k_per_gram: 11500,
+  silver_rate_per_gram: 282.85
+};
 
 export const initialSiteSettings: SiteSettings = {
   siteName: 'Islami Banking Diploma',
@@ -11,7 +19,11 @@ export const initialSiteSettings: SiteSettings = {
   contactPhone: '+880 1712-345678',
   officeAddress: 'Motijheel Commercial Area, Dhaka-1000, Bangladesh',
   enableAdPlacements: true,
-  adsensePublisherId: 'ca-pub-9876543210123456'
+  adsensePublisherId: 'ca-pub-9876543210123456',
+  nisab_amount_bdt: 173250,
+  last_updated_date: '০৪/১১/২০২৬',
+  gold_rate_22k_per_gram: 11500,
+  silver_rate_per_gram: 282.85
 };
 
 export const samplePdfResources: PdfResource[] = [

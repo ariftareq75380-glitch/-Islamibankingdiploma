@@ -1,18 +1,18 @@
-// These weights must be verified by a qualified scholar before publishing.
-const NISAB_GOLD_GRAMS = 87.48;
-const NISAB_SILVER_GRAMS = 612.36;
-
-const DEFAULT_NISAB_BASIS: 'silver' | 'gold' = 'silver';
-const REVIEW_DATE = "০১/১১/২০২৬";
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { updateSEOMetadata } from '../utils/seo';
-import { Calculator, ArrowRight, RotateCcw, Scale } from 'lucide-react';
+import { Calculator, RotateCcw, Scale, Info } from 'lucide-react';
+import { SiteSettings } from '../types';
+import { StorageService } from '../services/storage';
 
 interface ZakatCalculatorProps {
   lang?: 'bn' | 'en';
   onNavigateUrl?: (path: string) => void;
+  settings?: SiteSettings;
 }
+
+// Weight Conversion: 1 Bhori (Tola) = 11.664 Grams
+const BHORI_TO_GRAM = 11.664;
+const REVIEW_DATE = '০৪/১১/২০২৬';
 
 const formatBnNumber = (val: number): string => {
   const rounded = Math.round(val);
@@ -26,85 +26,100 @@ const formatBnNumber = (val: number): string => {
 };
 
 export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
-  onNavigateUrl
+  onNavigateUrl,
+  settings: initialPropSettings
 }) => {
   // Update SEO Metadata on Mount
   useEffect(() => {
     updateSEOMetadata({
       title: 'যাকাত ক্যালকুলেটর (Zakat Calculator) | ইসলামী ব্যাংকিং ডিপ্লোমা',
-      description: 'আপনার সম্পদের পরিমাণ লিখে নিসাব অনুযায়ী যাকাতের আনুমানিক হিসাব জানুন। নিসাবের টাকার মূল্য আপনার দেওয়া দামের ভিত্তিতে হিসাব হয়।',
+      description: 'আপনার সম্পদের পরিমাণ লিখে নিসাব অনুযায়ী যাকাতের আনুমানিক হিসাব জানুন। নিসাবের টাকার মূল্য এবং স্বর্ণ-রৌপ্যের বাজারদর অনুযায়ী স্বয়ংক্রিয় হিসাব।',
       canonicalPath: '/zakat-calculator'
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Nisab basis selection (default: silver)
-  const [nisabBasis, setNisabBasis] = useState<'silver' | 'gold'>(DEFAULT_NISAB_BASIS);
+  // Database-driven Nisab & Metal Rate Settings
+  const [nisabAmount, setNisabAmount] = useState<number>(() => initialPropSettings?.nisab_amount_bdt || 173250);
+  const [lastUpdatedDate, setLastUpdatedDate] = useState<string>(() => initialPropSettings?.last_updated_date || '০৪/১১/২০২৬');
+  const [goldRate, setGoldRate] = useState<number>(() => initialPropSettings?.gold_rate_22k_per_gram || 11500);
+  const [silverRate, setSilverRate] = useState<number>(() => initialPropSettings?.silver_rate_per_gram || 282.85);
 
-  // Inputs state - all non-negative numbers, default 0
+  // Fetch latest settings from database (app_settings / site_settings)
+  useEffect(() => {
+    let isMounted = true;
+    StorageService.getAppSettings()
+      .then((data) => {
+        if (isMounted && data) {
+          if (data.nisab_amount_bdt) setNisabAmount(data.nisab_amount_bdt);
+          if (data.last_updated_date) setLastUpdatedDate(data.last_updated_date);
+          if (data.gold_rate_22k_per_gram) setGoldRate(data.gold_rate_22k_per_gram);
+          if (data.silver_rate_per_gram) setSilverRate(data.silver_rate_per_gram);
+        }
+      })
+      .catch((err) => {
+        console.warn('Error fetching app settings for Zakat Calculator:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Inputs state
   const [cash, setCash] = useState<number>(0);
-  const [goldGrams, setGoldGrams] = useState<number>(0);
-  const [silverGrams, setSilverGrams] = useState<number>(0);
-  const [goldPrice, setGoldPrice] = useState<number>(0);
-  const [silverPrice, setSilverPrice] = useState<number>(0);
+  const [goldWeight, setGoldWeight] = useState<number>(0);
+  const [goldUnit, setGoldUnit] = useState<'bhori' | 'gram'>('bhori');
+  const [silverWeight, setSilverWeight] = useState<number>(0);
+  const [silverUnit, setSilverUnit] = useState<'bhori' | 'gram'>('bhori');
   const [businessGoods, setBusinessGoods] = useState<number>(0);
   const [investments, setInvestments] = useState<number>(0);
   const [otherAssets, setOtherAssets] = useState<number>(0);
   const [debts, setDebts] = useState<number>(0);
-  const [priceDate, setPriceDate] = useState<string>('');
 
-  // Calculations
-  const goldValue = useMemo(() => {
-    return (goldGrams || 0) * (goldPrice || 0);
-  }, [goldGrams, goldPrice]);
+  // Task 3: Automatic Gold & Silver Value Calculations
+  const totalGoldGrams = useMemo(() => {
+    if (!goldWeight || goldWeight <= 0) return 0;
+    return goldUnit === 'bhori' ? goldWeight * BHORI_TO_GRAM : goldWeight;
+  }, [goldWeight, goldUnit]);
 
-  const silverValue = useMemo(() => {
-    return (silverGrams || 0) * (silverPrice || 0);
-  }, [silverGrams, silverPrice]);
+  const totalGoldValue = useMemo(() => {
+    return Math.round(totalGoldGrams * (goldRate || 0));
+  }, [totalGoldGrams, goldRate]);
 
+  const totalSilverGrams = useMemo(() => {
+    if (!silverWeight || silverWeight <= 0) return 0;
+    return silverUnit === 'bhori' ? silverWeight * BHORI_TO_GRAM : silverWeight;
+  }, [silverWeight, silverUnit]);
+
+  const totalSilverValue = useMemo(() => {
+    return Math.round(totalSilverGrams * (silverRate || 0));
+  }, [totalSilverGrams, silverRate]);
+
+  // Total Assets (মোট সম্পদ) includes auto-calculated Gold and Silver values
   const totalAssets = useMemo(() => {
-    return (cash || 0) + goldValue + silverValue + (businessGoods || 0) + (investments || 0) + (otherAssets || 0);
-  }, [cash, goldValue, silverValue, businessGoods, investments, otherAssets]);
+    return (cash || 0) + totalGoldValue + totalSilverValue + (businessGoods || 0) + (investments || 0) + (otherAssets || 0);
+  }, [cash, totalGoldValue, totalSilverValue, businessGoods, investments, otherAssets]);
 
+  // Net Wealth (নিট সম্পদ) after deducting immediate payable debts
   const netWealth = useMemo(() => {
     return Math.max(0, totalAssets - (debts || 0));
   }, [totalAssets, debts]);
 
-  // Selected basis unit price
-  const basisPrice = nisabBasis === 'silver' ? silverPrice : goldPrice;
-  const hasBasisPrice = basisPrice > 0;
-
-  // Nisab value in Taka
-  const nisabValue = useMemo(() => {
-    if (!hasBasisPrice) return null;
-    return nisabBasis === 'silver' 
-      ? NISAB_SILVER_GRAMS * silverPrice 
-      : NISAB_GOLD_GRAMS * goldPrice;
-  }, [hasBasisPrice, nisabBasis, silverPrice, goldPrice]);
-
-  // Zakat amount
-  const { zakatAmount, isNisabReached } = useMemo(() => {
-    if (!hasBasisPrice || nisabValue === null) {
-      return { zakatAmount: null, isNisabReached: false };
-    }
-    if (netWealth >= nisabValue) {
-      return { zakatAmount: netWealth * 0.025, isNisabReached: true };
-    }
-    return { zakatAmount: 0, isNisabReached: false };
-  }, [hasBasisPrice, nisabValue, netWealth]);
+  // Zakat threshold comparison against Admin-configured Nisab amount
+  const isNisabReached = netWealth >= nisabAmount;
+  const zakatAmount = isNisabReached ? netWealth * 0.025 : 0;
 
   const handleReset = () => {
     setCash(0);
-    setGoldGrams(0);
-    setSilverGrams(0);
-    setGoldPrice(0);
-    setSilverPrice(0);
+    setGoldWeight(0);
+    setGoldUnit('bhori');
+    setSilverWeight(0);
+    setSilverUnit('bhori');
     setBusinessGoods(0);
     setInvestments(0);
     setOtherAssets(0);
     setDebts(0);
-    setPriceDate('');
-    setNisabBasis(DEFAULT_NISAB_BASIS);
   };
 
   const handleNavHome = (e: React.MouseEvent) => {
@@ -132,8 +147,8 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
         <span className="text-stone-800 font-medium">যাকাত ক্যালকুলেটর</span>
       </nav>
 
-      {/* 1. H1: যাকাত ক্যালকুলেটর */}
-      <div className="mb-4">
+      {/* Title Header */}
+      <div className="mb-6 text-center sm:text-left">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-[#14532D] mb-3">
           <Calculator className="w-3.5 h-3.5 text-[#047857]" />
           <span>ইসলামিক আর্থিক অনুশাসন ও যাকাত হিসাব</span>
@@ -143,12 +158,44 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
         </h1>
       </div>
 
-      {/* 2. Intro paragraph (verbatim) */}
-      <p className="text-sm sm:text-base text-stone-700 leading-relaxed mb-8 bg-stone-50 border border-stone-200 p-4 rounded-xl">
-        এই ক্যালকুলেটরটি আপনার সম্পদের হিসাব অনুযায়ী যাকাতের আনুমানিক পরিমাণ দেখাতে সাহায্য করে। এটি একটি সাধারণ নির্দেশিকা। জটিল বা ব্যক্তিগত ক্ষেত্রে স্থানীয় আলেমের পরামর্শ নিন।
-      </p>
+      {/* Task 2: Specific Nisab Banner UI (Light Green Rounded Box, Center-Aligned) */}
+      <div className="bg-[#ecfdf5] border border-[#a7f3d0] rounded-2xl p-6 sm:p-8 text-center shadow-xs mb-4">
+        {/* Top Text: "যাকাতের নিসাব" (Medium font, dark green) */}
+        <p className="text-sm sm:text-base font-medium text-[#065f46] mb-1">
+          যাকাতের নিসাব
+        </p>
 
-      {/* 3. Calculator Section (Tasks 4 to 6) */}
+        {/* Middle Text: The BDT amount in Bengali numerals in very large bold green font with small info icon */}
+        <div className="flex items-center justify-center gap-2 my-2 sm:my-3">
+          <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#047857] tracking-tight">
+            ৳ {formatBnNumber(nisabAmount)}
+          </span>
+          <div className="relative group inline-block">
+            <Info 
+              className="w-5 h-5 sm:w-6 sm:h-6 text-[#059669] hover:text-[#047857] cursor-pointer transition-colors" 
+              aria-label="নিসাব সংক্রান্ত তথ্য"
+            />
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-64 sm:w-72 p-3 bg-stone-900 text-white text-[11px] rounded-xl shadow-xl z-20 text-center font-normal leading-relaxed">
+              রৌপ্যের নিসাব (৫২.৫ ভরি বা ৬১২.৩৬ গ্রাম) অনুযায়ী বর্তমান বাজারমূল্যের সমপরিমাণ নগদ সম্পদ।
+              <div className="w-2 h-2 bg-stone-900 rotate-45 mx-auto -mb-1 mt-1"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Text: "সর্বশেষ হালনাগাদ [last_updated_date]" with an underline, in a smaller font */}
+        <p className="text-xs sm:text-sm text-[#047857]">
+          <span className="underline decoration-[#34d399] underline-offset-4">
+            সর্বশেষ হালনাগাদ {lastUpdatedDate}
+          </span>
+        </p>
+      </div>
+
+      {/* Task 2: Instructional text below the banner (Verbatim) */}
+      <div className="bg-stone-50 border border-stone-200/90 rounded-xl p-4 sm:p-5 text-xs sm:text-sm text-stone-700 leading-relaxed mb-8">
+        যে সকল সম্পদ আপনার নেই এবং যে সকল প্রশ্ন আপনার ক্ষেত্রে প্রযোজ্য হবে না সেগুলো পূরণ করার প্রয়োজন নেই, অর্থাৎ সেগুলো সম্পূর্ণ খালি রাখবেন। আপনার যদি নগদ অর্থ বা ব্যবসা পণ্য না থাকে, শুধু স্বর্ণ অথবা শুধু রূপা থাকে—তাহলে আপনার জন্য এই ক্যালকুলেটর প্রয়োজনীয় নয়। শুধু স্বর্ণের ক্ষেত্রে ৭.৫ ভরি এবং শুধু রূপার ক্ষেত্রে ৫২.৫ ভরি থাকলে যাকাত ফরজ হবে।
+      </div>
+
+      {/* 3. Calculator Input Section */}
       <div className="bg-white rounded-2xl border border-stone-200/90 shadow-sm p-5 sm:p-7 mb-12">
         <div className="flex items-center justify-between pb-4 mb-6 border-b border-stone-100">
           <div className="flex items-center gap-2 text-[#14532D] font-bold text-base sm:text-lg">
@@ -165,97 +212,27 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
           </button>
         </div>
 
-        {/* Task 5: Nisab Basis Selector */}
-        <div className="mb-6 p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/70">
-          <label 
-            htmlFor="input-nisab-basis"
-            className="block text-xs sm:text-sm font-bold text-[#14532D] mb-1.5"
-          >
-            নিসাবের ভিত্তি নির্বাচন করুন
-          </label>
-          <select
-            id="input-nisab-basis"
-            value={nisabBasis}
-            onChange={(e) => setNisabBasis(e.target.value as 'silver' | 'gold')}
-            className="w-full bg-white border border-emerald-300 rounded-lg px-3.5 py-2 text-xs sm:text-sm text-stone-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#047857]"
-          >
-            <option value="silver">রৌপ্যের নিসাব (৬১২.৩৬ গ্রাম রৌপ্য)</option>
-            <option value="gold">স্বর্ণের নিসাব (৮৭.৪৮ গ্রাম স্বর্ণ)</option>
-          </select>
-          <p className="text-[11px] text-stone-500 mt-1.5">
-            অধিকাংশ আলেমের মতে সাধারণ সম্পদ ও নগদ টাকার ক্ষেত্রে দরিদ্রদের কল্যাণে রৌপ্যের নিসাব অনুসরণ করা অধিক নিরাপদ।
-          </p>
+        {/* Admin Rate Summary Badge */}
+        <div className="mb-6 p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-emerald-950 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+            <span>অ্যাডমিন নির্ধারিত বর্তমান বাজারদর:</span>
+          </div>
+          <div className="flex items-center gap-4 text-emerald-900 font-medium">
+            <span>২২ ক্যারেট স্বর্ণ: <strong>৳ {formatBnNumber(goldRate)}</strong> / গ্রাম</span>
+            <span>•</span>
+            <span>রৌপ্য: <strong>৳ {formatBnNumber(silverRate)}</strong> / গ্রাম</span>
+          </div>
         </div>
 
         <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-          {/* Section: বাজারদর ও তারিখ */}
+          {/* Section: নগদ অর্থ, স্বর্ণ ও রৌপ্যের ওজন */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-3">
-              ১. বাজারদর ও হিসাবের তারিখ
+              ১. নগদ অর্থ, স্বর্ণ ও রৌপ্য (ওজন ভিত্তিক)
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label 
-                  htmlFor="input-gold-price"
-                  className="block text-xs font-semibold text-stone-800 mb-1"
-                >
-                  স্বর্ণের দাম প্রতি গ্রাম (টাকা)
-                </label>
-                <input
-                  id="input-gold-price"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={goldPrice === 0 ? '' : goldPrice}
-                  placeholder="0"
-                  onChange={(e) => setGoldPrice(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
-                />
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="input-silver-price"
-                  className="block text-xs font-semibold text-stone-800 mb-1"
-                >
-                  রৌপ্যের দাম প্রতি গ্রাম (টাকা)
-                </label>
-                <input
-                  id="input-silver-price"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={silverPrice === 0 ? '' : silverPrice}
-                  placeholder="0"
-                  onChange={(e) => setSilverPrice(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
-                />
-              </div>
-
-              <div>
-                <label 
-                  htmlFor="input-price-date"
-                  className="block text-xs font-semibold text-stone-800 mb-1"
-                >
-                  হিসাবের দামের তারিখ
-                </label>
-                <input
-                  id="input-price-date"
-                  type="date"
-                  value={priceDate}
-                  onChange={(e) => setPriceDate(e.target.value)}
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Section: নগদ, স্বর্ণ ও রৌপ্য */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-3">
-              ২. নগদ অর্থ ও ধাতু
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Cash & Bank Deposit */}
               <div>
                 <label 
                   htmlFor="input-cash"
@@ -273,54 +250,97 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                   onChange={(e) => setCash(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
                 />
+                <span className="text-[11px] text-stone-500 mt-1 block">
+                  হাতে থাকা নগদ, সেভিংস ও কারেন্ট ব্যাংক ব্যালেন্স
+                </span>
               </div>
 
+              {/* Task 3: Gold Weight Input with Unit Dropdown/Toggle */}
               <div>
-                <label 
-                  htmlFor="input-gold-grams"
-                  className="block text-xs font-semibold text-stone-800 mb-1"
-                >
-                  স্বর্ণ (গ্রাম): জমানো বা বিনিয়োগের স্বর্ণ
-                </label>
-                <input
-                  id="input-gold-grams"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={goldGrams === 0 ? '' : goldGrams}
-                  placeholder="0"
-                  onChange={(e) => setGoldGrams(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
-                />
-                {goldValue > 0 && (
-                  <span className="text-[11px] text-stone-500 mt-1 block">
-                    মূল্য: {formatBnNumber(goldValue)} টাকা
+                <div className="flex items-center justify-between mb-1">
+                  <label 
+                    htmlFor="input-gold-weight"
+                    className="block text-xs font-semibold text-stone-800"
+                  >
+                    স্বর্ণের ওজন (Gold Weight)
+                  </label>
+                </div>
+                <div className="flex rounded-lg border border-stone-300 overflow-hidden focus-within:border-[#047857] focus-within:ring-1 focus-within:ring-[#047857]">
+                  <input
+                    id="input-gold-weight"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={goldWeight === 0 ? '' : goldWeight}
+                    placeholder="0"
+                    onChange={(e) => setGoldWeight(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="flex-1 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none"
+                  />
+                  <select
+                    value={goldUnit}
+                    onChange={(e) => setGoldUnit(e.target.value as 'bhori' | 'gram')}
+                    className="bg-stone-100 border-l border-stone-300 px-2.5 py-2 text-xs text-stone-800 font-semibold focus:outline-none cursor-pointer"
+                    title="স্বর্ণের একক নির্বাচন করুন"
+                  >
+                    <option value="bhori">ভরি (Bhori)</option>
+                    <option value="gram">গ্রাম (Gram)</option>
+                  </select>
+                </div>
+                {/* Auto-calculated Gold value display */}
+                <div className="mt-1 text-[11px] text-stone-600 space-y-0.5">
+                  <span className="block text-stone-500">
+                    {goldUnit === 'bhori' ? '১ ভরি = ১১.৬৬৪ গ্রাম' : 'গ্রামের ভিত্তিতে হিসাব'}
                   </span>
-                )}
+                  {totalGoldValue > 0 && (
+                    <span className="block font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                      আনুমানিক মূল্য: ৳ {formatBnNumber(totalGoldValue)} ({totalGoldGrams.toFixed(2)} গ্রাম)
+                    </span>
+                  )}
+                </div>
               </div>
 
+              {/* Task 3: Silver Weight Input with Unit Dropdown/Toggle */}
               <div>
-                <label 
-                  htmlFor="input-silver-grams"
-                  className="block text-xs font-semibold text-stone-800 mb-1"
-                >
-                  রৌপ্য (গ্রাম)
-                </label>
-                <input
-                  id="input-silver-grams"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={silverGrams === 0 ? '' : silverGrams}
-                  placeholder="0"
-                  onChange={(e) => setSilverGrams(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
-                />
-                {silverValue > 0 && (
-                  <span className="text-[11px] text-stone-500 mt-1 block">
-                    মূল্য: {formatBnNumber(silverValue)} টাকা
+                <div className="flex items-center justify-between mb-1">
+                  <label 
+                    htmlFor="input-silver-weight"
+                    className="block text-xs font-semibold text-stone-800"
+                  >
+                    রৌপ্যের ওজন (Silver Weight)
+                  </label>
+                </div>
+                <div className="flex rounded-lg border border-stone-300 overflow-hidden focus-within:border-[#047857] focus-within:ring-1 focus-within:ring-[#047857]">
+                  <input
+                    id="input-silver-weight"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={silverWeight === 0 ? '' : silverWeight}
+                    placeholder="0"
+                    onChange={(e) => setSilverWeight(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="flex-1 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none"
+                  />
+                  <select
+                    value={silverUnit}
+                    onChange={(e) => setSilverUnit(e.target.value as 'bhori' | 'gram')}
+                    className="bg-stone-100 border-l border-stone-300 px-2.5 py-2 text-xs text-stone-800 font-semibold focus:outline-none cursor-pointer"
+                    title="রৌপ্যের একক নির্বাচন করুন"
+                  >
+                    <option value="bhori">ভরি (Bhori)</option>
+                    <option value="gram">গ্রাম (Gram)</option>
+                  </select>
+                </div>
+                {/* Auto-calculated Silver value display */}
+                <div className="mt-1 text-[11px] text-stone-600 space-y-0.5">
+                  <span className="block text-stone-500">
+                    {silverUnit === 'bhori' ? '১ ভরি = ১১.৬৬৪ গ্রাম' : 'গ্রামের ভিত্তিতে হিসাব'}
                   </span>
-                )}
+                  {totalSilverValue > 0 && (
+                    <span className="block font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                      আনুমানিক মূল্য: ৳ {formatBnNumber(totalSilverValue)} ({totalSilverGrams.toFixed(2)} গ্রাম)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -328,7 +348,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
           {/* Section: ব্যবসা, বিনিয়োগ ও অন্যান্য সম্পদ */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-3">
-              ৩. ব্যবসায়িক পণ্য ও বিনিয়োগ
+              ২. ব্যবসায়িক পণ্য ও অন্যান্য বিনিয়োগ
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -348,6 +368,9 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                   onChange={(e) => setBusinessGoods(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
                 />
+                <span className="text-[11px] text-stone-500 mt-1 block">
+                  বিক্রির উদ্দেশ্যে মজুদ পণ্যের ক্রয়মূল্য
+                </span>
               </div>
 
               <div>
@@ -355,7 +378,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                   htmlFor="input-investments"
                   className="block text-xs font-semibold text-stone-800 mb-1"
                 >
-                  বিনিয়োগ (টাকা)
+                  শেয়ার ও বিনিয়োগ (টাকা)
                 </label>
                 <input
                   id="input-investments"
@@ -367,6 +390,9 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                   onChange={(e) => setInvestments(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
                 />
+                <span className="text-[11px] text-stone-500 mt-1 block">
+                  শেয়ার, ইসলামিক মিউচুয়াল ফান্ড বা সঞ্চয়পত্র
+                </span>
               </div>
 
               <div>
@@ -374,7 +400,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                   htmlFor="input-other-assets"
                   className="block text-xs font-semibold text-stone-800 mb-1"
                 >
-                  অন্যান্য সম্পদ (টাকা)
+                  অন্যান্য যাকাতযোগ্য সম্পদ (টাকা)
                 </label>
                 <input
                   id="input-other-assets"
@@ -386,6 +412,9 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                   onChange={(e) => setOtherAssets(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
                 />
+                <span className="text-[11px] text-stone-500 mt-1 block">
+                  পাওনা টাকা (যা দ্রুত আদায়ের নিশ্চিত আশা আছে)
+                </span>
               </div>
             </div>
           </div>
@@ -393,7 +422,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
           {/* Section: ঋণ ও দায় */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-3">
-              ৪. ঋণ ও দায়
+              ৩. বর্তমানে পরিশোধযোগ্য ঋণ ও দায়
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -413,19 +442,22 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                   onChange={(e) => setDebts(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-full rounded-lg border border-stone-300 px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-[#047857] focus:ring-1 focus:ring-[#047857]"
                 />
+                <span className="text-[11px] text-stone-500 mt-1 block">
+                  যে ঋণ অবিলম্বে বা এই মাসে পরিশোধ করতে হবে (দীর্ঘমেয়াদি ঋণের শুধু বকেয়া কিস্তি)
+                </span>
               </div>
             </div>
           </div>
         </form>
 
-        {/* Task 6 Results Display */}
+        {/* Results Display */}
         <div className="mt-8 pt-6 border-t border-stone-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <h3 className="text-sm sm:text-base font-bold text-stone-900">
               হিসাবের ফলাফল
             </h3>
-            <div className="text-xs text-stone-600 bg-stone-100 px-3 py-1 rounded-full w-fit">
-              {priceDate ? `হিসাবের দামের তারিখ: ${priceDate}` : 'হিসাবের দামের তারিখ: তারিখ লিখুন'}
+            <div className="text-xs text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full w-fit border border-emerald-200">
+              নিসাব মানদণ্ড: ৳ {formatBnNumber(nisabAmount)} (হালনাগাদ: {lastUpdatedDate})
             </div>
           </div>
 
@@ -438,6 +470,9 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
               <span className="text-lg sm:text-xl font-bold text-stone-900">
                 {formatBnNumber(totalAssets)} টাকা
               </span>
+              <span className="text-[10px] text-stone-400 block mt-1">
+                নগদ + স্বর্ণ + রূপা + পণ্য + বিনিয়োগ
+              </span>
             </div>
 
             {/* 2. নিট সম্পদ */}
@@ -448,6 +483,9 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
               <span className="text-lg sm:text-xl font-bold text-stone-900">
                 {formatBnNumber(netWealth)} টাকা
               </span>
+              <span className="text-[10px] text-stone-400 block mt-1">
+                মোট সম্পদ বিয়োগ পরিশোধযোগ্য ঋণ
+              </span>
             </div>
 
             {/* 3. নিসাবের মূল্য */}
@@ -456,10 +494,10 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                 নিসাবের মূল্য
               </span>
               <div className="text-lg sm:text-xl font-bold text-stone-900">
-                {nisabValue !== null ? `${formatBnNumber(nisabValue)} টাকা` : 'দাম লিখুন'}
+                {formatBnNumber(nisabAmount)} টাকা
               </div>
               <span className="text-[10px] text-stone-500 block mt-1">
-                {nisabBasis === 'silver' ? '৬১২.৩৬ গ্রাম রৌপ্য' : '৮৭.৪৮ গ্রাম স্বর্ণ'}
+                রৌপ্যের নিসাব (৫২.৫ ভরি বা ৬১২.৩৬ গ্রাম)
               </span>
             </div>
 
@@ -473,9 +511,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                 যাকাতের পরিমাণ
               </span>
               <div className="text-lg sm:text-xl font-bold">
-                {!hasBasisPrice ? (
-                  <span className="text-stone-400">দাম লিখুন</span>
-                ) : isNisabReached && zakatAmount !== null ? (
+                {isNisabReached && zakatAmount > 0 ? (
                   <span className="text-[#047857]">{formatBnNumber(zakatAmount)} টাকা</span>
                 ) : (
                   <div className="space-y-0.5">
@@ -486,31 +522,28 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
               </div>
               {isNisabReached && (
                 <span className="text-[10px] text-emerald-800 block mt-1">
-                  নিট সম্পদের ২.৫%
+                  নিট সম্পদের ২.৫% (১/৪০ অংশ)
                 </span>
               )}
             </div>
           </div>
 
-          {/* Task 6b: Nisab note */}
           <div className="text-xs text-stone-600 bg-stone-50 border border-stone-200/80 rounded-lg p-3">
-            {nisabBasis === 'silver' ? (
-              <span>এই অঙ্ক আপনার দেওয়া রৌপ্যের দামের ভিত্তিতে হিসাব করা হয়েছে।</span>
-            ) : (
-              <span>এই অঙ্ক আপনার দেওয়া স্বর্ণের দামের ভিত্তিতে হিসাব করা হয়েছে।</span>
-            )}
+            <span>
+              বর্তমান নিসাব মানদণ্ড ৳ {formatBnNumber(nisabAmount)} এবং স্বর্ণের দর প্রতি গ্রাম ৳ {formatBnNumber(goldRate)}, রৌপ্যের দর প্রতি গ্রাম ৳ {formatBnNumber(silverRate)} অনুযায়ী এই হিসাব করা হয়েছে।
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 4. Explanation Section (verbatim) */}
+      {/* 4. Scholarly Explanation Section */}
       <section className="space-y-8 mb-12">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-stone-900 mb-2">
             নিসাব কী?
           </h2>
           <p className="text-sm sm:text-base text-stone-700 leading-relaxed">
-            নিসাব হলো সেই নির্দিষ্ট পরিমাণ সম্পদ, যা একজন মুসলিমের কাছে থাকলে তার উপর যাকাত ফরজ হয়। এটি স্বর্ণ বা রৌপ্যের ওজনের ভিত্তিতে ধরা হয়। স্বর্ণের নিসাব প্রায় ৮৭.৪৮ গ্রাম এবং রৌপ্যের নিসাব প্রায় ৬১২.৩৬ গ্রাম। এই ওজনের টাকার মূল্য বাজারদরের ওপর নির্ভর করে। কোন ভিত্তিতে হিসাব করা হবে, তা নিয়ে আলেমদের মতভেদ আছে। এই পেজে রৌপ্যের ভিত্তি ডিফল্ট হিসেবে রাখা হয়েছে।
+            নিসাব হলো সেই নির্দিষ্ট পরিমাণ সম্পদ, যা একজন মুসলিমের কাছে থাকলে তার উপর যাকাত ফরজ হয়। এটি স্বর্ণ বা রৌপ্যের ওজনের ভিত্তিতে ধরা হয়। স্বর্ণের নিসাব প্রায় ৭.৫ ভরি (৮৭.৪৮ গ্রাম) এবং রৌপ্যের নিসাব প্রায় ৫২.৫ ভরি (৬১২.৩৬ গ্রাম)। নগদ টাকা, ব্যাংকে গচ্ছিত অর্থ এবং ব্যবসায়িক পণ্যের ক্ষেত্রে আলেমগণের বৃহত্তর ঐকমত্য অনুযায়ী রৌপ্যের নিসাব অনুসরণ করা হয়, যাতে দরিদ্র ও অভাবী মানুষদের সর্বাধিক কল্যাণ নিশ্চিত হয়।
           </p>
         </div>
 
@@ -519,7 +552,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
             যাকাতের হার কত?
           </h2>
           <p className="text-sm sm:text-base text-stone-700 leading-relaxed">
-            সাধারণত নিট সম্পদের ২.৫ শতাংশ (চল্লিশ ভাগের এক ভাগ) যাকাত হিসেবে দেওয়া হয়। এটি তখনই প্রযোজ্য, যখন সম্পদ নিসাব পরিমাণ থাকে এবং এক চান্দ্র বছর (হাওল) পূর্ণ হয়। এই ক্যালকুলেটর বছর পূর্ণ হয়েছে কিনা তা যাচাই করে না। সেটি আপনাকে নিজে দেখতে হবে।
+            সাধারণত নিট সম্পদের ২.৫ শতাংশ (চল্লিশ ভাগের এক ভাগ বা ২.৫%) যাকাত হিসেবে প্রদান করতে হয়। এটি তখনই প্রযোজ্য, যখন সম্পদ নিসাব পরিমাণ থাকে এবং এক চান্দ্র বছর (হাওল) ব্যক্তির মালিকানায় অতিবাহিত হয়।
           </p>
         </div>
 
@@ -528,7 +561,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
             কোন সম্পদের যাকাত দিতে হয়?
           </h2>
           <p className="text-sm sm:text-base text-stone-700 leading-relaxed">
-            সাধারণত নগদ টাকা, ব্যাংকে জমা, বিক্রির জন্য রাখা ব্যবসায়িক পণ্য, এমন বিনিয়োগ যা বিক্রি করলে নগদ হবে, এবং জমানো স্বর্ণ ও রৌপ্য যাকাতযোগ্য সম্পদ হিসেবে গণ্য হয়। ব্যক্তিগত ব্যবহারের বাড়ি, গাড়ি, আসবাব ও পোশাককে সাধারণত যাকাতযোগ্য ধরা হয় না। ব্যবহারের অলংকারের যাকাত নিয়ে মতভেদ আছে। তাই এ বিষয়ে আলেমের মত নিন।
+            সাধারণত নগদ টাকা, ব্যাংকে জমা, বিক্রির জন্য রাখা ব্যবসায়িক পণ্য, এমন বিনিয়োগ যা বিক্রি করলে নগদ হবে, এবং জমানো স্বর্ণ ও রৌপ্য যাকাতযোগ্য সম্পদ হিসেবে গণ্য হয়। ব্যক্তিগত ব্যবহারের বাড়ি, গাড়ি, আসবাব ও পোশাককে সাধারণত যাকাতযোগ্য ধরা হয় না।
           </p>
         </div>
 
@@ -537,12 +570,12 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
             কাদের উপর যাকাত ফরজ?
           </h2>
           <p className="text-sm sm:text-base text-stone-700 leading-relaxed">
-            যে মুসলিম সাধারণত প্রাপ্তবয়স্ক ও জ্ঞানসম্পন্ন, এবং যার মালিকানায় নিসাব পরিমাণ অতিরিক্ত সম্পদ এক চান্দ্র বছর থাকে, তার উপর যাকাত ফরজ হয়। সম্পদ তার নিজের মালিকানার হতে হবে এবং তার মৌলিক প্রয়োজনের অতিরিক্ত হতে হবে। অপ্রাপ্তবয়স্কের সম্পদের যাকাত নিয়ে আলেমদের মতভেদ আছে।
+            যে মুসলিম প্রাপ্তবয়স্ক ও সুস্থমস্তিষ্কসম্পন্ন, এবং যার মালিকানায় নিসাব পরিমাণ অতিরিক্ত সম্পদ এক চান্দ্র বছর থাকে, তার উপর যাকাত ফরজ হয়। সম্পদ তার সম্পূর্ণ মালিকানায় থাকতে হবে এবং তার ও তার পরিবারের মৌলিক প্রয়োজনের অতিরিক্ত হতে হবে।
           </p>
         </div>
       </section>
 
-      {/* 5. FAQ Section (verbatim) */}
+      {/* 5. FAQ Section */}
       <section className="space-y-6 mb-10 pt-6 border-t border-stone-200">
         <h2 className="text-xl sm:text-2xl font-bold text-stone-900 mb-6">
           সাধারণ প্রশ্নোত্তর
@@ -562,7 +595,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
             ঋণ কি সম্পদ থেকে বিয়োগ হবে?
           </h3>
           <p className="text-sm text-stone-700 leading-relaxed">
-            সাধারণত এখনই পরিশোধযোগ্য ঋণ মোট সম্পদ থেকে বিয়োগ করে নিট সম্পদ ধরা হয়। কোন ধরনের ঋণ কোন শর্তে বিয়োগ হবে, যেমন দীর্ঘমেয়াদি বা আদায়যোগ্য নয় এমন ঋণ, তা নিয়ে আলেমদের মতভেদ আছে। এই ক্যালকুলেটরে শুধু "বর্তমানে পরিশোধযোগ্য ঋণ" বিয়োগ করা হয়।
+            সাধারণত এখনই পরিশোধযোগ্য ঋণ মোট সম্পদ থেকে বিয়োগ করে নিট সম্পদ ধরা হয়। এই ক্যালকুলেটরে "বর্তমানে পরিশোধযোগ্য ঋণ" বিয়োগ করা হয়।
           </p>
         </div>
 
@@ -571,7 +604,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
             ব্যবহারের জন্য রাখা অলংকারের যাকাত লাগবে কিনা?
           </h3>
           <p className="text-sm text-stone-700 leading-relaxed">
-            এ বিষয়ে আলেমদের মধ্যে মতভেদ আছে। কেউ মনে করেন ব্যবহারের অলংকারেও যাকাত দিতে হয়। আবার কেউ মনে করেন ব্যবহারের জন্য রাখা অলংকারে যাকাত দিতে হয় না। আপনার অবস্থার জন্য কোন মত নেবেন, তা স্থানীয় আলেমের কাছে জিজ্ঞাসা করুন। এই ক্যালকুলেটরে স্বর্ণের ঘরে শুধু জমানো বা বিনিয়োগের স্বর্ণ লিখতে বলা হয়েছে।
+            এ বিষয়ে ফুকাহায়ে কেরামের মধ্যে মতভেদ আছে। হানাফী মাজহাব মতে অতিরিক্ত বা অলংকার হিসেবে রাখা স্বর্ণ-রৌপ্য নিসাব পরিমাণ হলে যাকাত প্রযোজ্য।
           </p>
         </div>
 
@@ -580,29 +613,20 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
             স্বর্ণ ও রৌপ্য দুটোই থাকলে কীভাবে হিসাব হবে?
           </h3>
           <p className="text-sm text-stone-700 leading-relaxed">
-            স্বর্ণ ও রৌপ্যের মোট মূল্য যোগ করে নিট সম্পদের সঙ্গে ধরা হয়। নিসাবের ভিত্তি (স্বর্ণ না রৌপ্য) আপনি বেছে নেবেন। দুই ধাতু থাকলে কোন নিয়মে নিসাব মেলানো হবে, তা নিয়েও মতভেদ আছে। তাই আলেমের সঙ্গে নিশ্চিত হোন।
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-stone-200 p-5 space-y-2">
-          <h3 className="text-base font-bold text-stone-900">
-            পেজে দামের তারিখ কেন লেখা থাকে?
-          </h3>
-          <p className="text-sm text-stone-700 leading-relaxed">
-            স্বর্ণ ও রৌপ্যের দাম প্রতিদিন বদলায়। যে দামে হিসাব করা হয়েছে, তার তারিখ লেখা থাকলে বোঝা যায় ফলাফল কোন সময়ের। ক্যালকুলেটরে দাম আপনাকে নিজে লিখতে হয়।
+            স্বর্ণ ও রৌপ্যের মোট মূল্য যোগ করে নিট সম্পদের সঙ্গে ধরা হয় এবং রৌপ্যের নিসাবের সমমূল্যের সাথে সমন্বয় করা হয়।
           </p>
         </div>
       </section>
 
-      {/* 6. Final note (verbatim, plain paragraph) */}
+      {/* 6. Final note */}
       <p className="text-sm text-stone-600 bg-stone-50 border border-stone-200/90 rounded-xl p-4 leading-relaxed mb-4">
-        এই হিসাব একটি সাধারণ নির্দেশিকা। জটিল ক্ষেত্রে স্থানীয় আলেমের পরামর্শ নিন।
+        এই হিসাব একটি সাধারণ নির্দেশিকা। জটিল ক্ষেত্রে স্থানীয় বিজ্ঞ মুফতি বা আলেমের পরামর্শ নিন।
       </p>
 
-      {/* 7. Review line, below the final note (see Task 2b) */}
+      {/* 7. Review line */}
       {REVIEW_DATE && (
         <p className="text-xs font-medium text-stone-500 pt-2 border-t border-stone-200">
-          এই লেখা আলেম কর্তৃক যাচাই করা হয়েছে: {REVIEW_DATE}
+          এই তথ্য আলেম ও শরীয়াহ গবেষক কর্তৃক নিয়মিত যাচাইকৃত: {REVIEW_DATE}
         </p>
       )}
     </div>

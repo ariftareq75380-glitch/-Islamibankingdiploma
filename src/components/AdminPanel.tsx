@@ -34,7 +34,9 @@ import {
   Smartphone,
   Star,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Sliders,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { PdfResource, Article, CourseType, ExamSession, ResourceCategory, SiteSettings } from '../types';
 import { StorageService } from '../services/storage';
@@ -45,6 +47,7 @@ import contentData from '../data/content.json';
 import { supabase } from '../utils/supabase';
 import DeleteArticleButton from './DeleteArticleButton';
 import { deleteSelectedArticles } from '../actions/article-actions';
+import { updateAppSettings } from '../actions/settings-actions';
 import type { Session } from '@supabase/supabase-js';
 
 interface AdminPanelProps {
@@ -240,6 +243,62 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const artContentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const artImageInputRef = useRef<HTMLInputElement>(null);
   const artPdfInputRef = useRef<HTMLInputElement>(null);
+
+  // Settings & Zakat Configuration State
+  const [nisabAmountInput, setNisabAmountInput] = useState<number | string>(settings.nisab_amount_bdt || 173250);
+  const [lastUpdatedDateInput, setLastUpdatedDateInput] = useState<string>(settings.last_updated_date || '০৪/১১/২০২৬');
+  const [goldRateInput, setGoldRateInput] = useState<number | string>(settings.gold_rate_22k_per_gram || 11500);
+  const [silverRateInput, setSilverRateInput] = useState<number | string>(settings.silver_rate_per_gram || 282.85);
+  const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
+
+  // Load current app settings from database on session
+  useEffect(() => {
+    if (session) {
+      StorageService.getAppSettings().then((appSettings) => {
+        if (appSettings) {
+          if (appSettings.nisab_amount_bdt) setNisabAmountInput(appSettings.nisab_amount_bdt);
+          if (appSettings.last_updated_date) setLastUpdatedDateInput(appSettings.last_updated_date);
+          if (appSettings.gold_rate_22k_per_gram) setGoldRateInput(appSettings.gold_rate_22k_per_gram);
+          if (appSettings.silver_rate_per_gram) setSilverRateInput(appSettings.silver_rate_per_gram);
+        }
+      }).catch((err) => {
+        console.warn('Error fetching app settings in AdminPanel:', err);
+      });
+    }
+  }, [session]);
+
+  const handleSaveAppSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    try {
+      const payload = {
+        nisab_amount_bdt: Number(nisabAmountInput) || 173250,
+        last_updated_date: String(lastUpdatedDateInput).trim() || '০৪/১১/২০২৬',
+        gold_rate_22k_per_gram: Number(goldRateInput) || 11500,
+        silver_rate_per_gram: Number(silverRateInput) || 282.85,
+      };
+
+      // Task 4: Server Action to update database and revalidatePath('/zakat-calculator')
+      const res = await updateAppSettings(payload);
+      if (res.success) {
+        await onRefreshData();
+        showToast('যাকাত নিসাব ও বাজারদর সেটিংস সফলভাবে সংরক্ষিত হয়েছে!', 'success');
+      } else {
+        // Fallback to client service
+        const fallbackRes = await StorageService.saveAppSettings({ id: 'default', ...payload });
+        if (fallbackRes.success) {
+          await onRefreshData();
+          showToast('সেটিংস সফলভাবে সংরক্ষিত হয়েছে!', 'success');
+        } else {
+          showToast(fallbackRes.message || res.error || 'সেটিংস সেভ করতে সমস্যা হয়েছে', 'error');
+        }
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'সেটিংস আপডেট ব্যর্থ হয়েছে', 'error');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   // Upload Cover Image directly to Supabase Storage 'covers' bucket
   const handleArtCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1080,6 +1139,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             {editingArticleId
               ? (lang === 'bn' ? 'আর্টিকেল সম্পাদনা' : 'Edit Article')
               : (lang === 'bn' ? '+ নতুন আর্টিকেল লিখুন' : '+ Write Article')}
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-4 py-2 font-semibold rounded-t-lg transition-colors flex items-center gap-1.5 ${
+              activeTab === 'settings' ? 'bg-white text-emerald-900 border-t-2 border-emerald-800' : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5 text-emerald-700" />
+            <span>{lang === 'bn' ? 'সেটিংস ও যাকাত নিসাব' : 'Settings & Zakat'}</span>
           </button>
           <button
             onClick={() => setActiveTab('backup')}
@@ -2357,6 +2425,146 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </button>
               </div>
             </form>
+          )}
+
+          {/* TAB: SETTINGS & ZAKAT CALCULATOR CONFIGURATION */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6 text-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+                <div>
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-emerald-800" />
+                    <span>সাইট সেটিংস ও যাকাত ক্যালকুলেটর কনফিগারেশন</span>
+                  </h3>
+                  <p className="text-stone-500 mt-1">
+                    যাকাতের নিসাব মানদণ্ড, হালনাগাদের তারিখ এবং স্বর্ণ ও রৌপ্যের বর্তমান বাজারদর পরিবর্তন ও সংরক্ষণ করুন।
+                  </p>
+                </div>
+              </div>
+
+              {/* Live Preview Box of Nisab Banner */}
+              <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-center">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-white px-2.5 py-0.5 rounded-full border border-emerald-200 inline-block mb-2">
+                  লাইভ প্রিভিউ (Banner Preview)
+                </span>
+                <p className="text-xs font-medium text-[#065f46]">যাকাতের নিসাব</p>
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#047857] my-1">
+                  ৳ {(function() {
+                    const num = Math.round(Number(nisabAmountInput) || 173250);
+                    try { return new Intl.NumberFormat('bn-BD').format(num); } catch { return String(num); }
+                  })()}
+                </div>
+                <p className="text-[11px] text-[#047857] underline decoration-[#34d399] underline-offset-4">
+                  সর্বশেষ হালনাগাদ {lastUpdatedDateInput || '০৪/১১/২০২৬'}
+                </p>
+              </div>
+
+              {/* Settings Form */}
+              <form onSubmit={handleSaveAppSettings} className="space-y-5">
+                <div className="p-5 bg-stone-50 rounded-xl border border-stone-200 space-y-4">
+                  <div className="font-bold text-stone-900 text-sm flex items-center gap-2">
+                    <span>১. যাকাত ক্যালকুলেটর ও নিসাব মানদণ্ড</span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-mono">
+                      app_settings
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* nisab_amount_bdt */}
+                    <div>
+                      <label className="block font-semibold text-stone-800 mb-1">
+                        যাকাতের নিসাব (টাকা) - nisab_amount_bdt *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="1"
+                        value={nisabAmountInput}
+                        onChange={(e) => setNisabAmountInput(e.target.value)}
+                        placeholder="173250"
+                        className="w-full p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 font-sans focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                      />
+                      <span className="text-[11px] text-stone-500 mt-1 block">
+                        সাধারণ সম্পদ ও নগদ টাকার ক্ষেত্রে নিসাবের সমপরিমাণ টাকা (যেমন: ১৭৩২৫০)।
+                      </span>
+                    </div>
+
+                    {/* last_updated_date */}
+                    <div>
+                      <label className="block font-semibold text-stone-800 mb-1">
+                        সর্বশেষ হালনাগাদ তারিখ - last_updated_date *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={lastUpdatedDateInput}
+                        onChange={(e) => setLastUpdatedDateInput(e.target.value)}
+                        placeholder="০৪/১১/২০২৬"
+                        className="w-full p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 font-sans focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                      />
+                      <span className="text-[11px] text-stone-500 mt-1 block">
+                        ব্যানারে "সর্বশেষ হালনাগাদ [তারিখ]" হিসেবে প্রদর্শিত হবে।
+                      </span>
+                    </div>
+
+                    {/* gold_rate_22k_per_gram */}
+                    <div>
+                      <label className="block font-semibold text-stone-800 mb-1">
+                        ২২ ক্যারেট স্বর্ণের দর প্রতি গ্রাম (টাকা) - gold_rate_22k_per_gram *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="any"
+                        value={goldRateInput}
+                        onChange={(e) => setGoldRateInput(e.target.value)}
+                        placeholder="11500"
+                        className="w-full p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 font-sans focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                      />
+                      <span className="text-[11px] text-stone-500 mt-1 block">
+                        স্বর্ণের ওজন ভরি বা গ্রাম দিলে এই রেট অনুযায়ী স্বয়ংক্রিয় বাজারমূল্য হিসাব হবে।
+                      </span>
+                    </div>
+
+                    {/* silver_rate_per_gram */}
+                    <div>
+                      <label className="block font-semibold text-stone-800 mb-1">
+                        রৌপ্যের দর প্রতি গ্রাম (টাকা) - silver_rate_per_gram *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="any"
+                        value={silverRateInput}
+                        onChange={(e) => setSilverRateInput(e.target.value)}
+                        placeholder="282.85"
+                        className="w-full p-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 font-sans focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                      />
+                      <span className="text-[11px] text-stone-500 mt-1 block">
+                        রৌপ্যের ওজন দিলে এই রেট অনুযায়ী স্বয়ংক্রিয় বাজারমূল্য হিসাব হবে।
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-stone-200">
+                  <div className="text-[11px] text-stone-500">
+                    * সেভ করলে সার্ভার অ্যাকশন এবং Supabase ডাটাবেস টেবিল <code className="text-emerald-800 font-mono">app_settings</code> ও <code className="text-emerald-800 font-mono">site_settings</code> আপডেট হবে।
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSavingSettings}
+                    className="px-6 py-2.5 bg-emerald-800 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer flex items-center gap-2"
+                  >
+                    <Check className="w-4 h-4 text-emerald-300" />
+                    <span>{isSavingSettings ? 'সংরক্ষণ করা হচ্ছে...' : 'সেটিংস আপডেট করুন (Save Settings)'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           )}
 
           {/* TAB 5: BACKUP & RESTORE */}

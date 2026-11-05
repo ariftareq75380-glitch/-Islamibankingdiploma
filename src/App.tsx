@@ -853,7 +853,7 @@ export default function App() {
 
         {/* 8. ZAKAT CALCULATOR VIEW */}
         {activeTab === 'zakat-calculator' && (
-          <ZakatCalculator lang={lang} onNavigateUrl={handleNavigateUrl} />
+          <ZakatCalculator lang={lang} onNavigateUrl={handleNavigateUrl} settings={settings} />
         )}
 
         {/* 8. 404 NOT FOUND VIEW */}
