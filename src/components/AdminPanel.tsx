@@ -48,6 +48,8 @@ import { supabase } from '../utils/supabase';
 import DeleteArticleButton from './DeleteArticleButton';
 import { deleteSelectedArticles } from '../actions/article-actions';
 import { updateAppSettings } from '../actions/settings-actions';
+import { RichTextEditor } from './RichTextEditor';
+import { stripHtmlTags } from '../utils/richText';
 import type { Session } from '@supabase/supabase-js';
 
 interface AdminPanelProps {
@@ -240,7 +242,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [isUploadingCover, setIsUploadingCover] = useState<boolean>(false);
   const [coverUploadProgress, setCoverUploadProgress] = useState<number | null>(null);
 
-  const artContentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const artImageInputRef = useRef<HTMLInputElement>(null);
   const artPdfInputRef = useRef<HTMLInputElement>(null);
 
@@ -388,67 +389,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       setIsUploadingPdf(false);
       setTimeout(() => setArtPdfUploadProgress(null), 1200);
     }
-  };
-
-  // Text formatting tool for Admin Article Content
-  const applyArtFormat = (formatType: 'bold' | 'italic' | 'underline' | 'h2' | 'h3' | 'quote' | 'bullet' | 'link' | 'divider') => {
-    const textarea = artContentTextareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentVal = artContentBn;
-    const selectedText = currentVal.substring(start, end);
-
-    let replacement = '';
-    let cursorOffset = 0;
-
-    switch (formatType) {
-      case 'bold':
-        replacement = `**${selectedText || 'বোল্ড লেখা'}**`;
-        cursorOffset = selectedText ? replacement.length : 2;
-        break;
-      case 'italic':
-        replacement = `*${selectedText || 'ইটালিক লেখা'}*`;
-        cursorOffset = selectedText ? replacement.length : 1;
-        break;
-      case 'underline':
-        replacement = `<u>${selectedText || 'আন্ডারলাইন করা লেখা'}</u>`;
-        cursorOffset = selectedText ? replacement.length : 3;
-        break;
-      case 'h2':
-        replacement = `\n## ${selectedText || 'নতুন পরিচ্ছেদ শিরোনাম'}\n`;
-        cursorOffset = replacement.length;
-        break;
-      case 'h3':
-        replacement = `\n### ${selectedText || 'উপ-শিরোনাম'}\n`;
-        cursorOffset = replacement.length;
-        break;
-      case 'quote':
-        replacement = `\n> ${selectedText || 'আরবি বা নির্ভরযোগ্য উদ্ধৃতি'}\n`;
-        cursorOffset = replacement.length;
-        break;
-      case 'bullet':
-        replacement = `\n- ${selectedText || 'পয়েন্ট ১'}\n- পয়েন্ট ২\n`;
-        cursorOffset = replacement.length;
-        break;
-      case 'link':
-        replacement = `[${selectedText || 'লিংকের শিরোনাম'}](https://)`;
-        cursorOffset = replacement.length - 1;
-        break;
-      case 'divider':
-        replacement = `\n\n---\n\n`;
-        cursorOffset = replacement.length;
-        break;
-    }
-
-    const updatedText = currentVal.substring(0, start) + replacement + currentVal.substring(end);
-    setArtContentBn(updatedText);
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + cursorOffset, start + cursorOffset);
-    }, 50);
   };
 
   // Backup state
@@ -674,7 +614,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setFormSuccessMessage(null);
     setFormErrorMessage(null);
 
-    if (!artTitle || !artContentBn) {
+    if (!artTitle || !stripHtmlTags(artContentBn)) {
       const err = lang === 'bn' ? 'অনুগ্রহ করে আর্টিকেল শিরোনাম ও মূল বক্তব্য বাংলায় পূরণ করুন।' : 'Please fill out article title and content.';
       setFormErrorMessage(err);
       showToast(err, 'error');
@@ -2302,107 +2242,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 />
               </div>
 
-              {/* Full Article Content with Text Formatting Toolbar */}
+              {/* Full Article Content with TipTap WYSIWYG Rich Text Editor */}
               <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                  <label className="font-semibold text-stone-700">পূর্ণাঙ্গ মূল আর্টিকেল (বাংলায়) *</label>
-                  
-                  {/* Formatting Toolbar */}
-                  <div className="flex items-center flex-wrap gap-1 bg-stone-100 p-1 rounded-lg border border-stone-200">
-                    <button
-                      type="button"
-                      onClick={() => applyArtFormat('bold')}
-                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 rounded border border-stone-200 font-bold"
-                      title="বোল্ড (**লেখা**)"
-                    >
-                      <Bold className="w-3 h-3 text-stone-900" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyArtFormat('italic')}
-                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 rounded border border-stone-200 italic"
-                      title="ইটালিক (*লেখা*)"
-                    >
-                      <Italic className="w-3 h-3 text-stone-900" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyArtFormat('underline')}
-                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 rounded border border-stone-200 underline"
-                      title="আন্ডারলাইন (<u>লেখা</u>)"
-                    >
-                      <UnderlineIcon className="w-3 h-3 text-stone-900" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyArtFormat('h2')}
-                      className="px-1.5 py-1 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200 font-bold text-[10px]"
-                      title="বড় শিরোনাম (H2)"
-                    >
-                      H2
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyArtFormat('h3')}
-                      className="px-1.5 py-1 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200 font-bold text-[10px]"
-                      title="উপ-শিরোনাম (H3)"
-                    >
-                      H3
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyArtFormat('bullet')}
-                      className="p-1.5 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200"
-                      title="বুলেট পয়েন্ট (- )"
-                    >
-                      <List className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyArtFormat('quote')}
-                      className="p-1.5 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200"
-                      title="উদ্ধৃতি (> )"
-                    >
-                      <Quote className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyArtFormat('link')}
-                      className="p-1.5 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200"
-                      title="লিংক ([নাম](url))"
-                    >
-                      <LinkIcon className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyArtFormat('divider')}
-                      className="p-1.5 bg-white hover:bg-stone-200 text-stone-800 rounded border border-stone-200"
-                      title="ডিভাইডার (---)"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-
-                <textarea
-                  ref={artContentTextareaRef}
-                  rows={10}
-                  required
+                <label className="block font-semibold text-stone-700 mb-1.5">
+                  পূর্ণাঙ্গ মূল আর্টিকেল (বাংলায়) *
+                </label>
+                <RichTextEditor
+                  id="admin-article-content-bn"
                   value={artContentBn}
-                  onChange={(e) => setArtContentBn(e.target.value)}
-                  placeholder="## প্রথম পরিচ্ছেদ&#10;বিস্তারিত প্রবন্ধের বিষয়বস্তু বাংলায় লিখুন..."
-                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-900 font-bengali font-mono text-xs leading-relaxed focus:ring-1 focus:ring-emerald-700"
+                  onChange={setArtContentBn}
+                  placeholder="প্রবন্ধের বিষয়বস্তু বাংলায় লিখুন..."
+                  minHeightClass="min-h-[280px]"
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-stone-700 mb-1">Full Article (English Translation - Optional)</label>
-                <textarea
-                  rows={6}
+                <label className="block font-medium text-stone-700 mb-1.5">
+                  Full Article (English Translation - Optional)
+                </label>
+                <RichTextEditor
+                  id="admin-article-content-en"
                   value={artContentEn}
-                  onChange={(e) => setArtContentEn(e.target.value)}
-                  placeholder="## Section 1&#10;English text for bilingual readership..."
-                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-900 font-mono"
+                  onChange={setArtContentEn}
+                  placeholder="Write English translation here (optional)..."
+                  minHeightClass="min-h-[180px]"
                 />
               </div>
 

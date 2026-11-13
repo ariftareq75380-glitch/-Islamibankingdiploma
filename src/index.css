@@ -146,3 +146,107 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* TipTap WYSIWYG Editor & Published Article HTML Typography */
+.tiptap-editor-content p,
+.article-html-content p {
+  margin-top: 0.65rem;
+  margin-bottom: 0.65rem;
+  line-height: 1.8;
+}
+
+.tiptap-editor-content p:first-child,
+.article-html-content p:first-child {
+  margin-top: 0;
+}
+
+.tiptap-editor-content h2,
+.article-html-content h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1c1917;
+  margin-top: 1.4rem;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #e7e5e4;
+  line-height: 1.4;
+}
+
+.tiptap-editor-content h3,
+.article-html-content h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #064e3b;
+  margin-top: 1.15rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.45;
+}
+
+.tiptap-editor-content ul,
+.article-html-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.tiptap-editor-content ol,
+.article-html-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.tiptap-editor-content li,
+.article-html-content li {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.tiptap-editor-content li p,
+.article-html-content li p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.tiptap-editor-content blockquote,
+.article-html-content blockquote {
+  border-left: 4px solid #065f46;
+  background-color: #ecfdf5;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 0.75rem 0.75rem 0;
+  font-style: italic;
+  color: #1c1917;
+}
+
+.tiptap-editor-content hr,
+.article-html-content hr {
+  border: 0;
+  border-top: 1px solid #d6d3d1;
+  margin: 1.25rem 0;
+}
+
+.tiptap-editor-content a,
+.article-html-content a {
+  color: #047857;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 500;
+}
+
+.tiptap-editor-content a:hover,
+.article-html-content a:hover {
+  color: #064e3b;
+}
+
+/* TipTap Placeholder Extension Styling */
+.tiptap-editor-content p.is-editor-empty:first-child::before {
+  color: #a8a29e;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+

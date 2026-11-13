@@ -12,6 +12,7 @@ import {
   FileText
 } from 'lucide-react';
 import { Article, PdfResource } from '../types';
+import { isHtmlContent, sanitizeHtmlForRender } from '../utils/richText';
 
 interface ArticleModalProps {
   article: Article | null;
@@ -148,37 +149,56 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({
           </div>
 
           {/* Article Full Text */}
-          <div className={`text-stone-800 ${fontSizeClasses[fontSize]} font-bengali space-y-4`}>
-            {(articleLang === 'bn' ? article.contentMarkdownBn : article.contentMarkdownEn)
-              .split('\n\n')
-              .map((paragraph, idx) => {
-                if (paragraph.startsWith('## ')) {
-                  return (
-                    <h2 key={idx} className="text-xl sm:text-2xl font-bold text-stone-900 mt-6 mb-3 pt-2">
-                      {paragraph.replace('## ', '')}
-                    </h2>
-                  );
-                }
-                if (paragraph.startsWith('### ')) {
-                  return (
-                    <h3 key={idx} className="text-lg font-bold text-stone-900 mt-4 mb-2">
-                      {paragraph.replace('### ', '')}
-                    </h3>
-                  );
-                }
-                if (paragraph.startsWith('> ')) {
-                  return (
-                    <blockquote key={idx} className="p-4 bg-emerald-50/70 border-l-4 border-emerald-700 italic text-stone-800 my-4 rounded-r-lg">
-                      {paragraph.replace('> ', '')}
-                    </blockquote>
-                  );
-                }
+          <div className={`text-stone-800 ${fontSizeClasses[fontSize]} font-bengali`}>
+            {(() => {
+              const rawContent =
+                (articleLang === 'bn' ? article.contentMarkdownBn : article.contentMarkdownEn) ||
+                article.contentMarkdownBn ||
+                article.contentMarkdownEn ||
+                '';
+
+              if (isHtmlContent(rawContent)) {
                 return (
-                  <p key={idx} className="leading-relaxed whitespace-pre-line text-stone-700">
-                    {paragraph}
-                  </p>
+                  <div
+                    className="article-html-content text-stone-800"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtmlForRender(rawContent) }}
+                  />
                 );
-              })}
+              }
+
+              return (
+                <div className="space-y-4">
+                  {rawContent.split('\n\n').map((paragraph, idx) => {
+                    if (paragraph.startsWith('## ')) {
+                      return (
+                        <h2 key={idx} className="text-xl sm:text-2xl font-bold text-stone-900 mt-6 mb-3 pt-2">
+                          {paragraph.replace('## ', '')}
+                        </h2>
+                      );
+                    }
+                    if (paragraph.startsWith('### ')) {
+                      return (
+                        <h3 key={idx} className="text-lg font-bold text-stone-900 mt-4 mb-2">
+                          {paragraph.replace('### ', '')}
+                        </h3>
+                      );
+                    }
+                    if (paragraph.startsWith('> ')) {
+                      return (
+                        <blockquote key={idx} className="p-4 bg-emerald-50/70 border-l-4 border-emerald-700 italic text-stone-800 my-4 rounded-r-lg">
+                          {paragraph.replace('> ', '')}
+                        </blockquote>
+                      );
+                    }
+                    return (
+                      <p key={idx} className="leading-relaxed whitespace-pre-line text-stone-700">
+                        {paragraph}
+                      </p>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Related DIB Past Questions for this article */}

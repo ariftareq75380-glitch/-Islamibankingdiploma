@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Article, PdfResource } from '../types';
 import { updateSEOMetadata } from '../utils/seo';
+import { isHtmlContent, sanitizeHtmlForRender } from '../utils/richText';
 
 interface ArticleDetailViewProps {
   article: Article;
@@ -307,68 +308,84 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
         </div>
       )}
 
-      {/* 7. Full Article Text with Arabic, Underline & DIB Exam formatting */}
-      <div className={`text-stone-800 ${fontSizeClasses[fontSize]} font-bengali space-y-5 bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-xs`}>
-        {((contentLang === 'bn' ? article.contentMarkdownBn : article.contentMarkdownEn) 
-          || article.contentMarkdownBn 
-          || article.contentMarkdownEn 
-          || article.summaryBn 
-          || article.summary 
-          || '')
-          .split('\n\n')
-          .map((paragraph, idx) => {
-            if (!paragraph.trim()) return null;
+      {/* 7. Full Article Text with HTML WYSIWYG & Legacy Markdown support */}
+      <div className={`text-stone-800 ${fontSizeClasses[fontSize]} font-bengali bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-xs`}>
+        {(() => {
+          const rawContent =
+            (contentLang === 'bn' ? article.contentMarkdownBn : article.contentMarkdownEn) ||
+            article.contentMarkdownBn ||
+            article.contentMarkdownEn ||
+            article.summaryBn ||
+            article.summary ||
+            '';
 
-            if (paragraph.startsWith('## ')) {
-              return (
-                <h2 key={idx} className="text-xl sm:text-2xl font-bold text-stone-900 mt-8 mb-3 pb-2 border-b border-stone-100 flex items-center gap-2">
-                  <span className="w-2 h-5 bg-emerald-800 rounded-full inline-block"></span>
-                  <span>{paragraph.replace('## ', '')}</span>
-                </h2>
-              );
-            }
-            if (paragraph.startsWith('### ')) {
-              return (
-                <h3 key={idx} className="text-lg font-bold text-stone-900 mt-5 mb-2 text-emerald-950">
-                  {paragraph.replace('### ', '')}
-                </h3>
-              );
-            }
-            if (paragraph.startsWith('> ')) {
-              return (
-                <blockquote key={idx} className="p-4 bg-emerald-50 border-l-4 border-emerald-800 italic text-stone-900 my-4 rounded-r-xl font-arabic text-base sm:text-lg">
-                  {paragraph.replace('> ', '')}
-                </blockquote>
-              );
-            }
-            if (paragraph.startsWith('---')) {
-              return <hr key={idx} className="border-t border-stone-200 my-6" />;
-            }
-            if (paragraph.startsWith('**প্রশ্ন:**') || paragraph.startsWith('**প্রশ্ন:')) {
-              return (
-                <div key={idx} className="p-4 bg-stone-50 border border-stone-200 rounded-xl my-4 space-y-2">
-                  <div className="font-bold text-emerald-900">{paragraph}</div>
-                </div>
-              );
-            }
-            if (paragraph.startsWith('- ') || paragraph.startsWith('১. ') || paragraph.startsWith('1. ')) {
-              return (
-                <div key={idx} className="pl-2 space-y-1.5 my-3">
-                  {paragraph.split('\n').map((line, li) => (
-                    <div key={li} className="flex items-start gap-2 text-stone-800">
-                      <span className="text-emerald-700 font-bold mt-0.5">•</span>
-                      <span className="flex-1 leading-relaxed">{line.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, '')}</span>
-                    </div>
-                  ))}
-                </div>
-              );
-            }
+          if (isHtmlContent(rawContent)) {
             return (
-              <p key={idx} className="leading-relaxed whitespace-pre-line text-stone-800">
-                {paragraph}
-              </p>
+              <div
+                className="article-html-content text-stone-800"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtmlForRender(rawContent) }}
+              />
             );
-          })}
+          }
+
+          return (
+            <div className="space-y-5">
+              {rawContent.split('\n\n').map((paragraph, idx) => {
+                if (!paragraph.trim()) return null;
+
+                if (paragraph.startsWith('## ')) {
+                  return (
+                    <h2 key={idx} className="text-xl sm:text-2xl font-bold text-stone-900 mt-8 mb-3 pb-2 border-b border-stone-100 flex items-center gap-2">
+                      <span className="w-2 h-5 bg-emerald-800 rounded-full inline-block"></span>
+                      <span>{paragraph.replace('## ', '')}</span>
+                    </h2>
+                  );
+                }
+                if (paragraph.startsWith('### ')) {
+                  return (
+                    <h3 key={idx} className="text-lg font-bold text-stone-900 mt-5 mb-2 text-emerald-950">
+                      {paragraph.replace('### ', '')}
+                    </h3>
+                  );
+                }
+                if (paragraph.startsWith('> ')) {
+                  return (
+                    <blockquote key={idx} className="p-4 bg-emerald-50 border-l-4 border-emerald-800 italic text-stone-900 my-4 rounded-r-xl font-arabic text-base sm:text-lg">
+                      {paragraph.replace('> ', '')}
+                    </blockquote>
+                  );
+                }
+                if (paragraph.startsWith('---')) {
+                  return <hr key={idx} className="border-t border-stone-200 my-6" />;
+                }
+                if (paragraph.startsWith('**প্রশ্ন:**') || paragraph.startsWith('**প্রশ্ন:')) {
+                  return (
+                    <div key={idx} className="p-4 bg-stone-50 border border-stone-200 rounded-xl my-4 space-y-2">
+                      <div className="font-bold text-emerald-900">{paragraph}</div>
+                    </div>
+                  );
+                }
+                if (paragraph.startsWith('- ') || paragraph.startsWith('১. ') || paragraph.startsWith('1. ')) {
+                  return (
+                    <div key={idx} className="pl-2 space-y-1.5 my-3">
+                      {paragraph.split('\n').map((line, li) => (
+                        <div key={li} className="flex items-start gap-2 text-stone-800">
+                          <span className="text-emerald-700 font-bold mt-0.5">•</span>
+                          <span className="flex-1 leading-relaxed">{line.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, '')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                return (
+                  <p key={idx} className="leading-relaxed whitespace-pre-line text-stone-800">
+                    {paragraph}
+                  </p>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* 8. Keywords & Tags Section ("কি-ওয়ার্ড যোগ করার অপশন") */}

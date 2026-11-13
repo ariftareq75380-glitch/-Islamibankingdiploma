@@ -28,6 +28,8 @@ import {
 import { Article } from '../types';
 import { StorageService } from '../services/storage';
 import { supabase } from '../utils/supabase';
+import { RichTextEditor } from './RichTextEditor';
+import { ensureHtmlContent, sanitizeHtmlForRender, stripHtmlTags } from '../utils/richText';
 
 interface ContentEditorModalProps {
   isOpen: boolean;
@@ -131,7 +133,6 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Synchronize form states whenever modal opens or existingArticle changes
@@ -249,80 +250,6 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Smart Formatting Tool applying bold, italic, underline, headers, lists, quotes, links
-  const applyFormat = (formatType: 'bold' | 'italic' | 'underline' | 'h2' | 'h3' | 'quote' | 'bullet' | 'number' | 'link' | 'divider') => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentVal = contentMarkdownBn;
-    const selectedText = currentVal.substring(start, end);
-
-    let replacement = '';
-    let cursorOffset = 0;
-
-    switch (formatType) {
-      case 'bold':
-        replacement = `**${selectedText || 'বোল্ড লেখা'}**`;
-        cursorOffset = selectedText ? replacement.length : 2;
-        break;
-      case 'italic':
-        replacement = `*${selectedText || 'ইটালিক লেখা'}*`;
-        cursorOffset = selectedText ? replacement.length : 1;
-        break;
-      case 'underline':
-        replacement = `<u>${selectedText || 'আন্ডারলাইন করা লেখা'}</u>`;
-        cursorOffset = selectedText ? replacement.length : 3;
-        break;
-      case 'h2':
-        replacement = `\n## ${selectedText || 'নতুন পরিচ্ছেদ শিরোনাম'}\n`;
-        cursorOffset = replacement.length;
-        break;
-      case 'h3':
-        replacement = `\n### ${selectedText || 'উপ-শিরোনাম'}\n`;
-        cursorOffset = replacement.length;
-        break;
-      case 'quote':
-        replacement = `\n> ${selectedText || 'আরবি বা নির্ভরযোগ্য উদ্ধৃতি'}\n`;
-        cursorOffset = replacement.length;
-        break;
-      case 'bullet':
-        if (selectedText.includes('\n')) {
-          replacement = selectedText.split('\n').map(line => `- ${line}`).join('\n');
-        } else {
-          replacement = `\n- ${selectedText || 'পয়েন্ট ১'}\n- পয়েন্ট ২\n`;
-        }
-        cursorOffset = replacement.length;
-        break;
-      case 'number':
-        if (selectedText.includes('\n')) {
-          replacement = selectedText.split('\n').map((line, idx) => `${idx + 1}. ${line}`).join('\n');
-        } else {
-          replacement = `\n১. ${selectedText || 'প্রথম শর্ত'}\n২. দ্বিতীয় শর্ত\n`;
-        }
-        cursorOffset = replacement.length;
-        break;
-      case 'link':
-        replacement = `[${selectedText || 'লিংকের শিরোনাম'}](https://)`;
-        cursorOffset = replacement.length - 1;
-        break;
-      case 'divider':
-        replacement = `\n\n---\n\n`;
-        cursorOffset = replacement.length;
-        break;
-    }
-
-    const updatedText = currentVal.substring(0, start) + replacement + currentVal.substring(end);
-    setContentMarkdownBn(updatedText);
-
-    // Reposition cursor
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + cursorOffset, start + cursorOffset);
-    }, 50);
-  };
-
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://islamibankingdiploma-4f7m.vercel.app';
   const fullLiveUrl = `${currentOrigin}/${urlPrefix}/${slug || 'mudaraba-definition'}`;
 
@@ -352,12 +279,13 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
       return;
     }
 
-    if (!contentMarkdownBn.trim()) {
+    const plainTextBn = stripHtmlTags(contentMarkdownBn);
+    if (!plainTextBn) {
       setValidationError('অনুগ্রহ করে আর্টিকেলের মূল বক্তব্য বা ব্যাখ্যা বাংলায় লিখুন।');
       return;
     }
 
-    const wordCount = contentMarkdownBn.split(/\s+/).filter(Boolean).length;
+    const wordCount = plainTextBn.split(/\s+/).filter(Boolean).length;
     const calculatedReadTime = `${Math.max(3, Math.ceil(wordCount / 150))} মিনিট পাঠ`;
 
     const articlePayload: Article = {
@@ -774,120 +702,17 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                 )}
               </div>
 
-              {/* Section 3: Formatting Toolbar & Content Writing / এডিটর টুলস */}
+              {/* Section 3: WYSIWYG Rich Text Editor */}
               <div className="space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className="font-semibold text-stone-700">
-                    মূল আর্টিকেল ও ব্যাখ্যা (বাংলায়) *
-                  </label>
-
-                  {/* Rich Text Markdown Formatting Toolbar (বোল্ড, ইটালিক, আন্ডারলাইন ইত্যাদি) */}
-                  <div className="flex items-center flex-wrap gap-1 bg-stone-100 p-1.5 rounded-xl border border-stone-200 shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('bold')}
-                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 rounded-lg border border-stone-200 flex items-center gap-1 font-bold cursor-pointer"
-                      title="বোল্ড করুন (**লেখা**)"
-                    >
-                      <Bold className="w-3.5 h-3.5 text-stone-900" />
-                      <span className="text-[11px] hidden sm:inline">বোল্ড</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('italic')}
-                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 rounded-lg border border-stone-200 flex items-center gap-1 italic cursor-pointer"
-                      title="ইটালিক করুন (*লেখা*)"
-                    >
-                      <Italic className="w-3.5 h-3.5 text-stone-900" />
-                      <span className="text-[11px] hidden sm:inline">ইটালিক</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('underline')}
-                      className="p-1.5 bg-white hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 rounded-lg border border-stone-200 flex items-center gap-1 underline cursor-pointer"
-                      title="আন্ডারলাইন করুন (<u>লেখা</u>)"
-                    >
-                      <UnderlineIcon className="w-3.5 h-3.5 text-stone-900" />
-                      <span className="text-[11px] hidden sm:inline">আন্ডারলাইন</span>
-                    </button>
-
-                    <span className="w-px h-5 bg-stone-300 mx-0.5" />
-
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('h2')}
-                      className="px-2 py-1 bg-white hover:bg-stone-200 text-stone-800 rounded-lg border border-stone-200 text-[11px] font-bold cursor-pointer"
-                      title="বড় শিরোনাম (H2)"
-                    >
-                      H2
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('h3')}
-                      className="px-2 py-1 bg-white hover:bg-stone-200 text-stone-800 rounded-lg border border-stone-200 text-[11px] font-bold cursor-pointer"
-                      title="উপ-শিরোনাম (H3)"
-                    >
-                      H3
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('bullet')}
-                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
-                      title="বুলেট তালিকা (- পয়েন্ট)"
-                    >
-                      <List className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('number')}
-                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
-                      title="নম্বরযুক্ত তালিকা (১, ২, ৩)"
-                    >
-                      <ListOrdered className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('quote')}
-                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
-                      title="উদ্ধৃতি / কোটেশন"
-                    >
-                      <Quote className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('link')}
-                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
-                      title="ওয়েব লিংক যুক্ত করুন"
-                    >
-                      <LinkIcon className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyFormat('divider')}
-                      className="p-1.5 bg-white hover:bg-stone-200 rounded-lg border border-stone-200 text-stone-800 cursor-pointer"
-                      title="ডিভাইডার দাগ (---)"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <textarea
-                  ref={textareaRef}
-                  rows={12}
-                  required
+                <label className="block font-semibold text-stone-700">
+                  মূল আর্টিকেল ও ব্যাখ্যা (বাংলায়) *
+                </label>
+                <RichTextEditor
+                  id="modal-article-content-bn"
                   value={contentMarkdownBn}
-                  onChange={(e) => setContentMarkdownBn(e.target.value)}
-                  placeholder="## ১. পটভূমি ও প্রজ্ঞাপনের মূল উদ্দেশ্য&#10;&#10;বাংলাদেশ ফাইন্যান্সিয়াল ইন্টেলিজেন্স ইউনিট (BFIU) সার্কুলার ২৬-এর আলোকে সকল ইসলামী ব্যাংককে গ্রাহক সনাক্তকরণ (KYC) ও সন্দেহজনক লেনদেন (STR) তদারকিতে সতর্ক থাকার নির্দেশ দেওয়া হয়েছে...&#10;&#10;**প্রধান দিকসমূহ:**&#10;- পয়েন্ট ১&#10;- পয়েন্ট ২"
-                  className="w-full p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-emerald-700"
+                  onChange={setContentMarkdownBn}
+                  placeholder="বাংলাদেশ ফাইন্যান্সিয়াল ইন্টেলিজেন্স ইউনিট (BFIU) সার্কুলার বা প্রবন্ধের বিস্তারিত বিষয়বস্তু বাংলায় লিখুন..."
+                  minHeightClass="min-h-[280px]"
                 />
               </div>
 
@@ -1035,15 +860,15 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
 
               {/* English Optional translation */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
+                <label className="block font-semibold text-stone-700 mb-1.5">
                   Full Article (English Translation - Optional for Bilingual Indexing)
                 </label>
-                <textarea
-                  rows={4}
+                <RichTextEditor
+                  id="modal-article-content-en"
                   value={contentMarkdownEn}
-                  onChange={(e) => setContentMarkdownEn(e.target.value)}
-                  placeholder="## Section 1: Background & Scope&#10;English text for bilingual readership..."
-                  className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-lg text-stone-900 text-xs font-mono leading-relaxed"
+                  onChange={setContentMarkdownEn}
+                  placeholder="Write English translation here (optional)..."
+                  minHeightClass="min-h-[160px]"
                 />
               </div>
             </form>
@@ -1108,26 +933,12 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="space-y-3 leading-relaxed text-stone-800">
-                    {(contentMarkdownBn || '')
-                      .split('\n\n')
-                      .map((para, i) => {
-                        if (!para.trim()) return null;
-                        if (para.startsWith('## ')) {
-                          return <h2 key={i} className="text-lg font-bold text-emerald-950 mt-4">{para.replace('## ', '')}</h2>;
-                        }
-                        if (para.startsWith('### ')) {
-                          return <h3 key={i} className="text-base font-bold text-emerald-900 mt-3">{para.replace('### ', '')}</h3>;
-                        }
-                        if (para.startsWith('> ')) {
-                          return <blockquote key={i} className="p-3 bg-emerald-50 border-l-4 border-emerald-700 italic rounded-r">{para.replace('> ', '')}</blockquote>;
-                        }
-                        if (para.startsWith('---')) {
-                          return <hr key={i} className="border-t border-stone-200 my-4" />;
-                        }
-                        return <p key={i}>{para}</p>;
-                      })}
-                  </div>
+                  <div
+                    className="article-html-content leading-relaxed text-stone-800"
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeHtmlForRender(ensureHtmlContent(contentMarkdownBn || ''))
+                    }}
+                  />
                 </div>
               </div>
             </div>
