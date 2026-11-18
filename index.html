@@ -64,6 +64,20 @@
       ]
     }
     </script>
+    <!-- Apply the saved theme before first paint, so dark mode does not
+         flash light (and the loading screen does not show white text
+         on a pale background). Mirrors StorageService.setTheme(). -->
+    <script>
+      try {
+        var t = localStorage.getItem('ikl_reader_theme');
+        if (t === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.classList.add('dark');
+        } else if (t === 'sepia') {
+          document.documentElement.setAttribute('data-theme', 'sepia');
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body class="bg-stone-50 text-slate-800 antialiased selection:bg-emerald-100 selection:text-emerald-900">
     <div id="root"></div>

@@ -207,9 +207,12 @@ export const Navbar: React.FC<NavbarProps> = ({
     { tab: 'faq' as ActiveTab, labelBn: 'এফএকিউ', labelEn: 'FAQ' },
   ];
 
+  // Dark first: the button is read as a dark-mode toggle, so the first
+  // click must reach dark (previously light -> sepia -> dark, so the
+  // first click only reached the cream theme and dark felt broken).
   const cycleTheme = () => {
-    if (theme === 'light') onThemeChange('sepia');
-    else if (theme === 'sepia') onThemeChange('dark');
+    if (theme === 'light') onThemeChange('dark');
+    else if (theme === 'dark') onThemeChange('sepia');
     else onThemeChange('light');
   };
 
