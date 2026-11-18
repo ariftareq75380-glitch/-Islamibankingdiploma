@@ -23,7 +23,7 @@ import {
 import { Article, PdfResource } from '../types';
 import { updateSEOMetadata } from '../utils/seo';
 import { isHtmlContent, sanitizeHtmlForRender } from '../utils/richText';
-import { getPdfPreviewEmbedUrl } from '../utils/pdfUtils';
+import { PdfCoverPreview } from './PdfCoverPreview';
 import { StorageService } from '../services/storage';
 
 interface ArticleDetailViewProps {
@@ -432,21 +432,19 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
             </a>
           </div>
 
-          {/* Inline preview, lazy-loaded so it only fetches when near the
-              viewport. The preview uses the Google Docs viewer (not a
-              direct PDF iframe): mobile browsers such as Chrome on Android
-              and iOS Safari cannot render a PDF inside an iframe — they
-              show only a filename + "Open" button instead of pages — while
-              the Docs viewer renders real pages on every device. The
-              read/download button above still opens the original PDF. */}
-          <iframe
-            src={getPdfPreviewEmbedUrl(article.pdfUrl || (article as any).pdf_url)}
-            title="PDF প্রিভিউ"
-            loading="lazy"
-            className="w-full h-[420px] sm:h-[560px] rounded-lg border border-emerald-200 bg-white"
+          {/* Inline preview — static cover/first-page images rendered
+              from the real PDF (see PdfCoverPreview). No iframe and no
+              external viewer: a direct-PDF iframe shows only a filename +
+              "Open" button on Android Chrome, and the Google Docs viewer
+              refused to connect and rendered a blank frame. Tapping the
+              cover opens the full PDF in a new tab. */}
+          <PdfCoverPreview
+            pdfUrl={article.pdfUrl || (article as any).pdf_url}
+            title={contentLang === 'bn' ? (article.titleBn || article.title) : article.title}
+            lang={contentLang}
           />
           <p className="text-[11px] text-emerald-800/80 mt-2">
-            প্রিভিউ না দেখা গেলে উপরের বাটনে ক্লিক করে PDF-টি পড়ুন ও ডাউনলোড করুন।
+            পুরো PDF পড়তে উপরের বাটনে ক্লিক করুন, অথবা প্রিভিউ ছবিতে ট্যাপ করুন।
           </p>
         </div>
       )}

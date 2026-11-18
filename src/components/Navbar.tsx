@@ -73,6 +73,35 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [activeDropdown, setActiveDropdown] = useState<'dib-exam' | 'articles' | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
+  // Tracks whether the currently open dropdown was opened by hovering.
+  // ROOT CAUSE of the "two clicks to open" bug: hovering the button fires
+  // onMouseEnter and opens the menu BEFORE the click, so the click's
+  // toggle sees it as already open and closes it — the first click looks
+  // ignored and only the second click opens the menu. A click that
+  // follows a hover-open therefore *confirms* the menu instead of closing
+  // it; the next click on the button closes it normally.
+  const openedByHoverRef = useRef(false);
+
+  const handleDropdownMouseEnter = (key: 'dib-exam' | 'articles') => {
+    openedByHoverRef.current = true;
+    setActiveDropdown(key);
+  };
+
+  const handleDropdownMouseLeave = () => {
+    openedByHoverRef.current = false;
+    setActiveDropdown(null);
+  };
+
+  const handleDropdownToggle = (key: 'dib-exam' | 'articles') => {
+    if (activeDropdown === key && openedByHoverRef.current) {
+      // Click right after a hover-open: keep the menu open (confirm it).
+      openedByHoverRef.current = false;
+      return;
+    }
+    openedByHoverRef.current = false;
+    setActiveDropdown(activeDropdown === key ? null : key);
+  };
+
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -245,12 +274,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* 1. DIB Exam Dropdown */}
             <div
               className="relative"
-              onMouseEnter={() => setActiveDropdown('dib-exam')}
-              onMouseLeave={() => setActiveDropdown(null)}
+              onMouseEnter={() => handleDropdownMouseEnter('dib-exam')}
+              onMouseLeave={handleDropdownMouseLeave}
             >
               <button
                 type="button"
-                onClick={() => setActiveDropdown(activeDropdown === 'dib-exam' ? null : 'dib-exam')}
+                onClick={() => handleDropdownToggle('dib-exam')}
                 aria-expanded={activeDropdown === 'dib-exam'}
                 className="py-1 px-2 rounded-lg hover:text-[#14532D] hover:bg-emerald-50/70 transition-colors flex items-center gap-1 font-bengali font-semibold text-stone-700 cursor-pointer whitespace-nowrap shrink-0"
               >
@@ -259,9 +288,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               {activeDropdown === 'dib-exam' && (
-                <div 
-                  className="absolute left-0 top-full mt-1 w-56 rounded-xl bg-white shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95 font-bengali"
-                >
+                <div className="absolute left-0 top-full pt-1 z-50">
+                  <div className="w-56 rounded-xl bg-white shadow-xl border border-stone-200 py-1.5 animate-in fade-in zoom-in-95 font-bengali">
                   <button
                     onClick={() => handleNavigate('/articles?menu=dib-part-1', 'articles')}
                     className="w-full text-left px-3.5 py-2 text-xs hover:bg-emerald-50 hover:text-[#14532D] flex items-center justify-between text-stone-700 transition-colors cursor-pointer"
@@ -282,6 +310,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 text-stone-300" />
                   </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -302,12 +331,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* 3. Articles Dropdown */}
             <div
               className="relative"
-              onMouseEnter={() => setActiveDropdown('articles')}
-              onMouseLeave={() => setActiveDropdown(null)}
+              onMouseEnter={() => handleDropdownMouseEnter('articles')}
+              onMouseLeave={handleDropdownMouseLeave}
             >
               <button
                 type="button"
-                onClick={() => setActiveDropdown(activeDropdown === 'articles' ? null : 'articles')}
+                onClick={() => handleDropdownToggle('articles')}
                 aria-expanded={activeDropdown === 'articles'}
                 className="py-1 px-2 rounded-lg hover:text-[#14532D] hover:bg-emerald-50/70 transition-colors flex items-center gap-1 font-bengali font-semibold text-stone-700 cursor-pointer whitespace-nowrap shrink-0"
               >
@@ -316,9 +345,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               {activeDropdown === 'articles' && (
-                <div 
-                  className="absolute left-0 top-full mt-1 w-60 rounded-xl bg-white shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95 font-bengali"
-                >
+                <div className="absolute left-0 top-full pt-1 z-50">
+                  <div className="w-60 rounded-xl bg-white shadow-xl border border-stone-200 py-1.5 animate-in fade-in zoom-in-95 font-bengali">
                   <button
                     onClick={() => handleNavigate('/articles?menu=islamic-economics', 'articles')}
                     className="w-full text-left px-3.5 py-2 text-xs hover:bg-emerald-50 hover:text-[#14532D] flex items-center justify-between text-stone-700 transition-colors cursor-pointer"
@@ -349,6 +377,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 text-stone-300" />
                   </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -39,24 +39,8 @@ export function hasRealPdf(resource: { pdfFileUrl?: string | null; googleDriveUr
   return hasRealPdfFile(resource.pdfFileUrl) || hasRealDriveLink(resource.googleDriveUrl);
 }
 
-// Mobile browsers (Chrome on Android, iOS Safari) do not render a PDF
-// inside an <iframe> — they show only a filename + "Open" button instead
-// of pages. The Google Docs viewer renders the PDF as real pages on every
-// device, so embedded previews use it. The direct PDF URL is still used
-// for the read/download button. The URL must be publicly reachable.
-export function getPdfPreviewEmbedUrl(pdfUrl: string): string {
-  return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(pdfUrl)}`;
-}
-
-export function getGoogleDriveEmbedUrl(driveUrl: string): string {
-  if (!driveUrl) return '';
-  // Convert standard /view or /edit or file/d/ID to /preview for embedded iframe
-  const fileIdMatch = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (fileIdMatch && fileIdMatch[1]) {
-    return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
-  }
-  return driveUrl;
-}
+// (Preview cover images live in utils/pdfCoverData.ts — base64 data
+// URIs, loaded lazily by PdfCoverPreview. See that file for why.)
 
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 KB';

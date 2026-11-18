@@ -12,12 +12,11 @@ import {
 } from 'lucide-react';
 import { PdfResource } from '../types';
 import {
-  getGoogleDriveEmbedUrl,
   hasRealPdf,
   hasRealPdfFile,
-  hasRealDriveLink,
-  getPdfPreviewEmbedUrl
+  hasRealDriveLink
 } from '../utils/pdfUtils';
+import { PdfCoverPreview } from './PdfCoverPreview';
 
 interface PdfViewerModalProps {
   resource: PdfResource | null;
@@ -172,7 +171,9 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
               <span className="font-semibold text-stone-900">
                 {isPlaceholder
                   ? (lang === 'bn' ? 'শীঘ্রই আসছে' : 'Coming soon')
-                  : `${resource.fileSize} (${resource.pageCount || 10} ${lang === 'bn' ? 'পৃষ্ঠা' : 'pages'})`}
+                  // Show the page count only when it is actually known —
+                  // never invent a number (the old `|| 10` fallback did).
+                  : `${resource.fileSize}${resource.pageCount ? ` (${resource.pageCount} ${lang === 'bn' ? 'পৃষ্ঠা' : 'pages'})` : ''}`}
               </span>
             </div>
             <div>
@@ -241,30 +242,48 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
                 </div>
               </div>
             ) : hasDirectPdf ? (
-              <div className="relative rounded-xl border border-stone-300 bg-stone-100 overflow-hidden">
-                {/* Google Docs viewer renders real PDF pages on phones too —
-                    mobile browsers show only a filename + "Open" button for
-                    a PDF loaded directly in an iframe. */}
-                <iframe
-                  src={getPdfPreviewEmbedUrl(resource.pdfFileUrl)}
-                  title={lang === 'bn' ? 'PDF প্রিভিউ' : 'PDF Preview'}
-                  loading="lazy"
-                  className="w-full h-[420px] sm:h-[560px] rounded-xl bg-white block"
+              /* Static cover-image preview (no iframe, no external viewer —
+                 see PdfCoverPreview): the direct-PDF iframe shows only a
+                 filename on Android Chrome, and the Google Docs viewer
+                 refused to connect. Tapping the cover opens the full PDF. */
+              <div>
+                <PdfCoverPreview
+                  pdfUrl={resource.pdfFileUrl}
+                  title={lang === 'bn' ? resource.titleBn : resource.title}
+                  lang={lang}
                 />
                 <p className="text-[11px] text-stone-500 mt-2 px-1">
                   {lang === 'bn'
-                    ? 'প্রিভিউ না দেখা গেলে নিচের বাটনে ক্লিক করে PDF-টি নতুন ট্যাবে পড়ুন।'
-                    : 'If the preview does not load, use the button below to read the PDF in a new tab.'}
+                    ? 'পুরো PDF পড়তে নিচের বাটনে ক্লিক করুন — নতুন ট্যাবে খুলবে।'
+                    : 'Use the button below to read the full PDF in a new tab.'}
                 </p>
               </div>
             ) : (
-              <div className="relative rounded-xl border border-stone-300 bg-stone-100 overflow-hidden">
-                <iframe
-                  src={getGoogleDriveEmbedUrl(resource.googleDriveUrl || '')}
-                  title={lang === 'bn' ? 'PDF প্রিভিউ' : 'PDF Preview'}
-                  loading="lazy"
-                  className="w-full h-[420px] sm:h-[560px] rounded-xl bg-white block"
-                />
+              /* Drive-only resource: no embedded viewer either — show the
+                 same placeholder style with a button to open Drive. */
+              <div className="relative rounded-xl border border-stone-300 bg-stone-50 overflow-hidden p-6 text-center">
+                <div className="max-w-md mx-auto space-y-3">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <h5 className="font-bold text-stone-900 text-sm">
+                    {lang === 'bn' ? resource.titleBn : resource.title}
+                  </h5>
+                  <p className="text-xs text-stone-600 leading-relaxed">
+                    {lang === 'bn'
+                      ? 'এই ডকুমেন্টটি গুগল ড্রাইভে সংরক্ষিত আছে। নিচের বাটনে ক্লিক করে ড্রাইভে খুলে পড়ুন।'
+                      : 'This document is stored on Google Drive. Use the button below to open and read it there.'}
+                  </p>
+                  <a
+                    href={resource.googleDriveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>{lang === 'bn' ? 'গুগল ড্রাইভে খুলুন' : 'Open in Google Drive'}</span>
+                  </a>
+                </div>
               </div>
             )}
           </div>

@@ -548,6 +548,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setResTags('');
     setResKeyTopics('');
     setResStatus('published');
+    setResPageCount(30);
     setUploadProgress(null);
     setUploadFileName('');
   };
@@ -1535,6 +1536,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Page count — editable. The library card and the preview
+                    modal show this number, so it must be the PDF's REAL
+                    page count. It used to be a hidden form default of 30
+                    (no input existed), which is how the 63-page Code 106
+                    book ended up labelled "30 পৃষ্ঠা". */}
+                <div className="pt-1">
+                  <label className="block font-medium text-stone-700 mb-1">
+                    পৃষ্ঠা সংখ্যা (Page Count) *
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={resPageCount}
+                    onChange={(e) => setResPageCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    className="w-full sm:w-48 p-2.5 bg-white border border-stone-200 rounded-lg text-stone-900"
+                  />
+                  <span className="text-[11px] text-stone-400 block mt-1">
+                    PDF ফাইলের আসল পৃষ্ঠা সংখ্যা লিখুন — লাইব্রেরি ও প্রিভিউতে এটাই দেখাবে।
+                  </span>
                 </div>
               </div>
 
