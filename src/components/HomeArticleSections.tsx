@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Article } from '../types';
-import { Sparkles, Calendar, User, ArrowRight, BookOpen, Star } from 'lucide-react';
+import { Sparkles, Calendar, User, ArrowRight, BookOpen, Star, Eye } from 'lucide-react';
+import { StorageService } from '../services/storage';
 
 interface ArticleSectionProps {
   articles: Article[];
@@ -8,6 +9,21 @@ interface ArticleSectionProps {
   onNavigateUrl?: (path: string) => void;
   lang: 'bn' | 'en';
 }
+
+// Real per-article read counts from Supabase (null = analytics not set up yet).
+const useArticleViewCounts = (): Record<string, number> | null => {
+  const [counts, setCounts] = useState<Record<string, number> | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    StorageService.getArticleViewCounts().then((map) => {
+      if (!cancelled) setCounts(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return counts;
+};
 
 const getArticleHref = (art: Article): string => {
   if (art.slug) {
@@ -21,6 +37,7 @@ export const HighlightedArticlesSection: React.FC<ArticleSectionProps> = ({
   onOpenArticle,
   lang
 }) => {
+  const viewCounts = useArticleViewCounts();
   // Up to two articles where featured is true, sorted by publishedAt descending
   const featuredArticles = React.useMemo(() => {
     return articles
@@ -119,9 +136,17 @@ export const HighlightedArticlesSection: React.FC<ArticleSectionProps> = ({
                   </div>
 
                   <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
-                    <span className="flex items-center gap-1.5 truncate max-w-[60%]">
-                      <User className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                      <span className="truncate">{art.author}</span>
+                    <span className="flex items-center gap-2 truncate max-w-[60%]">
+                      <span className="flex items-center gap-1.5 truncate">
+                        <User className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                        <span className="truncate">{art.author}</span>
+                      </span>
+                      {viewCounts !== null && (
+                        <span className="flex items-center gap-1 shrink-0">
+                          <Eye className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>{viewCounts[art.slug] ?? 0} {lang === 'bn' ? 'বার পড়া' : 'reads'}</span>
+                        </span>
+                      )}
                     </span>
                     <span className="inline-flex items-center gap-1 font-semibold text-[#047857] group-hover:text-[#14532D]">
                       <span>{lang === 'bn' ? 'সম্পূর্ণ পড়ুন' : 'Read Article'}</span>
@@ -144,6 +169,7 @@ export const RecentArticlesSection: React.FC<ArticleSectionProps> = ({
   onNavigateUrl,
   lang
 }) => {
+  const viewCounts = useArticleViewCounts();
   // 3 newest articles by publishedAt descending
   const recentArticles = React.useMemo(() => {
     return [...articles]
@@ -252,9 +278,17 @@ export const RecentArticlesSection: React.FC<ArticleSectionProps> = ({
                 </div>
 
                 <div className="p-4 border-t border-stone-100 bg-stone-50/60 flex items-center justify-between text-xs text-stone-500">
-                  <span className="flex items-center gap-1.5 truncate max-w-[60%]">
-                    <User className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                    <span className="truncate">{art.author}</span>
+                  <span className="flex items-center gap-2 truncate max-w-[60%]">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <User className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                      <span className="truncate">{art.author}</span>
+                    </span>
+                    {viewCounts !== null && (
+                      <span className="flex items-center gap-1 shrink-0">
+                        <Eye className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>{viewCounts[art.slug] ?? 0} {lang === 'bn' ? 'বার পড়া' : 'reads'}</span>
+                      </span>
+                    )}
                   </span>
                   <span className="inline-flex items-center gap-1 font-semibold text-[#047857] group-hover:text-[#14532D]">
                     <span>{lang === 'bn' ? 'পড়ুন' : 'Read'}</span>

@@ -81,6 +81,8 @@ export default function App() {
   const [selectedArticleForRead, setSelectedArticleForRead] = useState<Article | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  // Total site visits from Supabase (null = analytics tables not set up yet).
+  const [totalVisitors, setTotalVisitors] = useState<number | null>(null);
   const [isBlueprintOpen, setIsBlueprintOpen] = useState(false);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
@@ -145,6 +147,13 @@ export default function App() {
   // Load initial data
   useEffect(() => {
     loadAllData();
+  }, []);
+
+  // Record one site visit per browser session and load the total visitor count.
+  useEffect(() => {
+    StorageService.recordSiteVisit().then(() => {
+      StorageService.getSiteVisitCount().then((count) => setTotalVisitors(count));
+    });
   }, []);
 
   const loadAllData = async () => {
@@ -632,10 +641,12 @@ export default function App() {
             onBack={handleCloseArticle}
             allResources={publishedResources}
             onOpenResource={handlePreviewResource}
-            onEditArticle={(art) => {
+            // Edit is an admin-only action: never hand the callback to visitors.
+            onEditArticle={isAdminAuthenticated ? (art) => {
               setEditingArticleForEditor(art);
               setIsContentEditorOpen(true);
-            }}
+            } : undefined}
+            isAdmin={isAdminAuthenticated}
             lang={lang}
           />
         ) : (
@@ -1095,6 +1106,7 @@ export default function App() {
         settings={settings}
         lang={lang}
         onSecretAdminTrigger={handleSecretAdminTrigger}
+        totalVisitors={totalVisitors}
       />
     </div>
   );

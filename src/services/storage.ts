@@ -659,6 +659,105 @@ export const StorageService = {
     // No-op for downloads count local save
   },
 
+  // --- Visitor analytics (Supabase-backed, degrades silently) ---
+  // Counts live in two tables created by
+  // supabase/migrations/20261118_visitor_analytics.sql (must be run once in
+  // the Supabase SQL Editor — a code deploy cannot create tables/policies).
+  // Until that migration is applied every call below fails safely and the
+  // UI hides the counts instead of showing a wrong number.
+
+  _getSessionId(): string {
+    try {
+      const key = 'ikl_session_id_v1';
+      let id = sessionStorage.getItem(key);
+      if (!id) {
+        id = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+          ? crypto.randomUUID()
+          : `s-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        sessionStorage.setItem(key, id);
+      }
+      return id;
+    } catch {
+      return `s-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+  },
+
+  // Record one view of an article, at most once per browser session.
+  async recordArticleView(slug: string): Promise<void> {
+    if (!slug) return;
+    try {
+      const flag = `ikl_viewed_${slug}`;
+      if (sessionStorage.getItem(flag)) return;
+      const { error } = await supabase
+        .from('article_views')
+        .insert({ article_slug: slug, session_id: this._getSessionId() });
+      if (error) return; // table/policies not applied yet — stay silent
+      sessionStorage.setItem(flag, '1');
+    } catch {
+      // analytics must never break the article page
+    }
+  },
+
+  // Total recorded views for one article, or null when unavailable.
+  async getArticleViewCount(slug: string): Promise<number | null> {
+    if (!slug) return null;
+    try {
+      const { count, error } = await supabase
+        .from('article_views')
+        .select('*', { count: 'exact', head: true })
+        .eq('article_slug', slug);
+      if (error) return null;
+      return count ?? 0;
+    } catch {
+      return null;
+    }
+  },
+
+  // View counts for all articles, keyed by slug (null when unavailable).
+  async getArticleViewCounts(): Promise<Record<string, number> | null> {
+    try {
+      const { data, error } = await supabase
+        .from('article_views')
+        .select('article_slug')
+        .limit(5000);
+      if (error || !data) return null;
+      const counts: Record<string, number> = {};
+      for (const row of data as Array<{ article_slug: string }>) {
+        if (row.article_slug) counts[row.article_slug] = (counts[row.article_slug] || 0) + 1;
+      }
+      return counts;
+    } catch {
+      return null;
+    }
+  },
+
+  // Record one site visit, at most once per browser session.
+  async recordSiteVisit(): Promise<void> {
+    try {
+      if (sessionStorage.getItem('ikl_site_visited_v1')) return;
+      const { error } = await supabase
+        .from('site_visits')
+        .insert({ session_id: this._getSessionId() });
+      if (error) return; // table/policies not applied yet — stay silent
+      sessionStorage.setItem('ikl_site_visited_v1', '1');
+    } catch {
+      // analytics must never break the page
+    }
+  },
+
+  // Total recorded site visits, or null when unavailable.
+  async getSiteVisitCount(): Promise<number | null> {
+    try {
+      const { count, error } = await supabase
+        .from('site_visits')
+        .select('*', { count: 'exact', head: true });
+      if (error) return null;
+      return count ?? 0;
+    } catch {
+      return null;
+    }
+  },
+
   exportDatabaseBackup(): string {
     const data = {
       exportVersion: '1.0',

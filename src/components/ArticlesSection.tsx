@@ -1,20 +1,22 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Article, PdfResource } from '../types';
-import { 
-  BookOpen, 
-  Clock, 
-  User, 
-  ArrowRight, 
-  Calendar, 
-  Tag, 
-  Globe, 
-  Plus, 
+import {
+  BookOpen,
+  Clock,
+  User,
+  ArrowRight,
+  Calendar,
+  Tag,
+  Globe,
+  Plus,
   Sparkles,
   Search,
   X,
   FileText,
-  Filter
+  Filter,
+  Eye
 } from 'lucide-react';
+import { StorageService } from '../services/storage';
 
 export const VALID_ARTICLE_MENU_CATEGORIES = [
   'dib-part-1',
@@ -79,6 +81,18 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({
   onSelectMenuFilter
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Real per-article read counts from Supabase (null = analytics not set up yet).
+  const [viewCounts, setViewCounts] = useState<Record<string, number> | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    StorageService.getArticleViewCounts().then((map) => {
+      if (!cancelled) setViewCounts(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 1. Read the menu query parameter from props or current URL
   const activeMenuKey = useMemo<ArticleMenuCategoryKey | null>(() => {
@@ -368,9 +382,17 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({
 
                   {/* Author & Read More Bar */}
                   <div className="px-5 py-3 border-t border-stone-200/80 bg-stone-50/70 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 text-stone-600 truncate max-w-[65%]">
-                      <User className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                      <span className="truncate font-medium">{art.author}</span>
+                    <div className="flex items-center gap-2 text-stone-600 truncate max-w-[65%]">
+                      <span className="flex items-center gap-1.5 truncate">
+                        <User className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                        <span className="truncate font-medium">{art.author}</span>
+                      </span>
+                      {viewCounts !== null && (
+                        <span className="flex items-center gap-1 shrink-0">
+                          <Eye className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>{viewCounts[art.slug] ?? 0} {lang === 'bn' ? 'বার পড়া' : 'reads'}</span>
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1 font-semibold text-emerald-800 group-hover:text-emerald-950">

@@ -17,11 +17,13 @@ import {
   Sparkles,
   ChevronRight,
   ExternalLink,
-  Edit3
+  Edit3,
+  Eye
 } from 'lucide-react';
 import { Article, PdfResource } from '../types';
 import { updateSEOMetadata } from '../utils/seo';
 import { isHtmlContent, sanitizeHtmlForRender } from '../utils/richText';
+import { StorageService } from '../services/storage';
 
 interface ArticleDetailViewProps {
   article: Article;
@@ -29,6 +31,9 @@ interface ArticleDetailViewProps {
   allResources: PdfResource[];
   onOpenResource: (resource: PdfResource) => void;
   onEditArticle?: (article: Article) => void;
+  // True only when a Supabase admin session is active. Admin-only UI
+  // (permalink/SEO strip, Edit button) must never render for visitors.
+  isAdmin?: boolean;
   lang: 'bn' | 'en';
 }
 
@@ -38,11 +43,28 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
   allResources,
   onOpenResource,
   onEditArticle,
+  isAdmin,
   lang
 }) => {
   const [contentLang, setContentLang] = useState<'bn' | 'en'>(lang);
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('base');
   const [copiedLink, setCopiedLink] = useState(false);
+  // Real read count from Supabase (null = analytics tables not set up yet).
+  const [viewCount, setViewCount] = useState<number | null>(null);
+
+  // Record one view per browser session and load the total read count.
+  useEffect(() => {
+    let cancelled = false;
+    StorageService.recordArticleView(article.slug).then(() => {
+      if (cancelled) return;
+      StorageService.getArticleViewCount(article.slug).then((count) => {
+        if (!cancelled) setViewCount(count);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [article.slug]);
 
   // Sync SEO metadata when article opens
   useEffect(() => {
@@ -124,41 +146,56 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
         </ol>
       </nav>
 
-      {/* 2. Permalink & Google Indexable URL Strip */}
-      <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl px-4 py-2.5 mb-6 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Globe className="w-4 h-4 text-emerald-800 shrink-0" />
-          <span className="font-semibold text-emerald-950 shrink-0">স্থায়ী লিংক:</span>
-          <span className="font-mono text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-200 truncate max-w-full text-[11px]">
-            {fullArticleUrl}
-          </span>
-          <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-800 text-white text-[10px] font-bold rounded-full">
-            <Check className="w-3 h-3" />
-            <span>Google Search Ready</span>
-          </span>
-        </div>
+      {/* 2. Permalink strip — ADMIN ONLY.
+          Visitors see only a plain copy-link button below; the permanent-URL
+          display, the "Google Search Ready" SEO badge and the Edit button
+          must never render for logged-out visitors. */}
+      {isAdmin ? (
+        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl px-4 py-2.5 mb-6 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Globe className="w-4 h-4 text-emerald-800 shrink-0" />
+            <span className="font-semibold text-emerald-950 shrink-0">স্থায়ী লিংক:</span>
+            <span className="font-mono text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-200 truncate max-w-full text-[11px]">
+              {fullArticleUrl}
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-800 text-white text-[10px] font-bold rounded-full">
+              <Check className="w-3 h-3" />
+              <span>Google Search Ready</span>
+            </span>
+          </div>
 
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyLink}
+              className="flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-emerald-100 text-emerald-900 rounded-lg border border-emerald-300 font-semibold transition-colors text-xs"
+            >
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedLink ? 'কপি হয়েছে!' : 'লিংক কপি'}</span>
+            </button>
+
+            {onEditArticle && (
+              <button
+                onClick={() => onEditArticle(article)}
+                className="flex items-center gap-1 px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold"
+                title="Edit Article"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>এডিট</span>
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-end mb-6">
           <button
             onClick={handleCopyLink}
-            className="flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-emerald-100 text-emerald-900 rounded-lg border border-emerald-300 font-semibold transition-colors text-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-900 rounded-lg border border-stone-200 font-semibold transition-colors text-xs shadow-2xs"
           >
             {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copiedLink ? 'কপি হয়েছে!' : 'লিংক কপি'}</span>
           </button>
-
-          {onEditArticle && (
-            <button
-              onClick={() => onEditArticle(article)}
-              className="flex items-center gap-1 px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold"
-              title="Edit Article"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>এডিট</span>
-            </button>
-          )}
         </div>
-      </div>
+      )}
 
       {/* 3. Hero / Cover Thumbnail Image */}
       {article.coverImage && (
@@ -225,6 +262,13 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
             <div className="font-bold text-stone-900 text-sm">{article.author || 'মুহাম্মদ আরিফুর রহমান'}</div>
             <div className="text-xs text-stone-500">{article.authorDesignation || 'ইসলামিক ব্যাংকিং গবেষক'}</div>
           </div>
+          {/* Real read count from Supabase (hidden until analytics is set up) */}
+          {viewCount !== null && (
+            <span className="flex items-center gap-1 text-xs text-stone-500 border-l border-stone-200 pl-3">
+              <Eye className="w-3.5 h-3.5 text-emerald-700" />
+              <span>{viewCount} {lang === 'bn' ? 'বার পড়া হয়েছে' : 'reads'}</span>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

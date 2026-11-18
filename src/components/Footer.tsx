@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { BookOpen, ShieldCheck, Mail, MapPin, Phone, Heart, Lock } from 'lucide-react';
+import { BookOpen, ShieldCheck, Mail, MapPin, Phone, Heart, Users } from 'lucide-react';
 import { ActiveTab, SiteSettings } from '../types';
 
 interface FooterProps {
@@ -8,6 +8,8 @@ interface FooterProps {
   settings: SiteSettings;
   lang: 'bn' | 'en';
   onSecretAdminTrigger?: () => void;
+  // Total site visits from Supabase (null = analytics tables not set up yet).
+  totalVisitors?: number | null;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -15,7 +17,8 @@ export const Footer: React.FC<FooterProps> = ({
   openBlueprintModal,
   settings,
   lang,
-  onSecretAdminTrigger
+  onSecretAdminTrigger,
+  totalVisitors
 }) => {
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<any>(null);
@@ -340,24 +343,23 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Bottom Strip */}
         <div className="pt-6 border-t border-emerald-900/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-stone-400 text-[11px]">
           <div className="flex items-center gap-2">
-            <span 
-              onClick={handleSecretTap} 
+            <span
+              onClick={handleSecretTap}
               className="cursor-default select-none"
               title=""
             >
               © {new Date().getFullYear()} {settings.siteNameBn} ({settings.siteName}). All rights reserved.
             </span>
-            <button
-              type="button"
-              onClick={() => onSecretAdminTrigger?.()}
-              aria-label="Admin Control Gateway"
-              title={lang === 'bn' ? 'অ্যাডমিন সিকিউরিটি পোর্টাল' : 'Admin Security Gateway'}
-              className="opacity-20 hover:opacity-100 text-stone-400 hover:text-[#D4AF37] p-0.5 rounded transition-all focus:outline-none cursor-pointer"
-            >
-              <Lock className="w-3 h-3" />
-            </button>
           </div>
           <div className="flex items-center gap-2 text-stone-300/80">
+            {/* Total site visitors from Supabase (hidden until analytics is set up) */}
+            {totalVisitors !== null && totalVisitors !== undefined && (
+              <span className="flex items-center gap-1.5 text-stone-300">
+                <Users className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>{lang === 'bn' ? 'মোট ভিজিটর' : 'Total visitors'}: <span className="font-bold text-white">{totalVisitors}</span></span>
+              </span>
+            )}
+            {totalVisitors !== null && totalVisitors !== undefined && <span>·</span>}
             <span>Non-profit Islamic Educational Initiative</span>
             <span>·</span>
             <span>Made for DIB Students in Bangladesh</span>

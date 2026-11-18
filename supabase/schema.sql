@@ -113,3 +113,46 @@ ON public.resources FOR ALL
 TO authenticated
 USING (true)
 WITH CHECK (true);
+
+-- Visitor analytics: per-article read counts + total site visits
+-- One row per (article, browser session) in article_views; one row per
+-- browser session in site_visits. Public INSERT + SELECT so anonymous
+-- visitors can be counted. Added 2026-11-18: see
+-- supabase/migrations/20261118_visitor_analytics.sql (run it in the
+-- Supabase SQL Editor — committing it does not apply it).
+CREATE TABLE IF NOT EXISTS public.article_views (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  article_slug TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (article_slug, session_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.site_visits (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  session_id TEXT NOT NULL UNIQUE,
+  first_visit_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.article_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_visits ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public insert on article_views"
+ON public.article_views FOR INSERT
+TO public
+WITH CHECK (true);
+
+CREATE POLICY "Allow public read on article_views"
+ON public.article_views FOR SELECT
+TO public
+USING (true);
+
+CREATE POLICY "Allow public insert on site_visits"
+ON public.site_visits FOR INSERT
+TO public
+WITH CHECK (true);
+
+CREATE POLICY "Allow public read on site_visits"
+ON public.site_visits FOR SELECT
+TO public
+USING (true);
