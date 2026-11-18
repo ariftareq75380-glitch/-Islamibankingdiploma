@@ -94,3 +94,22 @@ ON public.app_settings FOR ALL
 TO authenticated
 USING (true)
 WITH CHECK (true);
+
+-- Public read access on resources (PDF library)
+-- The public site reads the resources table as an anonymous visitor. Without
+-- a public SELECT policy, anonymous queries return 0 rows, the app silently
+-- falls back to the stale bundled snapshot (content.json), and newly
+-- published PDFs never appear in the public PDF Library or homepage counts.
+-- Added 2026-11-18: see supabase/migrations/20261118_public_read_resources.sql
+ALTER TABLE public.resources ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access on resources"
+ON public.resources FOR SELECT
+TO public
+USING (true);
+
+CREATE POLICY "Allow authenticated full access on resources"
+ON public.resources FOR ALL
+TO authenticated
+USING (true)
+WITH CHECK (true);

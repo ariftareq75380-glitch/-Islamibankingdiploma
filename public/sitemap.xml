@@ -7,7 +7,7 @@
   <!-- 1. Primary Hub & Homepage -->
   <url>
     <loc>https://islamibankingdiploma-4f7m.vercel.app/</loc>
-    <lastmod>2026-10-31</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -72,8 +72,22 @@
   <!-- 3. Research Articles & Permanent URLs -->
   <url>
     <loc>https://islamibankingdiploma-4f7m.vercel.app/articles</loc>
-    <lastmod>2026-10-31</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/diploma/zakat-nisab</loc>
+    <lastmod>2026-11-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://islamibankingdiploma-4f7m.vercel.app/diploma/dib-part-1-code-106-model-answers</loc>
+    <lastmod>2026-11-18</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
 
