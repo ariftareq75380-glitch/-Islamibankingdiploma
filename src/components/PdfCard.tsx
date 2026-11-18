@@ -11,7 +11,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { PdfResource } from '../types';
-import { generateStudyDocumentBlob, triggerDownload } from '../utils/pdfUtils';
+import { hasRealPdf, hasRealPdfFile, hasRealDriveLink } from '../utils/pdfUtils';
 
 interface PdfCardProps {
   resource: PdfResource;
@@ -37,47 +37,49 @@ export const PdfCard: React.FC<PdfCardProps> = ({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Only the Code 106 model-answers entry has a real PDF behind it right
+  // now. Every other bundled entry is a placeholder whose file has not
+  // been uploaded yet — it must never offer a download or a preview.
+  const isPlaceholder = !hasRealPdf(resource);
+
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
     setDownloadError(null);
 
-    // Validate available source
-    if (!resource.pdfFileUrl && !resource.googleDriveUrl) {
+    if (isPlaceholder) {
       setDownloadError(
-        lang === 'bn' 
-          ? 'এই রিসোর্সটির কোনো বৈধ ডাউনলোড লিঙ্ক বা ফাইল যুক্ত নেই।' 
-          : 'No valid download source or URL found for this resource.'
+        lang === 'bn'
+          ? 'শীঘ্রই আসছে — এই নথির PDF ফাইলটি এখনো যোগ করা হয়নি।'
+          : 'Coming soon — the PDF file for this document has not been uploaded yet.'
       );
       return;
     }
 
     onDownloadIncrement(resource.id);
 
-    // If external Google Drive URL is provided and preferred
-    if (resource.googleDriveUrl && !resource.pdfFileUrl) {
+    // Download/open the REAL PDF file — never a generated substitute.
+    if (hasRealPdfFile(resource.pdfFileUrl)) {
+      const a = document.createElement('a');
+      a.href = resource.pdfFileUrl;
+      a.target = '_blank';
+      a.rel = 'noopener,noreferrer';
+      a.download = `${resource.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    if (hasRealDriveLink(resource.googleDriveUrl)) {
       window.open(resource.googleDriveUrl, '_blank', 'noopener,noreferrer');
       return;
     }
 
-    // Direct download generation
-    try {
-      const blob = generateStudyDocumentBlob(
-        resource.title,
-        resource.titleBn,
-        resource.subject,
-        resource.examYear,
-        resource.examSession,
-        resource.description,
-        resource.keyTopics || []
-      );
-      const filename = `${resource.title.replace(/[^a-zA-Z0-9]/g, '_')}_DIB_Study.html`;
-      triggerDownload(blob, filename);
-    } catch {
-      // Fallback
-      if (resource.pdfFileUrl) {
-        window.open(resource.pdfFileUrl, '_blank');
-      }
-    }
+    setDownloadError(
+      lang === 'bn'
+        ? 'এই রিসোর্সটির কোনো বৈধ ডাউনলোড লিঙ্ক বা ফাইল যুক্ত নেই।'
+        : 'No valid download source or URL found for this resource.'
+    );
   };
 
   const handleCopyLink = (e: React.MouseEvent) => {
@@ -150,11 +152,18 @@ export const PdfCard: React.FC<PdfCardProps> = ({
 
         {/* Resource Title */}
         <h3 
-          onClick={() => onPreview(resource)}
-          className="text-sm sm:text-base font-bold text-stone-900 hover:text-[#047857] cursor-pointer transition-colors leading-snug mb-1 font-bengali"
+          onClick={() => { if (!isPlaceholder) onPreview(resource); }}
+          className={`text-sm sm:text-base font-bold text-stone-900 hover:text-[#047857] cursor-pointer transition-colors leading-snug mb-1 font-bengali ${isPlaceholder ? 'pointer-events-none' : ''}`}
         >
           {lang === 'bn' ? resource.titleBn : resource.title}
         </h3>
+
+        {/* Coming-soon badge for entries whose PDF has not been uploaded yet */}
+        {isPlaceholder && (
+          <p className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold mb-2 w-fit">
+            {lang === 'bn' ? 'শীঘ্রই আসছে — PDF যোগ করা হবে' : 'Coming soon — PDF will be added'}
+          </p>
+        )}
 
         {/* Secondary Title */}
         <p className="text-[11px] text-stone-400 italic mb-2.5">
@@ -192,14 +201,9 @@ export const PdfCard: React.FC<PdfCardProps> = ({
         )}
       </div>
 
-      {/* Footer Actions & Stats */}
+      {/* Footer Actions */}
       <div className="pt-3 border-t border-stone-100 flex flex-col gap-2.5">
-        <div className="flex items-center justify-between text-[11px] text-stone-400">
-          <div className="flex items-center gap-2">
-            <span>{resource.downloadsCount} {lang === 'bn' ? 'ডাউনলোড' : 'downloads'}</span>
-            <span>·</span>
-            <span>{resource.viewsCount} {lang === 'bn' ? 'বার পড়া হয়েছে' : 'views'}</span>
-          </div>
+        <div className="flex items-center justify-end text-[11px] text-stone-400">
           <button
             onClick={handleCopyLink}
             className="flex items-center gap-1 hover:text-[#047857] text-stone-400 transition-colors"
@@ -211,27 +215,39 @@ export const PdfCard: React.FC<PdfCardProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Quick Preview Button */}
+          {/* Quick Preview Button — disabled until the real PDF is uploaded */}
           <button
-            onClick={() => onPreview(resource)}
-            className="flex-1 py-1.5 sm:py-2 px-2.5 text-xs font-semibold text-[#14532D] bg-[#F4F6F0] hover:bg-emerald-50 border border-emerald-200/90 rounded-lg transition-colors flex items-center justify-center gap-1"
+            onClick={() => { if (!isPlaceholder) onPreview(resource); }}
+            disabled={isPlaceholder}
+            title={isPlaceholder ? (lang === 'bn' ? 'শীঘ্রই আসছে — PDF যোগ করা হবে' : 'Coming soon — PDF will be added') : undefined}
+            className={`flex-1 py-1.5 sm:py-2 px-2.5 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 ${
+              isPlaceholder
+                ? 'text-stone-400 bg-stone-100 border border-stone-200 cursor-not-allowed'
+                : 'text-[#14532D] bg-[#F4F6F0] hover:bg-emerald-50 border border-emerald-200/90'
+            }`}
           >
             <Eye className="w-3.5 h-3.5" />
-            <span>{lang === 'bn' ? 'প্রিভিউ' : 'Quick Preview'}</span>
+            <span>{isPlaceholder ? (lang === 'bn' ? 'শীঘ্রই আসছে' : 'Coming soon') : (lang === 'bn' ? 'প্রিভিউ' : 'Quick Preview')}</span>
           </button>
 
-          {/* Download Button */}
+          {/* Download Button — disabled until the real PDF is uploaded */}
           <button
             onClick={handleDownload}
-            className="flex-1 py-1.5 sm:py-2 px-2.5 text-xs font-semibold text-white bg-[#047857] hover:bg-[#065f46] rounded-lg transition-colors flex items-center justify-center gap-1 shadow-2xs active:scale-95"
+            disabled={isPlaceholder}
+            title={isPlaceholder ? (lang === 'bn' ? 'শীঘ্রই আসছে — PDF যোগ করা হবে' : 'Coming soon — PDF will be added') : undefined}
+            className={`flex-1 py-1.5 sm:py-2 px-2.5 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 shadow-2xs ${
+              isPlaceholder
+                ? 'text-stone-400 bg-stone-200 cursor-not-allowed'
+                : 'text-white bg-[#047857] hover:bg-[#065f46] active:scale-95'
+            }`}
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{lang === 'bn' ? 'ডাউনলোড' : 'Download'}</span>
+            <span>{isPlaceholder ? (lang === 'bn' ? 'শীঘ্রই আসছে' : 'Coming soon') : (lang === 'bn' ? 'ডাউনলোড' : 'Download')}</span>
           </button>
         </div>
 
-        {/* Optional Google Drive indicator if present */}
-        {resource.googleDriveUrl && (
+        {/* Optional Google Drive indicator if a REAL Drive link is present */}
+        {hasRealDriveLink(resource.googleDriveUrl) && (
           <div className="flex items-center justify-end text-[10px] text-stone-400">
             <a 
               href={resource.googleDriveUrl} 

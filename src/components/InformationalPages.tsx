@@ -12,6 +12,7 @@ import {
   Building
 } from 'lucide-react';
 import { SiteSettings } from '../types';
+import { supabase } from '../utils/supabase';
 
 interface InformationalPagesProps {
   page: 'about' | 'contact' | 'privacy' | 'disclaimer';
@@ -29,17 +30,38 @@ export const InformationalPages: React.FC<InformationalPagesProps> = ({
   const [formSubject, setFormSubject] = useState('');
   const [formMessage, setFormMessage] = useState('');
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [formSending, setFormSending] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const handleSubmitContact = (e: React.FormEvent) => {
+  const handleSubmitContact = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName || !formEmail || !formMessage) return;
+    setFormError(null);
+    setFormSending(true);
+    // Messages are stored in the `contact_messages` table (see
+    // supabase/migrations/20261118_contact_messages.sql — it must be run
+    // once in the Supabase SQL Editor). A failure is shown honestly;
+    // success is only shown after the row is actually saved.
+    const { error } = await supabase.from('contact_messages').insert({
+      name: formName.trim(),
+      email: formEmail.trim(),
+      subject: formSubject.trim() || null,
+      message: formMessage.trim()
+    });
+    setFormSending(false);
+    if (error) {
+      setFormError(
+        lang === 'bn'
+          ? 'দুঃখিত, বার্তা পাঠানো যায়নি। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।'
+          : 'Sorry, your message could not be sent. Please try again in a while.'
+      );
+      return;
+    }
     setFormSubmitted(true);
-    setTimeout(() => {
-      setFormName('');
-      setFormEmail('');
-      setFormSubject('');
-      setFormMessage('');
-    }, 1000);
+    setFormName('');
+    setFormEmail('');
+    setFormSubject('');
+    setFormMessage('');
   };
 
   return (
@@ -200,11 +222,23 @@ export const InformationalPages: React.FC<InformationalPagesProps> = ({
 
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg transition-colors flex items-center gap-2 shadow-xs"
+                disabled={formSending}
+                className="px-6 py-2.5 bg-emerald-800 hover:bg-emerald-700 disabled:bg-stone-400 text-white font-semibold text-xs rounded-lg transition-colors flex items-center gap-2 shadow-xs"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{lang === 'bn' ? 'বার্তা পাঠান' : 'Submit Inquiry'}</span>
+                <span>
+                  {formSending
+                    ? (lang === 'bn' ? 'পাঠানো হচ্ছে…' : 'Sending…')
+                    : (lang === 'bn' ? 'বার্তা পাঠান' : 'Submit Inquiry')}
+                </span>
               </button>
+
+              {formError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
             </form>
           )}
         </div>

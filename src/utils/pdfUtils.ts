@@ -12,6 +12,42 @@ export function isGoogleDriveUrl(urlString: string): boolean {
   return urlString.includes('drive.google.com') || urlString.includes('docs.google.com');
 }
 
+// The W3C dummy test PDF that was used as a placeholder `pdfFileUrl` in the
+// bundled seed data. It must never be served to visitors as a real document.
+const DUMMY_PDF_MARKER = 'w3.org/WAI/ER/tests';
+
+// True only when the URL points at a real PDF file, not the W3C dummy
+// placeholder (or an empty value). Live Supabase Storage URLs pass.
+export function hasRealPdfFile(urlString?: string | null): boolean {
+  if (!urlString || !urlString.trim()) return false;
+  if (urlString.includes(DUMMY_PDF_MARKER)) return false;
+  return isValidUrl(urlString);
+}
+
+// True only when the Drive link is a real file link. The bundled seed data
+// used fake "1SAMPLE_..." Drive file IDs as placeholders.
+export function hasRealDriveLink(urlString?: string | null): boolean {
+  if (!urlString || !urlString.trim()) return false;
+  if (/SAMPLE/i.test(urlString)) return false;
+  return isGoogleDriveUrl(urlString);
+}
+
+// True when a library entry actually has a downloadable PDF behind it.
+// Only the Code 106 model-answers entry currently passes; every other
+// bundled entry is a placeholder whose PDF has not been uploaded yet.
+export function hasRealPdf(resource: { pdfFileUrl?: string | null; googleDriveUrl?: string | null }): boolean {
+  return hasRealPdfFile(resource.pdfFileUrl) || hasRealDriveLink(resource.googleDriveUrl);
+}
+
+// Mobile browsers (Chrome on Android, iOS Safari) do not render a PDF
+// inside an <iframe> — they show only a filename + "Open" button instead
+// of pages. The Google Docs viewer renders the PDF as real pages on every
+// device, so embedded previews use it. The direct PDF URL is still used
+// for the read/download button. The URL must be publicly reachable.
+export function getPdfPreviewEmbedUrl(pdfUrl: string): string {
+  return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(pdfUrl)}`;
+}
+
 export function getGoogleDriveEmbedUrl(driveUrl: string): string {
   if (!driveUrl) return '';
   // Convert standard /view or /edit or file/d/ID to /preview for embedded iframe

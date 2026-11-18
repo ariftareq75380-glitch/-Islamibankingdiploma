@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   X, 
-  Download, 
   ExternalLink, 
   FileText, 
   Calendar, 
@@ -9,16 +8,15 @@ import {
   Share2, 
   Check, 
   AlertTriangle,
-  BookOpen,
-  Info,
-  Maximize2
+  BookOpen
 } from 'lucide-react';
 import { PdfResource } from '../types';
-import { 
-  getGoogleDriveEmbedUrl, 
-  isGoogleDriveUrl, 
-  generateStudyDocumentBlob, 
-  triggerDownload 
+import {
+  getGoogleDriveEmbedUrl,
+  hasRealPdf,
+  hasRealPdfFile,
+  hasRealDriveLink,
+  getPdfPreviewEmbedUrl
 } from '../utils/pdfUtils';
 
 interface PdfViewerModalProps {
@@ -47,15 +45,28 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  const hasDirectPdf = Boolean(resource.pdfFileUrl);
-  const hasDriveLink = Boolean(resource.googleDriveUrl);
+  // Only entries with a real file behind them can be previewed or opened.
+  // Every other bundled entry is a placeholder whose PDF has not been
+  // uploaded yet — show "coming soon" and never serve a fake file.
+  const isPlaceholder = !hasRealPdf(resource);
+  const hasDirectPdf = hasRealPdfFile(resource.pdfFileUrl);
+  const hasDriveLink = hasRealDriveLink(resource.googleDriveUrl);
   const hasAnySource = hasDirectPdf || hasDriveLink;
 
   const handleDownload = () => {
+    if (isPlaceholder) {
+      setDownloadError(
+        lang === 'bn'
+          ? 'শীঘ্রই আসছে — এই নথির PDF ফাইলটি এখনো যোগ করা হয়নি।'
+          : 'Coming soon — the PDF file for this document has not been uploaded yet.'
+      );
+      return;
+    }
+
     if (!hasAnySource) {
       setDownloadError(
-        lang === 'bn' 
-          ? 'এই নথির কোনো বৈধ উৎস বা ফাইল সংরক্ষিত নেই।' 
+        lang === 'bn'
+          ? 'এই নথির কোনো বৈধ উৎস বা ফাইল সংরক্ষিত নেই।'
           : 'No valid file attachment or download link available.'
       );
       return;
@@ -63,8 +74,10 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
 
     onDownloadIncrement(resource.id);
 
-    // If direct Supabase Storage PDF is available, open / trigger download
-    if (resource.pdfFileUrl) {
+    // Open the REAL PDF in a new tab (cross-origin `download` is ignored
+    // by browsers, so the button is labelled "read in a new tab", not
+    // "download"). Never generate a substitute document.
+    if (hasDirectPdf) {
       const a = document.createElement('a');
       a.href = resource.pdfFileUrl;
       a.target = '_blank';
@@ -79,22 +92,6 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
     if (hasDriveLink) {
       window.open(resource.googleDriveUrl, '_blank', 'noopener,noreferrer');
       return;
-    }
-
-    try {
-      const blob = generateStudyDocumentBlob(
-        resource.title,
-        resource.titleBn,
-        resource.subject,
-        resource.examYear,
-        resource.examSession,
-        resource.description,
-        resource.keyTopics || []
-      );
-      const filename = `${resource.title.replace(/[^a-zA-Z0-9]/g, '_')}_DIB_Resource.html`;
-      triggerDownload(blob, filename);
-    } catch {
-      // fallback
     }
   };
 
@@ -172,7 +169,11 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
             </div>
             <div>
               <span className="text-stone-500 block">{lang === 'bn' ? 'ফাইলের আকার:' : 'File Size:'}</span>
-              <span className="font-semibold text-stone-900">{resource.fileSize} ({resource.pageCount || 10} {lang === 'bn' ? 'পৃষ্ঠা' : 'pages'})</span>
+              <span className="font-semibold text-stone-900">
+                {isPlaceholder
+                  ? (lang === 'bn' ? 'শীঘ্রই আসছে' : 'Coming soon')
+                  : `${resource.fileSize} (${resource.pageCount || 10} ${lang === 'bn' ? 'পৃষ্ঠা' : 'pages'})`}
+              </span>
             </div>
             <div>
               <span className="text-stone-500 block">{lang === 'bn' ? 'ভাষার মাধ্যম:' : 'Language:'}</span>
@@ -215,84 +216,57 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
                 {lang === 'bn' ? 'ডিজিটাল রিডিং ও প্রিভিউ মোড' : 'Digital Reader & Document Preview'}
               </h4>
               <span className="text-xs text-stone-500">
-                {resource.googleDriveUrl ? (lang === 'bn' ? 'গুগল ড্রাইভ ভিউয়ার সক্রিয়' : 'Google Drive Embed Active') : (lang === 'bn' ? 'ইন্টারেক্টিভ স্টাডি প্রিভিউ' : 'Interactive Document Canvas')}
+                {isPlaceholder
+                  ? (lang === 'bn' ? 'শীঘ্রই আসছে' : 'Coming soon')
+                  : hasDriveLink
+                    ? (lang === 'bn' ? 'গুগল ড্রাইভ ভিউয়ার সক্রিয়' : 'Google Drive Embed Active')
+                    : (lang === 'bn' ? 'পিডিএফ প্রিভিউ' : 'PDF Preview')}
               </span>
             </div>
 
-            <div className="relative rounded-xl border border-stone-300 bg-stone-100 overflow-hidden min-h-[300px] flex flex-col justify-center items-center p-6 text-center">
-              {resource.pdfFileUrl ? (
-                <div className="w-full space-y-4">
-                  <div className="max-w-md mx-auto text-xs text-stone-600 bg-white p-5 rounded-xl border border-stone-200 shadow-xs space-y-3">
-                    <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto">
-                      <FileText className="w-6 h-6" />
-                    </div>
-                    <p className="font-bold text-stone-900 text-sm">
-                      {lang === 'bn' ? 'Supabase ক্লাউড পিডিএফ ডকুমেন্ট' : 'Supabase Cloud PDF Document'}
-                    </p>
-                    <p className="leading-relaxed">
-                      {lang === 'bn'
-                        ? 'এই ডকুমেন্টটি Supabase Storage "pdfs" বাকেটে সুরক্ষিতভাবে সংরক্ষিত রয়েছে।'
-                        : 'This document is securely stored on Supabase Storage "pdfs" bucket.'}
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                      <a
-                        href={resource.pdfFileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
-                      >
-                        <span>{lang === 'bn' ? 'নতুন ট্যাবে সরাসরি পড়ুন' : 'Read in New Tab'}</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={handleDownload}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg font-medium transition-colors cursor-pointer border border-stone-300"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>{lang === 'bn' ? 'ডাউনলোড' : 'Download'}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : resource.googleDriveUrl ? (
-                <div className="w-full space-y-4">
-                  <div className="max-w-md mx-auto text-xs text-stone-600 bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
-                    <p className="font-semibold text-stone-900 mb-1">
-                      {lang === 'bn' ? 'গুগল ড্রাইভ থেকে ব্রাউজ করুন' : 'Cloud Hosted on Google Drive'}
-                    </p>
-                    <p className="mb-3">
-                      {lang === 'bn'
-                        ? 'এই ডকুমেন্টটি গুগল ড্রাইভে সরাসরি প্রিভিউ ও হাই-কোয়ালিটিতে প্রিন্ট করা যাবে।'
-                        : 'Open in new tab to read directly inside Google Docs / Drive with native zooming and printing.'}
-                    </p>
-                    <a
-                      href={resource.googleDriveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      <span>{lang === 'bn' ? 'নতুন ট্যাবে গুগল ড্রাইভে খুলুন' : 'Open in Google Drive'}</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
-                </div>
-              ) : (
-                <div className="max-w-lg space-y-3">
-                  <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto">
+            {isPlaceholder ? (
+              <div className="relative rounded-xl border border-amber-200 bg-amber-50 overflow-hidden min-h-[300px] flex flex-col justify-center items-center p-6 text-center">
+                <div className="max-w-md space-y-3">
+                  <div className="w-12 h-12 bg-amber-100 text-amber-800 rounded-full flex items-center justify-center mx-auto">
                     <FileText className="w-6 h-6" />
                   </div>
                   <h5 className="font-bold text-stone-900 text-sm">
-                    {lang === 'bn' ? 'প্রামাণ্য স্টাডি শিট ও প্রশ্ন সমাধান প্রস্তুত' : 'Verified Study Document Ready'}
+                    {lang === 'bn' ? 'শীঘ্রই আসছে — PDF যোগ করা হবে' : 'Coming soon — PDF will be added'}
                   </h5>
                   <p className="text-xs text-stone-600 leading-relaxed">
                     {lang === 'bn'
-                      ? 'ডাউনলোড বোতামে ক্লিক করলেই পূর্ণাঙ্গ ফরম্যাটেড স্টাডি শিটটি আপনার ডিভাইসে সেভ হবে। প্রিন্ট করে বা অফলাইনে পড়াশোনার জন্য অত্যন্ত উপযোগী।'
-                      : 'Click the download button below to save the formatted revision document directly to your device for offline study.'}
+                      ? 'এই নথির PDF ফাইলটি এখনো যোগ করা হয়নি। ফাইল যোগ করা হলে এখানেই প্রিভিউ দেখা ও ডাউনলোড করা যাবে।'
+                      : 'The PDF file for this document has not been uploaded yet. Once added, you will be able to preview and download it here.'}
                   </p>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : hasDirectPdf ? (
+              <div className="relative rounded-xl border border-stone-300 bg-stone-100 overflow-hidden">
+                {/* Google Docs viewer renders real PDF pages on phones too —
+                    mobile browsers show only a filename + "Open" button for
+                    a PDF loaded directly in an iframe. */}
+                <iframe
+                  src={getPdfPreviewEmbedUrl(resource.pdfFileUrl)}
+                  title={lang === 'bn' ? 'PDF প্রিভিউ' : 'PDF Preview'}
+                  loading="lazy"
+                  className="w-full h-[420px] sm:h-[560px] rounded-xl bg-white block"
+                />
+                <p className="text-[11px] text-stone-500 mt-2 px-1">
+                  {lang === 'bn'
+                    ? 'প্রিভিউ না দেখা গেলে নিচের বাটনে ক্লিক করে PDF-টি নতুন ট্যাবে পড়ুন।'
+                    : 'If the preview does not load, use the button below to read the PDF in a new tab.'}
+                </p>
+              </div>
+            ) : (
+              <div className="relative rounded-xl border border-stone-300 bg-stone-100 overflow-hidden">
+                <iframe
+                  src={getGoogleDriveEmbedUrl(resource.googleDriveUrl || '')}
+                  title={lang === 'bn' ? 'PDF প্রিভিউ' : 'PDF Preview'}
+                  loading="lazy"
+                  className="w-full h-[420px] sm:h-[560px] rounded-xl bg-white block"
+                />
+              </div>
+            )}
           </div>
 
           {/* Validation or Download Error warning */}
@@ -359,13 +333,28 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
             >
               {lang === 'bn' ? 'বন্ধ করুন' : 'Close'}
             </button>
-            <button
-              onClick={handleDownload}
-              className="flex-1 sm:flex-none px-5 py-2.5 text-xs font-semibold text-white bg-emerald-800 hover:bg-emerald-700 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-xs"
-            >
-              <Download className="w-4 h-4" />
-              <span>{lang === 'bn' ? 'ডাউনলোড করুন (ফ্রি)' : 'Download Document'}</span>
-            </button>
+            {isPlaceholder ? (
+              <button
+                type="button"
+                disabled
+                title={lang === 'bn' ? 'শীঘ্রই আসছে — PDF যোগ করা হবে' : 'Coming soon — PDF will be added'}
+                className="flex-1 sm:flex-none px-5 py-2.5 text-xs font-semibold text-stone-400 bg-stone-200 rounded-lg cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <span>{lang === 'bn' ? 'শীঘ্রই আসছে' : 'Coming soon'}</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleDownload}
+                className="flex-1 sm:flex-none px-5 py-2.5 text-xs font-semibold text-white bg-emerald-800 hover:bg-emerald-700 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-xs"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>
+                  {hasDirectPdf
+                    ? (lang === 'bn' ? 'নতুন ট্যাবে পড়ুন' : 'Read in New Tab')
+                    : (lang === 'bn' ? 'গুগল ড্রাইভে খুলুন' : 'Open in Google Drive')}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -239,17 +239,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Desktop Primary Nav */}
           <nav 
             ref={dropdownRef}
-            className="hidden lg:flex items-center gap-3 xl:gap-4 text-xs xl:text-sm font-medium text-stone-600"
+            className="hidden xl:flex items-center gap-3 xl:gap-4 text-xs xl:text-sm font-medium text-stone-600"
             aria-label="Main Navigation"
           >
             {/* 1. DIB Exam Dropdown */}
-            <div className="relative">
+            <div
+              className="relative"
+              onMouseEnter={() => setActiveDropdown('dib-exam')}
+              onMouseLeave={() => setActiveDropdown(null)}
+            >
               <button
                 type="button"
                 onClick={() => setActiveDropdown(activeDropdown === 'dib-exam' ? null : 'dib-exam')}
-                onMouseEnter={() => setActiveDropdown('dib-exam')}
                 aria-expanded={activeDropdown === 'dib-exam'}
-                className="py-1 px-2 rounded-lg hover:text-[#14532D] hover:bg-emerald-50/70 transition-colors flex items-center gap-1 font-bengali font-semibold text-stone-700 cursor-pointer"
+                className="py-1 px-2 rounded-lg hover:text-[#14532D] hover:bg-emerald-50/70 transition-colors flex items-center gap-1 font-bengali font-semibold text-stone-700 cursor-pointer whitespace-nowrap shrink-0"
               >
                 <span>{lang === 'bn' ? 'ডিআইবি পরীক্ষা' : 'DIB Exam'}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-stone-400 transition-transform ${activeDropdown === 'dib-exam' ? 'rotate-180' : ''}`} />
@@ -257,7 +260,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               {activeDropdown === 'dib-exam' && (
                 <div 
-                  onMouseLeave={() => setActiveDropdown(null)}
                   className="absolute left-0 top-full mt-1 w-56 rounded-xl bg-white shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95 font-bengali"
                 >
                   <button
@@ -298,13 +300,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* 3. Articles Dropdown */}
-            <div className="relative">
+            <div
+              className="relative"
+              onMouseEnter={() => setActiveDropdown('articles')}
+              onMouseLeave={() => setActiveDropdown(null)}
+            >
               <button
                 type="button"
                 onClick={() => setActiveDropdown(activeDropdown === 'articles' ? null : 'articles')}
-                onMouseEnter={() => setActiveDropdown('articles')}
                 aria-expanded={activeDropdown === 'articles'}
-                className="py-1 px-2 rounded-lg hover:text-[#14532D] hover:bg-emerald-50/70 transition-colors flex items-center gap-1 font-bengali font-semibold text-stone-700 cursor-pointer"
+                className="py-1 px-2 rounded-lg hover:text-[#14532D] hover:bg-emerald-50/70 transition-colors flex items-center gap-1 font-bengali font-semibold text-stone-700 cursor-pointer whitespace-nowrap shrink-0"
               >
                 <span>{lang === 'bn' ? 'আর্টিকেলসমূহ' : 'Articles'}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-stone-400 transition-transform ${activeDropdown === 'articles' ? 'rotate-180' : ''}`} />
@@ -312,7 +317,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               {activeDropdown === 'articles' && (
                 <div 
-                  onMouseLeave={() => setActiveDropdown(null)}
                   className="absolute left-0 top-full mt-1 w-60 rounded-xl bg-white shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95 font-bengali"
                 >
                   <button

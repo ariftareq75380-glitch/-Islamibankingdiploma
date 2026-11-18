@@ -106,8 +106,28 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
     return Math.max(0, totalAssets - (debts || 0));
   }, [totalAssets, debts]);
 
-  // Zakat threshold comparison against Admin-configured Nisab amount
-  const isNisabReached = netWealth >= nisabAmount;
+  // Zakat threshold. The admin-configured nisabAmount tracks the SILVER
+  // nisab (52.5 bhori) and applies to every mixed holding (cash, silver,
+  // business goods, investments). But when the ONLY zakatable holding is
+  // gold, the GOLD nisab applies instead: 7.5 bhori (87.48 g) valued at
+  // the current gold rate — e.g. 5 bhori of gold alone is NOT zakatable.
+  const GOLD_NISAB_GRAMS = 7.5 * BHORI_TO_GRAM;
+  const goldNisabValue = useMemo(
+    () => Math.round(GOLD_NISAB_GRAMS * (goldRate || 0)),
+    [goldRate]
+  );
+  const isGoldOnly = useMemo(() => {
+    return (
+      totalGoldValue > 0 &&
+      totalSilverValue === 0 &&
+      (cash || 0) === 0 &&
+      (businessGoods || 0) === 0 &&
+      (investments || 0) === 0 &&
+      (otherAssets || 0) === 0
+    );
+  }, [totalGoldValue, totalSilverValue, cash, businessGoods, investments, otherAssets]);
+  const applicableNisab = isGoldOnly ? goldNisabValue : nisabAmount;
+  const isNisabReached = netWealth >= applicableNisab;
   const zakatAmount = isNisabReached ? netWealth * 0.025 : 0;
 
   const handleReset = () => {
@@ -457,9 +477,15 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
               হিসাবের ফলাফল
             </h3>
             <div className="text-xs text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full w-fit border border-emerald-200">
-              নিসাব মানদণ্ড: ৳ {formatBnNumber(nisabAmount)} (হালনাগাদ: {lastUpdatedDate})
+              নিসাব মানদণ্ড: ৳ {formatBnNumber(applicableNisab)} (হালনাগাদ: {lastUpdatedDate})
             </div>
           </div>
+
+          {isGoldOnly && (
+            <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
+              শুধু স্বর্ণ থাকায় স্বর্ণের নিসাব (৭.৫ ভরি = ৮৭.৪৮ গ্রাম, ৳ {formatBnNumber(goldNisabValue)}) প্রযোজ্য হয়েছে। রৌপ্যের নিসাব এখানে প্রযোজ্য নয়।
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             {/* 1. মোট সম্পদ */}
@@ -494,10 +520,12 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
                 নিসাবের মূল্য
               </span>
               <div className="text-lg sm:text-xl font-bold text-stone-900">
-                {formatBnNumber(nisabAmount)} টাকা
+                {formatBnNumber(applicableNisab)} টাকা
               </div>
               <span className="text-[10px] text-stone-500 block mt-1">
-                রৌপ্যের নিসাব (৫২.৫ ভরি বা ৬১২.৩৬ গ্রাম)
+                {isGoldOnly
+                  ? 'স্বর্ণের নিসাব (৭.৫ ভরি বা ৮৭.৪৮ গ্রাম)'
+                  : 'রৌপ্যের নিসাব (৫২.৫ ভরি বা ৬১২.৩৬ গ্রাম)'}
               </span>
             </div>
 
@@ -530,7 +558,7 @@ export const ZakatCalculator: React.FC<ZakatCalculatorProps> = ({
 
           <div className="text-xs text-stone-600 bg-stone-50 border border-stone-200/80 rounded-lg p-3">
             <span>
-              বর্তমান নিসাব মানদণ্ড ৳ {formatBnNumber(nisabAmount)} এবং স্বর্ণের দর প্রতি গ্রাম ৳ {formatBnNumber(goldRate)}, রৌপ্যের দর প্রতি গ্রাম ৳ {formatBnNumber(silverRate)} অনুযায়ী এই হিসাব করা হয়েছে।
+              বর্তমান নিসাব মানদণ্ড ৳ {formatBnNumber(applicableNisab)} এবং স্বর্ণের দর প্রতি গ্রাম ৳ {formatBnNumber(goldRate)}, রৌপ্যের দর প্রতি গ্রাম ৳ {formatBnNumber(silverRate)} অনুযায়ী এই হিসাব করা হয়েছে।
             </span>
           </div>
         </div>

@@ -62,6 +62,9 @@ export default function App() {
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [lastRead, setLastRead] = useState<{ id: string; title: string; titleBn: string; timestamp: number } | null>(null);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
+  // True when the live load timed out and the page is showing the bundled
+  // fallback (content.json) instead of fresh Supabase data.
+  const [isDataStale, setIsDataStale] = useState<boolean>(false);
 
   // Reading Experience: Theme & Font Size
   const [theme, setThemeState] = useState<'light' | 'sepia' | 'dark'>(() => StorageService.getTheme());
@@ -156,21 +159,42 @@ export default function App() {
     });
   }, []);
 
-  const loadAllData = async () => {
-    setIsLoadingData(true);
+  // Live data normally arrives in ~1s, but a Supabase cold start can take
+  // ~8-13s. Past that, stop waiting: keep the bundled fallback already in
+  // state and say so, instead of leaving the visitor on the homepage
+  // indefinitely (or judging a deep link against stale data).
+  const DATA_LOAD_TIMEOUT_MS = 8000;
+
+  const loadAllData = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setIsLoadingData(true);
+      setIsDataStale(false);
+    }
     try {
-      const [fetchedResources, fetchedArticles, fetchedSettings] = await Promise.all([
+      const loadPromise = Promise.all([
         StorageService.getPdfResources(),
         StorageService.getArticles(),
         StorageService.getSiteSettings()
       ]);
-      setResources(fetchedResources);
-      setArticles(fetchedArticles);
-      setSettings(fetchedSettings);
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), DATA_LOAD_TIMEOUT_MS);
+      });
+      const result = await Promise.race([loadPromise, timeoutPromise]);
+      if (result) {
+        const [fetchedResources, fetchedArticles, fetchedSettings] = result;
+        setResources(fetchedResources);
+        setArticles(fetchedArticles);
+        setSettings(fetchedSettings);
+        if (!opts?.silent) setIsDataStale(false);
+      } else {
+        if (!opts?.silent) setIsDataStale(true);
+        console.warn('[Data Load] Live data timed out after 8s; showing bundled fallback content.');
+      }
     } catch (err) {
       console.warn('Error loading data in loadAllData:', err);
+      if (!opts?.silent) setIsDataStale(true);
     } finally {
-      setIsLoadingData(false);
+      if (!opts?.silent) setIsLoadingData(false);
     }
     setBookmarks(StorageService.getBookmarks());
     setCompletedIds(StorageService.getCompletedResources());
@@ -189,7 +213,8 @@ export default function App() {
 
   const handleDownloadIncrement = (id: string) => {
     StorageService.incrementDownload(id);
-    loadAllData();
+    // Silent refresh: a download click must not flash the loading screen.
+    loadAllData({ silent: true });
   };
 
   const handleToggleBookmark = (id: string) => {
@@ -634,6 +659,36 @@ export default function App() {
 
       {/* Main View Router */}
       <main className="flex-1">
+        {isLoadingData ? (
+          /* Loading screen — shown instead of the homepage while the live
+             data is still arriving, so a deep link never looks like the
+             wrong page for the first ~8 seconds. */
+          <div className="max-w-2xl mx-auto px-4 py-24 text-center font-bengali">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-700" />
+            <p className="text-base font-bold text-stone-900">লোড হচ্ছে…</p>
+            <p className="text-xs text-stone-500 mt-1">
+              {lang === 'bn' ? 'কনটেন্ট লোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন।' : 'Loading content, please wait.'}
+            </p>
+          </div>
+        ) : (
+          <>
+            {isDataStale && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 font-bengali">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
+                  <span>
+                    {lang === 'bn'
+                      ? 'সাময়িকভাবে সংরক্ষিত (cached) কনটেন্ট দেখানো হচ্ছে — লাইভ ডাটা লোড হয়নি।'
+                      : 'Showing temporarily cached content — live data could not be loaded.'}
+                  </span>
+                  <button
+                    onClick={() => loadAllData()}
+                    className="px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 border border-amber-300 font-semibold text-amber-900 transition-colors cursor-pointer"
+                  >
+                    {lang === 'bn' ? 'আবার চেষ্টা করুন' : 'Try again'}
+                  </button>
+                </div>
+              </div>
+            )}
         {/* STANDALONE ARTICLE / STUDY GUIDE VIEW WITH DISTINCT PERMANENT URL */}
         {selectedArticleForRead ? (
           <ArticleDetailView
@@ -946,6 +1001,8 @@ export default function App() {
               </div>
             </div>
           </div>
+        )}
+          </>
         )}
           </>
         )}

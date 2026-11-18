@@ -23,6 +23,7 @@ import {
 import { Article, PdfResource } from '../types';
 import { updateSEOMetadata } from '../utils/seo';
 import { isHtmlContent, sanitizeHtmlForRender } from '../utils/richText';
+import { getPdfPreviewEmbedUrl } from '../utils/pdfUtils';
 import { StorageService } from '../services/storage';
 
 interface ArticleDetailViewProps {
@@ -432,11 +433,14 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
           </div>
 
           {/* Inline preview, lazy-loaded so it only fetches when near the
-              viewport. Some mobile browsers (notably iOS Safari) cannot
-              render a PDF inside an iframe — the download button above
-              is the fallback for those visitors. */}
+              viewport. The preview uses the Google Docs viewer (not a
+              direct PDF iframe): mobile browsers such as Chrome on Android
+              and iOS Safari cannot render a PDF inside an iframe — they
+              show only a filename + "Open" button instead of pages — while
+              the Docs viewer renders real pages on every device. The
+              read/download button above still opens the original PDF. */}
           <iframe
-            src={`${article.pdfUrl || (article as any).pdf_url}#toolbar=0&navpanes=0`}
+            src={getPdfPreviewEmbedUrl(article.pdfUrl || (article as any).pdf_url)}
             title="PDF প্রিভিউ"
             loading="lazy"
             className="w-full h-[420px] sm:h-[560px] rounded-lg border border-emerald-200 bg-white"

@@ -114,6 +114,65 @@ TO authenticated
 USING (true)
 WITH CHECK (true);
 
+-- RLS on articles + site_settings (added 2026-11-18 — see
+-- supabase/migrations/20261118_rls_articles_settings.sql, which must be run
+-- in the Supabase SQL Editor; committing it does not apply it). Without
+-- these, the public anon key could write to both tables.
+ALTER TABLE public.articles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access on articles"
+ON public.articles FOR SELECT
+TO public
+USING (true);
+
+CREATE POLICY "Allow authenticated full access on articles"
+ON public.articles FOR ALL
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access on site_settings"
+ON public.site_settings FOR SELECT
+TO public
+USING (true);
+
+CREATE POLICY "Allow authenticated full access on site_settings"
+ON public.site_settings FOR ALL
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+-- Contact-form messages (added 2026-11-18 — see
+-- supabase/migrations/20261118_contact_messages.sql). Public INSERT only;
+-- only the logged-in admin can read/delete messages.
+CREATE TABLE IF NOT EXISTS public.contact_messages (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  subject TEXT,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public insert on contact_messages"
+ON public.contact_messages FOR INSERT
+TO public
+WITH CHECK (true);
+
+CREATE POLICY "Allow authenticated read on contact_messages"
+ON public.contact_messages FOR SELECT
+TO authenticated
+USING (true);
+
+CREATE POLICY "Allow authenticated delete on contact_messages"
+ON public.contact_messages FOR DELETE
+TO authenticated
+USING (true);
+
 -- Visitor analytics: per-article read counts + total site visits
 -- One row per (article, browser session) in article_views; one row per
 -- browser session in site_visits. Public INSERT + SELECT so anonymous

@@ -22,11 +22,11 @@
 -- the Supabase SQL Editor (or via `supabase db push` from a linked project).
 --
 -- NOTE ON THE OLD PDF NUMBERS: the downloads/views figures shown on PDF
--- cards (e.g. "1842 ডাউনলোড · 4290 বার পড়া হয়েছে") are static seed
+-- cards (e.g. "1842 ডাউনলোড · 4290 বার পড়া হয়েছে") were static seed
 -- values baked into the bundled content and the Supabase `resources` rows;
--- nothing in the app ever increments them. This migration does NOT make
--- those numbers real. Real per-article counts use the tables below; the
--- PDF cards keep showing their existing figures unchanged.
+-- nothing in the app ever incremented them. Since 2026-11-18 the cards no
+-- longer display those numbers at all. Real per-article counts use the
+-- tables below.
 
 CREATE TABLE IF NOT EXISTS public.article_views (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

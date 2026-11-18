@@ -26,11 +26,6 @@ export const StorageService = {
         return this.getFallbackArticles();
       }
 
-      // Trigger deletion for article-publish if it exists in Supabase
-      supabase.from('articles').delete().or('slug.eq.article-publish,id.eq.article-publish').then(({ error }) => {
-        if (!error) console.log('Deleted article-publish from Supabase table');
-      });
-
       const articles = data
         .map((row: any) => {
           if (!row.data) return null;
