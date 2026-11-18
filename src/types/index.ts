@@ -118,8 +118,6 @@ export interface SiteSettings {
   subtitleBn: string;
   noticeText: string;
   noticeTextBn: string;
-  contactEmail: string;
-  contactPhone: string;
   officeAddress: string;
   enableAdPlacements: boolean;
   adsensePublisherId: string;

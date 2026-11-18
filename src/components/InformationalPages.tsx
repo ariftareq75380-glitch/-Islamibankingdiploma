@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, 
-  Mail, 
   Send, 
   CheckCircle2, 
-  Phone, 
   MapPin, 
   FileText, 
   AlertCircle,
@@ -124,24 +122,10 @@ export const InformationalPages: React.FC<InformationalPagesProps> = ({
             </h1>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
-              <Mail className="w-5 h-5 text-emerald-800 mb-2" />
-              <div className="text-xs text-stone-500">{lang === 'bn' ? 'ইমেইল ঠিকানা' : 'Email Address'}</div>
-              <div className="text-sm font-semibold text-stone-900">{settings.contactEmail}</div>
-            </div>
-
-            <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
-              <Phone className="w-5 h-5 text-emerald-800 mb-2" />
-              <div className="text-xs text-stone-500">{lang === 'bn' ? 'যোগাযোগ নাম্বার' : 'Helpline'}</div>
-              <div className="text-sm font-semibold text-stone-900">{settings.contactPhone}</div>
-            </div>
-
-            <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
-              <MapPin className="w-5 h-5 text-emerald-800 mb-2" />
-              <div className="text-xs text-stone-500">{lang === 'bn' ? 'ঠিকানা' : 'Location'}</div>
-              <div className="text-sm font-semibold text-stone-900">{settings.officeAddress}</div>
-            </div>
+          <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
+            <MapPin className="w-5 h-5 text-emerald-800 mb-2" />
+            <div className="text-xs text-stone-500">{lang === 'bn' ? 'ঠিকানা' : 'Location'}</div>
+            <div className="text-sm font-semibold text-stone-900">{settings.officeAddress}</div>
           </div>
 
           {formSubmitted ? (

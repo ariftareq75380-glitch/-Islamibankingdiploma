@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { BookOpen, ShieldCheck, Mail, MapPin, Phone, Heart, Users } from 'lucide-react';
+import { BookOpen, ShieldCheck, MapPin, Phone, Heart, Users } from 'lucide-react';
 import { ActiveTab, SiteSettings } from '../types';
 
 interface FooterProps {
@@ -60,10 +60,6 @@ export const Footer: React.FC<FooterProps> = ({
               <div className="flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
                 <span>{settings.officeAddress}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
-                <span>{settings.contactEmail}</span>
               </div>
             </div>
           </div>
