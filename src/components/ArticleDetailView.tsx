@@ -321,37 +321,6 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
         </div>
       )}
 
-      {/* Attached PDF Resource Card */}
-      {(article.pdfUrl || (article as any).pdf_url) && (
-        <div className="p-4 mb-6 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-800 text-white flex items-center justify-center shrink-0">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-bold text-emerald-950 text-sm">
-                সংযুক্ত প্রামাণ্য পিডিএফ নোট (Attached PDF Document)
-              </div>
-              <div className="text-xs text-emerald-800">
-                এই আর্টিকেলের মূল রেফারেন্স ও পূর্ণাঙ্গ নোট Supabase ক্লাউড স্টোরেজে সংরক্ষিত রয়েছে।
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <a
-              href={article.pdfUrl || (article as any).pdf_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>পিডিএফ পড়ুন ও ডাউনলোড করুন</span>
-              <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
-            </a>
-          </div>
-        </div>
-      )}
-
       {/* 7. Full Article Text with HTML WYSIWYG & Legacy Markdown support */}
       <div className={`text-stone-800 ${fontSizeClasses[fontSize]} font-bengali bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-xs`}>
         {(() => {
@@ -431,6 +400,52 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
           );
         })()}
       </div>
+
+      {/* Attached PDF Resource — placed AFTER the body text so visitors
+          read the article first, then see the PDF with an inline preview. */}
+      {(article.pdfUrl || (article as any).pdf_url) && (
+        <div className="mt-8 p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-800 text-white flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-bold text-emerald-950 text-sm">
+                  সংযুক্ত প্রামাণ্য পিডিএফ নোট (Attached PDF Document)
+                </div>
+                <div className="text-xs text-emerald-800">
+                  এই আর্টিকেলের মূল রেফারেন্স ও পূর্ণাঙ্গ নোট Supabase ক্লাউড স্টোরেজে সংরক্ষিত রয়েছে।
+                </div>
+              </div>
+            </div>
+            <a
+              href={article.pdfUrl || (article as any).pdf_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>পিডিএফ পড়ুন ও ডাউনলোড করুন</span>
+              <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+            </a>
+          </div>
+
+          {/* Inline preview, lazy-loaded so it only fetches when near the
+              viewport. Some mobile browsers (notably iOS Safari) cannot
+              render a PDF inside an iframe — the download button above
+              is the fallback for those visitors. */}
+          <iframe
+            src={`${article.pdfUrl || (article as any).pdf_url}#toolbar=0&navpanes=0`}
+            title="PDF প্রিভিউ"
+            loading="lazy"
+            className="w-full h-[420px] sm:h-[560px] rounded-lg border border-emerald-200 bg-white"
+          />
+          <p className="text-[11px] text-emerald-800/80 mt-2">
+            প্রিভিউ না দেখা গেলে উপরের বাটনে ক্লিক করে PDF-টি পড়ুন ও ডাউনলোড করুন।
+          </p>
+        </div>
+      )}
 
       {/* 8. Keywords & Tags Section ("কি-ওয়ার্ড যোগ করার অপশন") */}
       {(article.keywords || article.tags) && (
