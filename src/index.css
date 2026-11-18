@@ -192,8 +192,15 @@
   }
 
   [data-theme="dark"] .text-emerald-800,
-  [data-theme="dark"] .text-emerald-700 {
+  [data-theme="dark"] .text-emerald-700,
+  [data-theme="dark"] [class*="text-emerald-800/"],
+  [data-theme="dark"] [class*="text-emerald-700/"] {
     color: #6ee7b7 !important;
+  }
+
+  /* Opacity variants of dark amber text (e.g. captions). */
+  [data-theme="dark"] [class*="text-amber-800/"] {
+    color: #fcd34d !important;
   }
 
   [data-theme="dark"] .text-amber-900,
