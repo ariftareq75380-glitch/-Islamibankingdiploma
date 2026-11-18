@@ -3,7 +3,6 @@ import {
   ShieldCheck, 
   Send, 
   CheckCircle2, 
-  MapPin, 
   FileText, 
   AlertCircle,
   HelpCircle,
@@ -122,12 +121,6 @@ export const InformationalPages: React.FC<InformationalPagesProps> = ({
             </h1>
           </div>
 
-          <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
-            <MapPin className="w-5 h-5 text-emerald-800 mb-2" />
-            <div className="text-xs text-stone-500">{lang === 'bn' ? 'ঠিকানা' : 'Location'}</div>
-            <div className="text-sm font-semibold text-stone-900">{settings.officeAddress}</div>
-          </div>
-
           {formSubmitted ? (
             <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-2">
               <CheckCircle2 className="w-8 h-8 text-emerald-700 mx-auto" />
@@ -136,8 +129,8 @@ export const InformationalPages: React.FC<InformationalPagesProps> = ({
               </h3>
               <p className="text-xs text-emerald-800">
                 {lang === 'bn' 
-                  ? 'আমাদের টিম খুব দ্রুত আপনার ইমেইলে উত্তর প্রদান করবে।' 
-                  : 'Our academic advisory desk will review and reply to your inquiry shortly.'}
+                  ? 'আপনার বার্তা পৌঁছেছে। ধন্যবাদ!' 
+                  : 'Your message has been received. Thank you!'}
               </p>
               <button
                 onClick={() => setFormSubmitted(false)}

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { BookOpen, ShieldCheck, MapPin, Phone, Heart, Users } from 'lucide-react';
+import { BookOpen, ShieldCheck, Heart, Users } from 'lucide-react';
 import { ActiveTab, SiteSettings } from '../types';
 
 interface FooterProps {
@@ -56,12 +56,6 @@ export const Footer: React.FC<FooterProps> = ({
                 : 'An open-access academic digital repository dedicated to Diploma in Islamic Banking (DIB) candidates, banking professionals, and researchers in Bangladesh.'}
             </p>
 
-            <div className="pt-1 text-[11px] text-stone-300/70 space-y-1.5">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
-                <span>{settings.officeAddress}</span>
-              </div>
-            </div>
           </div>
 
           {/* Group 1: Exam Preparation */}

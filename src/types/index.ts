@@ -118,7 +118,6 @@ export interface SiteSettings {
   subtitleBn: string;
   noticeText: string;
   noticeTextBn: string;
-  officeAddress: string;
   enableAdPlacements: boolean;
   adsensePublisherId: string;
   // Zakat Calculator Settings

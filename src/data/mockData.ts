@@ -15,7 +15,6 @@ export const initialSiteSettings: SiteSettings = {
   subtitleBn: 'আইবিবি ডিআইবি পরীক্ষার বিগত প্রশ্ন, সমাধান ও স্টাডি হ্যান্ডনোট পাঠাগার',
   noticeText: 'Upcoming 99th Diploma in Islamic Banking (DIB) Examination registration guidelines and model solutions are now available for download.',
   noticeTextBn: 'আসন্ন ৯৯তম ডিপ্লোমা ইন ইসলামিক ব্যাংকিং (DIB) পরীক্ষার সহায়িকা ও বিগত বছরের সমাধান নোটস এখন ডাউনলোডযোগ্য।',
-  officeAddress: 'Motijheel Commercial Area, Dhaka-1000, Bangladesh',
   enableAdPlacements: true,
   adsensePublisherId: 'ca-pub-9876543210123456',
   nisab_amount_bdt: 173250,
