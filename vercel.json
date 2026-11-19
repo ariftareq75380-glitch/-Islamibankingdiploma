@@ -30,7 +30,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!sitemap\\.xml|robots\\.txt|404\\.html|images/|assets/|api/).*)",
+      "source": "/((?!sitemap\\.xml|robots\\.txt|404\\.html|images/|assets/).*)",
       "destination": "/index.html"
     }
   ]
