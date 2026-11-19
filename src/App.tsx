@@ -148,9 +148,12 @@ export default function App() {
     StorageService.setTheme(theme);
   }, [theme]);
 
-  // Load initial data
+  // Load initial data. The watchdog is armed first so the loading
+  // screen can never stay up forever even if this load never starts.
   useEffect(() => {
-    loadAllData();
+    armLoadingWatchdog();
+    loadAllData().catch(() => setIsLoadingData(false));
+    return () => clearLoadingWatchdog();
   }, []);
 
   // Record one site visit per browser session and load the total visitor count.
@@ -161,15 +164,43 @@ export default function App() {
   }, []);
 
   // Live data normally arrives in ~1s, but a Supabase cold start can take
-  // ~8-13s. Past that, stop waiting: keep the bundled fallback already in
-  // state and say so, instead of leaving the visitor on the homepage
-  // indefinitely (or judging a deep link against stale data).
-  const DATA_LOAD_TIMEOUT_MS = 8000;
+  // several seconds. Past the timeout, stop waiting: keep the bundled
+  // fallback already in state and say so, instead of leaving the visitor
+  // on the loading screen (or judging a deep link against stale data).
+  // The gate is ALSO guarded by an independent watchdog timer
+  // (armLoadingWatchdog below) that force-opens it after the same
+  // timeout no matter what — the race inside loadAllData is not the
+  // only thing standing between the visitor and the page.
+  const DATA_LOAD_TIMEOUT_MS = 5000;
+
+  // Independent watchdog for the loading gate. Armed on mount and on
+  // every visible load start; cleared when loading finishes normally.
+  // It opens the gate even if loadAllData never runs, throws before its
+  // race, or the browser throttles/freezes the data-load timers (which
+  // happens on phones when the tab is backgrounded) — the spinner can
+  // never stay up forever on any network, with or without Supabase.
+  const loadingWatchdogRef = useRef<number | undefined>(undefined);
+
+  const clearLoadingWatchdog = () => {
+    if (typeof window !== 'undefined' && loadingWatchdogRef.current !== undefined) {
+      window.clearTimeout(loadingWatchdogRef.current);
+      loadingWatchdogRef.current = undefined;
+    }
+  };
+
+  const armLoadingWatchdog = () => {
+    if (typeof window === 'undefined') return;
+    clearLoadingWatchdog();
+    loadingWatchdogRef.current = window.setTimeout(() => {
+      setIsLoadingData(false);
+    }, DATA_LOAD_TIMEOUT_MS);
+  };
 
   const loadAllData = async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) {
       setIsLoadingData(true);
       setIsDataStale(false);
+      armLoadingWatchdog();
     }
     try {
       const loadPromise = Promise.all([
@@ -189,13 +220,16 @@ export default function App() {
         if (!opts?.silent) setIsDataStale(false);
       } else {
         if (!opts?.silent) setIsDataStale(true);
-        console.warn('[Data Load] Live data timed out after 8s; showing bundled fallback content.');
+        console.warn('[Data Load] Live data timed out after 5s; showing bundled fallback content.');
       }
     } catch (err) {
       console.warn('Error loading data in loadAllData:', err);
       if (!opts?.silent) setIsDataStale(true);
     } finally {
-      if (!opts?.silent) setIsLoadingData(false);
+      if (!opts?.silent) {
+        clearLoadingWatchdog();
+        setIsLoadingData(false);
+      }
     }
     setBookmarks(StorageService.getBookmarks());
     setCompletedIds(StorageService.getCompletedResources());
@@ -680,7 +714,8 @@ export default function App() {
         {isLoadingData ? (
           /* Loading screen — shown instead of the homepage while the live
              data is still arriving, so a deep link never looks like the
-             wrong page for the first ~8 seconds. */
+             wrong page for the first ~5 seconds. An independent watchdog
+             guarantees this screen can never stay up forever. */
           <div className="max-w-2xl mx-auto px-4 py-24 text-center font-bengali">
             <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-700" />
             <p className="text-base font-bold text-stone-900">লোড হচ্ছে…</p>
