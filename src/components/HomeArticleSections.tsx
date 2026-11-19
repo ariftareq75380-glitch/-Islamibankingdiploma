@@ -38,9 +38,9 @@ export const HighlightedArticlesSection: React.FC<ArticleSectionProps> = ({
   lang
 }) => {
   const viewCounts = useArticleViewCounts();
-  // Up to three articles where featured is true, sorted by publishedAt descending.
-  // Three is enough to show the newest featured books (the three DIB model-answer
-  // books) while keeping older featured seed articles out of this section.
+  // Up to four articles where featured is true, sorted by publishedAt descending.
+  // Four is enough to show the newest featured books (the four DIB books)
+  // while keeping older featured seed articles out of this section.
   const featuredArticles = React.useMemo(() => {
     return articles
       .filter((a) => a.featured === true && a.status !== 'draft' && !a.isDraft)
@@ -49,7 +49,7 @@ export const HighlightedArticlesSection: React.FC<ArticleSectionProps> = ({
         const timeB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
         return timeB - timeA;
       })
-      .slice(0, 3);
+      .slice(0, 4);
   }, [articles]);
 
   // If none are featured, hide this section completely
@@ -74,7 +74,7 @@ export const HighlightedArticlesSection: React.FC<ArticleSectionProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {featuredArticles.map((art) => {
             const href = getArticleHref(art);
             return (
