@@ -32,6 +32,30 @@ export function hasRealDriveLink(urlString?: string | null): boolean {
   return isGoogleDriveUrl(urlString);
 }
 
+// The shared identity of one PDF file across the library and article
+// attachments. Admin uploads are stored as `<epoch-ms>_<clean-name>.pdf`
+// in the `pdfs/articles/` and `pdfs/resources/` folders, so the same book
+// exists as two different storage objects with different timestamps
+// (the Code 106 book: `articles/1794971469123_diploma-islamic-banking-part-i.pdf`
+// and `resources/1794970376012_diploma-islamic-banking-part-i.pdf`).
+// Stripping the timestamp prefix leaves the base file name, which both
+// copies share — and which any future PDF uploaded the same way will
+// share too. That base name is the download-count key, so the library
+// card, the article page and the preview modal count the same downloads
+// together. Returns null when there is no usable file name.
+export function resourceKeyForPdfUrl(urlString?: string | null): string | null {
+  if (!urlString || !urlString.trim()) return null;
+  let pathname: string;
+  try {
+    pathname = new URL(urlString).pathname;
+  } catch {
+    pathname = urlString.split('?')[0].split('#')[0];
+  }
+  const fileName = pathname.split('/').filter(Boolean).pop();
+  if (!fileName) return null;
+  return fileName.replace(/^\d+_/, '');
+}
+
 // True when a library entry actually has a downloadable PDF behind it.
 // Only the Code 106 model-answers entry currently passes; every other
 // bundled entry is a placeholder whose PDF has not been uploaded yet.

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Download, 
@@ -11,7 +11,9 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { PdfResource } from '../types';
-import { hasRealPdf, hasRealPdfFile, hasRealDriveLink } from '../utils/pdfUtils';
+import { hasRealPdf, hasRealPdfFile, hasRealDriveLink, resourceKeyForPdfUrl } from '../utils/pdfUtils';
+import { StorageService } from '../services/storage';
+import { toBengaliNumerals } from '../utils/dateUtils';
 
 interface PdfCardProps {
   resource: PdfResource;
@@ -36,11 +38,44 @@ export const PdfCard: React.FC<PdfCardProps> = ({
 }) => {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Real download count from Supabase (null = counting tables not set up
+  // yet, so the line stays hidden instead of showing a wrong number).
+  const [downloadCount, setDownloadCount] = useState<number | null>(null);
 
   // Only the Code 106 model-answers entry has a real PDF behind it right
   // now. Every other bundled entry is a placeholder whose file has not
   // been uploaded yet — it must never offer a download or a preview.
   const isPlaceholder = !hasRealPdf(resource);
+
+  // The shared count key for this PDF's real file. Only a real storage
+  // file has one — placeholder entries and Drive-only entries get none,
+  // so they never show or record a count.
+  const downloadKey = !isPlaceholder && hasRealPdfFile(resource.pdfFileUrl)
+    ? resourceKeyForPdfUrl(resource.pdfFileUrl)
+    : null;
+
+  // Load the count once, and refresh it whenever any entry point records
+  // a download of this same PDF (library card, article page, modal,
+  // cover preview — they all share the key).
+  useEffect(() => {
+    if (!downloadKey) return;
+    let cancelled = false;
+    const load = () => {
+      StorageService.getPdfDownloadCount(downloadKey).then((count) => {
+        if (!cancelled && count !== null) setDownloadCount(count);
+      });
+    };
+    load();
+    const onRecorded = (e: Event) => {
+      const key = (e as CustomEvent<{ key?: string }>).detail?.key;
+      if (key === downloadKey) load();
+    };
+    window.addEventListener('ikl:pdf-download-recorded', onRecorded);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('ikl:pdf-download-recorded', onRecorded);
+    };
+  }, [downloadKey]);
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,6 +91,14 @@ export const PdfCard: React.FC<PdfCardProps> = ({
     }
 
     onDownloadIncrement(resource.id);
+
+    // Record one real download, fire-and-forget — the file must open
+    // immediately, never wait for the recording. The same key is used
+    // by the article page and the preview modal, so all of them count
+    // together (one row per session per day; repeats don't inflate it).
+    if (downloadKey) {
+      StorageService.recordPdfDownload(downloadKey);
+    }
 
     // Download/open the REAL PDF file — never a generated substitute.
     if (hasRealPdfFile(resource.pdfFileUrl)) {
@@ -203,7 +246,20 @@ export const PdfCard: React.FC<PdfCardProps> = ({
 
       {/* Footer Actions */}
       <div className="pt-3 border-t border-stone-100 flex flex-col gap-2.5">
-        <div className="flex items-center justify-end text-[11px] text-stone-400">
+        <div className="flex items-center justify-between text-[11px] text-stone-400">
+          {/* Real download count (hidden until counting is set up) */}
+          {downloadCount !== null && downloadKey ? (
+            <span className="flex items-center gap-1 text-stone-500">
+              <Download className="w-3 h-3 text-emerald-700" />
+              <span>
+                {lang === 'bn'
+                  ? `${toBengaliNumerals(downloadCount)} বার ডাউনলোড হয়েছে`
+                  : `${downloadCount} downloads`}
+              </span>
+            </span>
+          ) : (
+            <span />
+          )}
           <button
             onClick={handleCopyLink}
             className="flex items-center gap-1 hover:text-[#047857] text-stone-400 transition-colors"

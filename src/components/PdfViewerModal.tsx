@@ -14,9 +14,11 @@ import { PdfResource } from '../types';
 import {
   hasRealPdf,
   hasRealPdfFile,
-  hasRealDriveLink
+  hasRealDriveLink,
+  resourceKeyForPdfUrl
 } from '../utils/pdfUtils';
 import { PdfCoverPreview } from './PdfCoverPreview';
+import { StorageService } from '../services/storage';
 
 interface PdfViewerModalProps {
   resource: PdfResource | null;
@@ -52,6 +54,12 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
   const hasDriveLink = hasRealDriveLink(resource.googleDriveUrl);
   const hasAnySource = hasDirectPdf || hasDriveLink;
 
+  // The shared count key for this PDF's real file (null for placeholders
+  // and Drive-only entries — those never show or record a count).
+  const downloadKey = !isPlaceholder && hasDirectPdf
+    ? resourceKeyForPdfUrl(resource.pdfFileUrl)
+    : null;
+
   const handleDownload = () => {
     if (isPlaceholder) {
       setDownloadError(
@@ -72,6 +80,13 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
     }
 
     onDownloadIncrement(resource.id);
+
+    // Record one real download, fire-and-forget — the file must open
+    // immediately, never wait for the recording. Same key as the library
+    // card and the article page, so all of them count together.
+    if (downloadKey) {
+      StorageService.recordPdfDownload(downloadKey);
+    }
 
     // Open the REAL PDF in a new tab (cross-origin `download` is ignored
     // by browsers, so the button is labelled "read in a new tab", not

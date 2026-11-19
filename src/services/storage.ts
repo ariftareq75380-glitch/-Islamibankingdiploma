@@ -2,7 +2,7 @@ import { PdfResource, Article, SiteSettings, AppSettings } from '../types';
 import { samplePdfResources, sampleArticles, initialSiteSettings, defaultAppSettings } from '../data/mockData';
 import contentData from '../data/content.json';
 import { supabase } from '../utils/supabase';
-import type { QuizQuestion } from '../data/quizQuestions';
+import { todayDateKey, type QuizQuestion } from '../data/quizQuestions';
 
 export interface QuizDayStats {
   participants: number;
@@ -795,6 +795,63 @@ export const StorageService = {
         .select('*', { count: 'exact', head: true });
       if (error) return null;
       return count ?? 0;
+    } catch {
+      return null;
+    }
+  },
+
+  // --- Real PDF download counting (Supabase-backed, degrades silently) ---
+  // Counts live in two objects created by
+  // supabase/migrations/20261119_pdf_downloads.sql (must be run once in
+  // the Supabase SQL Editor — a code deploy cannot create tables/policies).
+  // Until that migration is applied every call below fails safely: the
+  // download still works and the count line is simply hidden (no wrong
+  // numbers shown). One row per (PDF, browser session, day), so repeated
+  // clicks in one session can't inflate the number; the displayed count
+  // is the number of rows for that PDF's key.
+  //
+  // The key is the PDF's base file name (see resourceKeyForPdfUrl in
+  // utils/pdfUtils): the library copy and the article copy of the same
+  // book are two different storage objects, but they share the base
+  // name, so every entry point for that book counts together.
+
+  // Record one download of a PDF. Fire-and-forget: callers never await
+  // this before opening the file. On a successful insert a window event
+  // is dispatched so every visible count line for this PDF refreshes.
+  async recordPdfDownload(resourceKey: string): Promise<void> {
+    if (!resourceKey) return;
+    try {
+      const { error } = await supabase
+        .from('resource_downloads')
+        .insert({
+          resource_key: resourceKey,
+          session_id: this._getSessionId(),
+          downloaded_date: todayDateKey()
+        });
+      if (error) return; // tables/policies not applied yet — stay silent
+      try {
+        window.dispatchEvent(new CustomEvent('ikl:pdf-download-recorded', { detail: { key: resourceKey } }));
+      } catch {
+        // event dispatch must never break the download
+      }
+    } catch {
+      // download counting must never break the download
+    }
+  },
+
+  // Total recorded downloads for one PDF key, or null when unavailable.
+  // A count of 0 means the tables exist but nothing has been recorded
+  // since counting started — it is a real number, not history.
+  async getPdfDownloadCount(resourceKey: string): Promise<number | null> {
+    if (!resourceKey) return null;
+    try {
+      const { data, error } = await supabase
+        .from('resource_download_counts')
+        .select('download_count')
+        .eq('resource_key', resourceKey)
+        .maybeSingle();
+      if (error) return null; // view not created yet — hide the count
+      return data ? Number(data.download_count) || 0 : 0;
     } catch {
       return null;
     }

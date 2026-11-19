@@ -25,6 +25,8 @@ import { updateSEOMetadata } from '../utils/seo';
 import { isHtmlContent, sanitizeHtmlForRender } from '../utils/richText';
 import { PdfCoverPreview } from './PdfCoverPreview';
 import { StorageService } from '../services/storage';
+import { hasRealPdfFile, resourceKeyForPdfUrl } from '../utils/pdfUtils';
+import { toBengaliNumerals } from '../utils/dateUtils';
 
 interface ArticleDetailViewProps {
   article: Article;
@@ -52,6 +54,14 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   // Real read count from Supabase (null = analytics tables not set up yet).
   const [viewCount, setViewCount] = useState<number | null>(null);
+  // Real download count for this article's attached PDF (null = counting
+  // tables not set up yet, so the line stays hidden).
+  const [downloadCount, setDownloadCount] = useState<number | null>(null);
+
+  // The attached PDF's shared count key — the same base file name as the
+  // library copy of the same book, so both entry points count together.
+  const pdfUrl = article.pdfUrl || (article as any).pdf_url;
+  const downloadKey = pdfUrl && hasRealPdfFile(pdfUrl) ? resourceKeyForPdfUrl(pdfUrl) : null;
 
   // Record one view per browser session and load the total read count.
   useEffect(() => {
@@ -66,6 +76,29 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
       cancelled = true;
     };
   }, [article.slug]);
+
+  // Load the PDF's download count, and refresh it whenever any entry
+  // point records a download of this same PDF (article button, cover
+  // preview, library card, preview modal — they all share the key).
+  useEffect(() => {
+    if (!downloadKey) return;
+    let cancelled = false;
+    const load = () => {
+      StorageService.getPdfDownloadCount(downloadKey).then((count) => {
+        if (!cancelled && count !== null) setDownloadCount(count);
+      });
+    };
+    load();
+    const onRecorded = (e: Event) => {
+      const key = (e as CustomEvent<{ key?: string }>).detail?.key;
+      if (key === downloadKey) load();
+    };
+    window.addEventListener('ikl:pdf-download-recorded', onRecorded);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('ikl:pdf-download-recorded', onRecorded);
+    };
+  }, [downloadKey]);
 
   // Sync SEO metadata when article opens
   useEffect(() => {
@@ -418,12 +451,31 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
                 <div className="text-xs text-emerald-800">
                   এই আর্টিকেলের মূল রেফারেন্স ও পূর্ণাঙ্গ নোট Supabase ক্লাউড স্টোরেজে সংরক্ষিত রয়েছে।
                 </div>
+                {/* Real download count — same number as the library card
+                    for this PDF (hidden until counting is set up). */}
+                {downloadCount !== null && downloadKey && (
+                  <div className="flex items-center gap-1 text-xs text-emerald-800 font-semibold mt-1">
+                    <Download className="w-3.5 h-3.5" />
+                    <span>
+                      {lang === 'bn'
+                        ? `${toBengaliNumerals(downloadCount)} বার ডাউনলোড হয়েছে`
+                        : `${downloadCount} downloads`}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             <a
               href={article.pdfUrl || (article as any).pdf_url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                // Record one real download, fire-and-forget — the PDF
+                // opens immediately, never waits for the recording.
+                if (downloadKey) {
+                  StorageService.recordPdfDownload(downloadKey);
+                }
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
             >
               <Download className="w-3.5 h-3.5" />

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, ExternalLink } from 'lucide-react';
+import { StorageService } from '../services/storage';
+import { hasRealPdfFile, resourceKeyForPdfUrl } from '../utils/pdfUtils';
 
 interface PdfCoverPreviewProps {
   pdfUrl: string;
@@ -27,6 +29,20 @@ interface PdfCoverPreviewProps {
 export const PdfCoverPreview: React.FC<PdfCoverPreviewProps> = ({ pdfUrl, title, lang }) => {
   // null = cover module still loading; [] = no cover generated for this PDF.
   const [coverImages, setCoverImages] = useState<string[] | null>(null);
+
+  // The shared count key for this PDF's real file. Tapping the cover (or
+  // the fallback button) opens the full PDF, so it counts as a download
+  // — same key as the library card and the article page button, so all
+  // of them count together (one row per session per day).
+  const downloadKey = hasRealPdfFile(pdfUrl) ? resourceKeyForPdfUrl(pdfUrl) : null;
+
+  // Fire-and-forget: the PDF must open immediately, never wait for the
+  // recording. The anchor's normal navigation is untouched.
+  const handleOpenPdf = () => {
+    if (downloadKey) {
+      StorageService.recordPdfDownload(downloadKey);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +93,7 @@ export const PdfCoverPreview: React.FC<PdfCoverPreviewProps> = ({ pdfUrl, title,
           href={pdfUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={handleOpenPdf}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
         >
           <ExternalLink className="w-3.5 h-3.5" />
@@ -91,6 +108,7 @@ export const PdfCoverPreview: React.FC<PdfCoverPreviewProps> = ({ pdfUrl, title,
       href={pdfUrl}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleOpenPdf}
       className="block group"
       title={lang === 'bn' ? 'পুরো PDF পড়তে ক্লিক করুন (নতুন ট্যাবে খুলবে)' : 'Click to read the full PDF (opens in a new tab)'}
     >
