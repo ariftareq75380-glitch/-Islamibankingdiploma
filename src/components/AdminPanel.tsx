@@ -42,6 +42,7 @@ import { PdfResource, Article, CourseType, ExamSession, ResourceCategory, SiteSe
 import { StorageService } from '../services/storage';
 import { formatFileSize, isValidUrl } from '../utils/pdfUtils';
 import { subjectsList, examYearsList } from '../data/mockData';
+import { bundledQuizQuestions, type QuizQuestion } from '../data/quizQuestions';
 import { AdminSeoAuditTab } from './AdminSeoAuditTab';
 import contentData from '../data/content.json';
 import { supabase } from '../utils/supabase';
@@ -161,7 +162,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
 
 
-  const [activeTab, setActiveTab] = useState<'resources' | 'new-resource' | 'seo-audit' | 'articles' | 'new-article' | 'settings' | 'backup'>('resources');
+  const [activeTab, setActiveTab] = useState<'resources' | 'new-resource' | 'seo-audit' | 'articles' | 'new-article' | 'quiz' | 'settings' | 'backup'>('resources');
 
   // Search & Filter state for Admin resources archive
   const [resourceSearch, setResourceSearch] = useState('');
@@ -244,6 +245,66 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const artImageInputRef = useRef<HTMLInputElement>(null);
   const artPdfInputRef = useRef<HTMLInputElement>(null);
+
+  // Daily Quiz State — bundled 30 + admin-added questions from Supabase.
+  // quizTablesReady: null = not checked yet, false = migration not run.
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(bundledQuizQuestions);
+  const [quizTablesReady, setQuizTablesReady] = useState<boolean | null>(null);
+  const [quizTopic, setQuizTopic] = useState('ইসলামের মৌলিক বিষয়');
+  const [quizQuestion, setQuizQuestion] = useState('');
+  const [quizOptions, setQuizOptions] = useState<string[]>(['', '', '', '']);
+  const [quizCorrect, setQuizCorrect] = useState(0);
+  const [quizExplanation, setQuizExplanation] = useState('');
+  const [isSavingQuiz, setIsSavingQuiz] = useState(false);
+
+  const loadQuizQuestions = async () => {
+    const { questions: dbQuestions, tablesReady } = await StorageService.getQuizQuestions();
+    setQuizTablesReady(tablesReady);
+    setQuizQuestions([...bundledQuizQuestions, ...dbQuestions]);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'quiz' && session) {
+      loadQuizQuestions();
+    }
+  }, [activeTab, session]);
+
+  const resetQuizForm = () => {
+    setQuizTopic('ইসলামের মৌলিক বিষয়');
+    setQuizQuestion('');
+    setQuizOptions(['', '', '', '']);
+    setQuizCorrect(0);
+    setQuizExplanation('');
+  };
+
+  const handleSaveQuizQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quizQuestion.trim() || quizOptions.some((o) => !o.trim())) {
+      showToast('প্রশ্ন ও চারটি অপশনই লিখতে হবে।', 'error');
+      return;
+    }
+    setIsSavingQuiz(true);
+    try {
+      const res = await StorageService.saveQuizQuestion({
+        topic: quizTopic.trim() || 'সাধারণ',
+        question: quizQuestion.trim(),
+        options: quizOptions.map((o) => o.trim()),
+        correctIndex: quizCorrect,
+        explanation: quizExplanation.trim()
+      });
+      if (res.success) {
+        showToast('কুইজ প্রশ্ন যোগ হয়েছে!', 'success');
+        resetQuizForm();
+        await loadQuizQuestions();
+      } else {
+        showToast(res.message || 'প্রশ্ন সেভ করতে সমস্যা হয়েছে', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'প্রশ্ন সেভ করতে সমস্যা হয়েছে', 'error');
+    } finally {
+      setIsSavingQuiz(false);
+    }
+  };
 
   // Settings & Zakat Configuration State
   const [nisabAmountInput, setNisabAmountInput] = useState<number | string>(settings.nisab_amount_bdt || 173250);
@@ -1080,6 +1141,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             {editingArticleId
               ? (lang === 'bn' ? 'আর্টিকেল সম্পাদনা' : 'Edit Article')
               : (lang === 'bn' ? '+ নতুন আর্টিকেল লিখুন' : '+ Write Article')}
+          </button>
+          <button
+            onClick={() => setActiveTab('quiz')}
+            className={`px-4 py-2 font-semibold rounded-t-lg transition-colors ${
+              activeTab === 'quiz' ? 'bg-white text-emerald-900 border-t-2 border-emerald-800' : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            {lang === 'bn' ? `কুইজ প্রশ্ন (${quizQuestions.length})` : `Quiz Questions (${quizQuestions.length})`}
           </button>
           <button
             onClick={() => setActiveTab('settings')}
@@ -2310,6 +2379,165 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </button>
               </div>
             </form>
+          )}
+
+          {/* TAB: DAILY QUIZ QUESTIONS */}
+          {activeTab === 'quiz' && (
+            <div className="space-y-6 text-xs">
+              <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+                <div>
+                  <h3 className="text-base font-bold text-stone-900">
+                    {lang === 'bn' ? 'দৈনিক কুইজ প্রশ্ন' : 'Daily Quiz Questions'}
+                  </h3>
+                  <p className="text-stone-500 mt-1">
+                    {lang === 'bn'
+                      ? 'প্রতিদিন ৩টি করে প্রশ্ন ঘুরে ঘুরে দেখানো হয়। নিচের ৩০টি বান্ডেল প্রশ্ন সবসময় থাকে; নতুন প্রশ্ন যোগ করলে সেগুলো তার পরে ঘুরবে।'
+                      : 'Three questions rotate every day. The 30 bundled questions are always there; new questions rotate after them.'}
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200">
+                  {lang === 'bn' ? `মোট ${quizQuestions.length}টি প্রশ্ন` : `${quizQuestions.length} questions total`}
+                </span>
+              </div>
+
+              {quizTablesReady === false && (
+                <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 leading-relaxed">
+                  <p className="font-bold mb-1">কুইজের ডাটাবেজ টেবিল এখনো তৈরি হয়নি</p>
+                  <p>
+                    নতুন প্রশ্ন যোগ করতে ও অংশগ্রহণের সংখ্যা গুনতে প্রথমে Supabase SQL Editor-এ{' '}
+                    <code className="px-1 py-0.5 bg-white border border-amber-200 rounded font-mono">supabase/migrations/20261119_quiz.sql</code>{' '}
+                    ফাইলটি চালাতে হবে। SQL না চালানো পর্যন্ত কুইজটি বান্ডেলের ৩০টি প্রশ্ন দিয়েই চলবে, আর সংখ্যাগুলো দেখানো হবে না।
+                  </p>
+                </div>
+              )}
+
+              {/* Add Question Form */}
+              <form onSubmit={handleSaveQuizQuestion} className="p-5 bg-stone-50 rounded-xl border border-stone-200 space-y-4">
+                <div className="font-bold text-stone-900 text-sm">নতুন প্রশ্ন যোগ করুন</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-medium text-stone-700 mb-1">বিষয় (Topic) *</label>
+                    <input
+                      type="text"
+                      required
+                      value={quizTopic}
+                      onChange={(e) => setQuizTopic(e.target.value)}
+                      placeholder="যেমন: যাকাত"
+                      className="w-full p-2.5 bg-white border border-stone-200 rounded-lg text-stone-900 font-bengali"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-stone-700 mb-1">সঠিক উত্তর কোন অপশন? *</label>
+                    <div className="flex items-center gap-3 pt-2.5">
+                      {['ক', 'খ', 'গ', 'ঘ'].map((label, i) => (
+                        <label key={i} className="flex items-center gap-1 cursor-pointer font-semibold text-stone-700">
+                          <input
+                            type="radio"
+                            name="quizCorrectRadio"
+                            checked={quizCorrect === i}
+                            onChange={() => setQuizCorrect(i)}
+                            className="text-emerald-700 focus:ring-emerald-700"
+                          />
+                          <span>{label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-medium text-stone-700 mb-1">প্রশ্ন *</label>
+                  <textarea
+                    required
+                    rows={2}
+                    value={quizQuestion}
+                    onChange={(e) => setQuizQuestion(e.target.value)}
+                    placeholder="যেমন: যাকাতের খাত কয়টি?"
+                    className="w-full p-2.5 bg-white border border-stone-200 rounded-lg text-stone-900 font-bengali"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {quizOptions.map((opt, i) => (
+                    <div key={i}>
+                      <label className="block font-medium text-stone-700 mb-1">
+                        {['ক', 'খ', 'গ', 'ঘ'][i]} নম্বর অপশন *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={opt}
+                        onChange={(e) => {
+                          const next = [...quizOptions];
+                          next[i] = e.target.value;
+                          setQuizOptions(next);
+                        }}
+                        placeholder={`অপশন ${['ক', 'খ', 'গ', 'ঘ'][i]}`}
+                        className="w-full p-2.5 bg-white border border-stone-200 rounded-lg text-stone-900 font-bengali"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <label className="block font-medium text-stone-700 mb-1">ব্যাখ্যা (এক লাইন, ঐচ্ছিক)</label>
+                  <textarea
+                    rows={2}
+                    value={quizExplanation}
+                    onChange={(e) => setQuizExplanation(e.target.value)}
+                    placeholder="যেমন: সূরা তাওবার ৬০ নম্বর আয়াতে ৮টি খাতের কথা আছে।"
+                    className="w-full p-2.5 bg-white border border-stone-200 rounded-lg text-stone-900 font-bengali"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSavingQuiz || quizTablesReady === false}
+                  className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${
+                    isSavingQuiz || quizTablesReady === false
+                      ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                      : 'bg-emerald-800 hover:bg-emerald-700 text-white cursor-pointer'
+                  }`}
+                >
+                  {isSavingQuiz ? 'যোগ হচ্ছে…' : 'প্রশ্ন যোগ করুন'}
+                </button>
+              </form>
+
+              {/* Question List */}
+              <div className="space-y-3">
+                {quizQuestions.map((q, idx) => (
+                  <div key={q.id} className="p-4 bg-white rounded-xl border border-stone-200">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200 mb-1.5">
+                          {q.topic}
+                        </span>
+                        <p className="font-bold text-stone-900 font-bengali">
+                          {idx + 1}. {q.question}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[11px] font-semibold text-stone-400">
+                        {q.id.startsWith('db-') ? 'অ্যাডমিন-যোগ' : 'বান্ডেল'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2">
+                      {q.options.map((opt, i) => (
+                        <div
+                          key={i}
+                          className={`px-3 py-1.5 rounded-lg border text-stone-700 font-bengali ${
+                            i === q.correctIndex
+                              ? 'bg-emerald-50 border-emerald-300 font-semibold text-emerald-900'
+                              : 'bg-stone-50 border-stone-200'
+                          }`}
+                        >
+                          {['ক', 'খ', 'গ', 'ঘ'][i]}. {opt}
+                          {i === q.correctIndex && ' ✓'}
+                        </div>
+                      ))}
+                    </div>
+                    {q.explanation && (
+                      <p className="text-stone-500 mt-2 font-bengali">ব্যাখ্যা: {q.explanation}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* TAB: SETTINGS & ZAKAT CALCULATOR CONFIGURATION */}

@@ -19,6 +19,7 @@ import { DiplomaExamSection } from './components/DiplomaExamSection';
 import { HighlightedArticlesSection, RecentArticlesSection } from './components/HomeArticleSections';
 import { ZakatCalculator } from './components/ZakatCalculator';
 import { PracticeMockTest } from './components/PracticeMockTest';
+import { DailyQuiz, QuizHomeCard } from './components/DailyQuiz';
 import { BookmarksView } from './components/BookmarksView';
 import { FaqSection } from './components/FaqSection';
 import { ResourceFilters } from './components/ResourceFilters';
@@ -326,6 +327,17 @@ export default function App() {
       return;
     }
 
+    if (pathname === 'quiz') {
+      setActiveTab('quiz');
+      setSelectedArticleForRead(null);
+      updateSEOMetadata({
+        title: 'আজকের কুইজ | ইসলামী ব্যাংকিং ডিপ্লোমা',
+        description: 'প্রতিদিন ৩টি সহজ প্রশ্ন — ইসলাম, যাকাত ও ইসলামী ব্যাংকিং নিয়ে। সঠিক হলে অভিনন্দন, ভুল হলে সঠিক উত্তরটাই শিখে নিন।',
+        canonicalPath: '/quiz'
+      });
+      return;
+    }
+
     if (pathname === 'admin' || pathname === 'login') {
       setSelectedArticleForRead(null);
       // Protected route: check Supabase session
@@ -367,7 +379,7 @@ export default function App() {
 
     const validTabs: ActiveTab[] = [
       'home', 'banking', 'diploma', 'previous-questions', 'islamic-studies',
-      'quran-hadith', 'fiqh-fatwa', 'pdf-library', 'articles', 'mock-test',
+      'quran-hadith', 'fiqh-fatwa', 'pdf-library', 'articles', 'mock-test', 'quiz',
       'faq', 'bookmarks-view', 'about', 'contact', 'privacy', 'disclaimer', 'wp-blueprint',
       'zakat-calculator', 'admin', 'login'
     ];
@@ -444,6 +456,12 @@ export default function App() {
         title: 'যাকাত ক্যালকুলেটর (Zakat Calculator) | ইসলামী ব্যাংকিং ডিপ্লোমা',
         description: 'আপনার সম্পদের পরিমাণ লিখে নিসাব অনুযায়ী যাকাতের আনুমানিক হিসাব জানুন। নিসাবের টাকার মূল্য আপনার দেওয়া দামের ভিত্তিতে হিসাব হয়।',
         canonicalPath: '/zakat-calculator'
+      });
+    } else if (tab === 'quiz') {
+      updateSEOMetadata({
+        title: 'আজকের কুইজ | ইসলামী ব্যাংকিং ডিপ্লোমা',
+        description: 'প্রতিদিন ৩টি সহজ প্রশ্ন — ইসলাম, যাকাত ও ইসলামী ব্যাংকিং নিয়ে। সঠিক হলে অভিনন্দন, ভুল হলে সঠিক উত্তরটাই শিখে নিন।',
+        canonicalPath: '/quiz'
       });
     } else {
       updateSEOMetadata({
@@ -749,6 +767,12 @@ export default function App() {
                   pdfCount={publishedResources.length}
                   lang={lang}
                 />
+
+                {/* 5. Daily Quiz card */}
+                <QuizHomeCard
+                  lang={lang}
+                  onOpenQuiz={() => handleNavigateUrl('/quiz')}
+                />
               </>
             )}
 
@@ -757,6 +781,14 @@ export default function App() {
           <PracticeMockTest
             lang={lang}
             onBackToLibrary={() => setActiveTab('pdf-library')}
+          />
+        )}
+
+        {/* 2b. DAILY QUIZ */}
+        {activeTab === 'quiz' && (
+          <DailyQuiz
+            lang={lang}
+            onBackToHome={() => handleSelectTabWithFilter('home')}
           />
         )}
 

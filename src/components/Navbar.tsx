@@ -203,6 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { tab: 'home' as ActiveTab, labelBn: 'হোম', labelEn: 'Home' },
     { tab: 'previous-questions' as ActiveTab, labelBn: 'বিগত প্রশ্ন', labelEn: 'Past Papers' },
     { tab: 'mock-test' as ActiveTab, labelBn: 'মডেল টেস্ট', labelEn: 'Mock Test', isNew: true },
+    { tab: 'quiz' as ActiveTab, labelBn: 'কুইজ', labelEn: 'Quiz', isNew: true },
     { tab: 'zakat-calculator' as ActiveTab, labelBn: 'যাকাত ক্যালকুলেটর', labelEn: 'Zakat Calculator' },
     { tab: 'faq' as ActiveTab, labelBn: 'এফএকিউ', labelEn: 'FAQ' },
   ];

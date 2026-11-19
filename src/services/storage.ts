@@ -2,6 +2,12 @@ import { PdfResource, Article, SiteSettings, AppSettings } from '../types';
 import { samplePdfResources, sampleArticles, initialSiteSettings, defaultAppSettings } from '../data/mockData';
 import contentData from '../data/content.json';
 import { supabase } from '../utils/supabase';
+import type { QuizQuestion } from '../data/quizQuestions';
+
+export interface QuizDayStats {
+  participants: number;
+  perQuestion: Record<string, { correct: number; total: number }>;
+}
 
 const STORAGE_KEYS = {
   BOOKMARKS: 'ikl_bookmarked_ids_v1'
@@ -748,6 +754,110 @@ export const StorageService = {
         .select('*', { count: 'exact', head: true });
       if (error) return null;
       return count ?? 0;
+    } catch {
+      return null;
+    }
+  },
+
+  // --- Daily quiz (Supabase-backed, degrades silently) ---
+  // Counts live in two tables created by
+  // supabase/migrations/20261119_quiz.sql (must be run once in the
+  // Supabase SQL Editor — a code deploy cannot create tables/policies).
+  // Until that migration is applied every call below fails safely: the
+  // quiz still works from the bundled 30 questions and the counts are
+  // hidden instead of showing a wrong number.
+
+  // Admin-added questions. tablesReady is false when the quiz tables do
+  // not exist yet (so the admin panel can say the SQL must be run first).
+  async getQuizQuestions(): Promise<{ questions: QuizQuestion[]; tablesReady: boolean }> {
+    try {
+      const { data, error } = await supabase
+        .from('quiz_questions')
+        .select('id, topic, question, options, correct_index, explanation')
+        .order('id', { ascending: true });
+      if (error) return { questions: [], tablesReady: false };
+      const questions = (data || [])
+        .map((row: any) => ({
+          id: `db-${row.id}`,
+          topic: String(row.topic || 'সাধারণ'),
+          question: String(row.question || ''),
+          options: Array.isArray(row.options) ? row.options.map(String) : [],
+          correctIndex: Number(row.correct_index) || 0,
+          explanation: String(row.explanation || '')
+        }))
+        .filter((q: QuizQuestion) => q.question && q.options.length === 4);
+      return { questions, tablesReady: true };
+    } catch {
+      return { questions: [], tablesReady: false };
+    }
+  },
+
+  async saveQuizQuestion(q: Omit<QuizQuestion, 'id'>): Promise<{ success: boolean; message: string }> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return { success: false, message: 'প্রথমে লগইন করুন' };
+    }
+
+    const { error } = await supabase.from('quiz_questions').insert({
+      topic: q.topic,
+      question: q.question,
+      options: q.options,
+      correct_index: q.correctIndex,
+      explanation: q.explanation
+    });
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, message: 'প্রশ্ন যোগ হয়েছে' };
+  },
+
+  // Record one attempt of a question, at most once per (question, session, day).
+  // The UNIQUE constraint is the backstop; the sessionStorage flag avoids a
+  // wasted round-trip (and a replay never counts twice).
+  async recordQuizAttempt(questionId: string, isCorrect: boolean, dateKey: string): Promise<void> {
+    if (!questionId || !dateKey) return;
+    try {
+      const flag = `ikl_quiz_${dateKey}_${questionId}`;
+      if (sessionStorage.getItem(flag)) return;
+      const { error } = await supabase
+        .from('quiz_attempts')
+        .insert({
+          question_id: questionId,
+          session_id: this._getSessionId(),
+          is_correct: isCorrect,
+          answered_date: dateKey
+        });
+      if (error) return; // tables/policies not applied yet — stay silent
+      sessionStorage.setItem(flag, '1');
+    } catch {
+      // quiz counting must never break the quiz
+    }
+  },
+
+  // Today's participation: distinct sessions + per-question correct/total.
+  // Returns null when the quiz tables are not set up yet.
+  async getTodayQuizStats(questionIds: string[], dateKey: string): Promise<QuizDayStats | null> {
+    if (!dateKey) return null;
+    try {
+      const { data, error } = await supabase
+        .from('quiz_attempts')
+        .select('question_id, session_id, is_correct')
+        .eq('answered_date', dateKey)
+        .limit(5000);
+      if (error || !data) return null;
+      const sessions = new Set<string>();
+      const perQuestion: Record<string, { correct: number; total: number }> = {};
+      for (const qid of questionIds) perQuestion[qid] = { correct: 0, total: 0 };
+      for (const row of data as Array<{ question_id: string; session_id: string; is_correct: boolean }>) {
+        if (row.session_id) sessions.add(row.session_id);
+        if (row.question_id && perQuestion[row.question_id]) {
+          perQuestion[row.question_id].total += 1;
+          if (row.is_correct) perQuestion[row.question_id].correct += 1;
+        }
+      }
+      return { participants: sessions.size, perQuestion };
     } catch {
       return null;
     }

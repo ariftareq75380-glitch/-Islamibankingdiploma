@@ -138,6 +138,7 @@ export type ActiveTab =
   | 'pdf-library' 
   | 'articles' 
   | 'mock-test'
+  | 'quiz'
   | 'faq'
   | 'bookmarks-view'
   | 'about' 
