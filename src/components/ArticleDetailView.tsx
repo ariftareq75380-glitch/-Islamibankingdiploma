@@ -246,10 +246,21 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/30 to-transparent" />
           
           <div className="absolute bottom-5 left-5 right-5 text-white">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="bg-emerald-800 text-amber-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                 {contentLang === 'bn' ? article.categoryBn : article.category}
               </span>
+              {article.featured === true && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#D4AF37] text-[#0f3d20] shadow-sm">
+                  ★ {contentLang === 'bn' ? 'হাইলাইটেড' : 'Featured'}
+                </span>
+              )}
+              {(article.publishedAt || article.publishedDate) && (
+                <span className="flex items-center gap-1 text-stone-200 text-xs">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{article.publishedAt || article.publishedDate}</span>
+                </span>
+              )}
               <span className="text-stone-300 text-xs font-mono">
                 /{article.slug}
               </span>
@@ -264,14 +275,19 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
       {/* 4. Article Header & Metadata (if no cover image, display title normally) */}
       {!article.coverImage && (
         <div className="border-b border-stone-200 pb-6 mb-6">
-          <div className="flex items-center gap-2 text-xs text-stone-500 mb-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 mb-2">
             <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded">
               {contentLang === 'bn' ? article.categoryBn : article.category}
             </span>
+            {article.featured === true && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#D4AF37] text-[#0f3d20]">
+                ★ {contentLang === 'bn' ? 'হাইলাইটেড' : 'Featured'}
+              </span>
+            )}
             <span>·</span>
             <span className="flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" />
-              <span>{article.publishedDate}</span>
+              <span>{article.publishedAt || article.publishedDate}</span>
             </span>
             <span>·</span>
             <span className="flex items-center gap-1">
