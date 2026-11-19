@@ -727,6 +727,12 @@ export default function App() {
             {/* 1. HOMEPAGE VIEW */}
             {activeTab === 'home' && (
               <>
+                {/* 0. Daily Quiz banner — first thing on the homepage, above the hero */}
+                <QuizHomeCard
+                  lang={lang}
+                  onOpenQuiz={() => handleNavigateUrl('/quiz')}
+                />
+
                 {/* 1. Compact Hero: Title, short description, search bar */}
                 <HeroSection
                   searchQuery={searchQuery}
@@ -766,12 +772,6 @@ export default function App() {
                   articlesCount={publishedArticles.length}
                   pdfCount={publishedResources.length}
                   lang={lang}
-                />
-
-                {/* 5. Daily Quiz card */}
-                <QuizHomeCard
-                  lang={lang}
-                  onOpenQuiz={() => handleNavigateUrl('/quiz')}
                 />
               </>
             )}

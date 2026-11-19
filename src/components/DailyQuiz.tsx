@@ -415,40 +415,41 @@ export const QuizHomeCard: React.FC<QuizHomeCardProps> = ({ lang, onOpenQuiz }) 
   }, [dateKey]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 font-bengali">
-      <div className="rounded-2xl border border-emerald-900/20 bg-gradient-to-l from-[#047857] to-[#065f46] p-6 sm:p-8 shadow-sm text-white overflow-hidden relative">
-        <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/5" />
-        <div className="absolute -right-2 top-16 w-16 h-16 rounded-full bg-[#D4AF37]/15" />
-        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-          <div>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#D4AF37] text-emerald-950 text-[11px] font-bold mb-2">
-              <Sparkles className="w-3 h-3" />
-              <span>{lang === 'bn' ? 'প্রতিদিন নতুন' : 'New every day'}</span>
-            </span>
-            <h2 className="text-xl sm:text-2xl font-bold">
-              {lang === 'bn' ? 'আজকের কুইজ' : "Today's Quiz"}
-            </h2>
-            <p className="text-xs sm:text-sm text-emerald-50/90 mt-1 leading-relaxed">
-              {lang === 'bn'
-                ? 'প্রতিদিন ৩টি সহজ প্রশ্ন — ইসলাম, যাকাত ও ইসলামী ব্যাংকিং নিয়ে। সঠিক হলে অভিনন্দন, ভুল হলে সঠিক উত্তরটাই শিখে নিন।'
-                : 'Three easy questions every day — Islam, Zakat and Islamic banking. Get a congratulation when right, learn the answer when wrong.'}
-            </p>
-            {participants !== undefined && participants !== null && (
-              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-200 mt-2">
-                <Users className="w-3.5 h-3.5" />
-                <span>
-                  {participants === 0
-                    ? (lang === 'bn' ? 'এখনো কেউ অংশ নেয়নি — প্রথম হোন!' : 'Nobody has played yet — be the first!')
-                    : (lang === 'bn'
-                      ? `আজ ${toBengaliNumerals(participants)} জন অংশ নিয়েছে`
-                      : `${participants} people played today`)}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 font-bengali">
+      <div className="rounded-xl border border-emerald-900/20 bg-gradient-to-l from-[#047857] to-[#065f46] px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm text-white overflow-hidden relative">
+        <div className="absolute -right-6 -top-10 w-24 h-24 rounded-full bg-white/5" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#D4AF37] text-emerald-950 text-[11px] font-bold">
+                <Sparkles className="w-3 h-3" />
+                <span>{lang === 'bn' ? 'প্রতিদিন নতুন' : 'New every day'}</span>
+              </span>
+              <h2 className="text-lg sm:text-xl font-bold">
+                {lang === 'bn' ? 'আজকের কুইজ' : "Today's Quiz"}
+              </h2>
+              {participants !== undefined && participants !== null && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-200">
+                  <Users className="w-3.5 h-3.5" />
+                  <span>
+                    {participants === 0
+                      ? (lang === 'bn' ? 'এখনো কেউ অংশ নেয়নি — প্রথম হোন!' : 'Nobody has played yet — be the first!')
+                      : (lang === 'bn'
+                        ? `আজ ${toBengaliNumerals(participants)} জন অংশ নিয়েছে`
+                        : `${participants} people played today`)}
+                  </span>
                 </span>
-              </p>
-            )}
+              )}
+            </div>
+            <p className="text-xs text-emerald-50/90 mt-1 leading-relaxed">
+              {lang === 'bn'
+                ? 'প্রতিদিন ৩টি সহজ প্রশ্ন — সঠিক হলে অভিনন্দন, ভুল হলে সঠিক উত্তরটাই শিখে নিন।'
+                : 'Three easy questions every day — get a congratulation when right, learn the answer when wrong.'}
+            </p>
           </div>
           <button
             onClick={onOpenQuiz}
-            className="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white text-emerald-900 text-sm font-bold shadow-sm hover:bg-amber-50 transition-colors cursor-pointer"
+            className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white text-emerald-900 text-sm font-bold shadow-sm hover:bg-amber-50 transition-colors cursor-pointer"
           >
             <span>{lang === 'bn' ? 'কুইজ দিন' : 'Take the Quiz'}</span>
             <ChevronRight className="w-4 h-4" />
