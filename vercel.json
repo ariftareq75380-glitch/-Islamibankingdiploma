@@ -30,7 +30,18 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!sitemap\\.xml|robots\\.txt|404\\.html|images/|assets/).*)",
+      "source": "/diploma/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|whatsapp|facebookexternalhit|FacebookExternalHit|Twitterbot|twitterbot|TelegramBot|telegrambot|LinkedInBot|linkedinbot|Slackbot|slackbot).*"
+        }
+      ],
+      "destination": "/api/og?slug=:slug"
+    },
+    {
+      "source": "/((?!sitemap\\.xml|robots\\.txt|404\\.html|images/|assets/|api/).*)",
       "destination": "/index.html"
     }
   ]
