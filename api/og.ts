@@ -9,6 +9,8 @@
  *
  * Humans and Googlebot never reach this function: the rewrite only matches
  * social-crawler User-Agents, and everyone else gets the SPA shell.
+ *
+ * Uses the canonical default-export Node handler form.
  */
 
 const SITE_URL = 'https://islamibankingdiploma-4f7m.vercel.app';
@@ -116,8 +118,13 @@ ${dims}    <meta name="twitter:card" content="summary_large_image" />
 `;
 }
 
-export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+export default async function handler(req: any, res: any): Promise<void> {
+  const rawUrl = typeof req.url === 'string' ? req.url : '/';
+  const host =
+    req.headers && typeof req.headers.host === 'string'
+      ? req.headers.host
+      : 'islamibankingdiploma-4f7m.vercel.app';
+  const url = new URL(rawUrl, `https://${host}`);
   const rawSlug = url.searchParams.get('slug') || '';
   const slug = SLUG_RE.test(rawSlug) ? rawSlug : '';
   const articleUrl = slug ? `${SITE_URL}/diploma/${slug}` : SITE_URL;
@@ -129,15 +136,15 @@ export async function GET(request: Request): Promise<Response> {
       qs.set('select', 'data,cover_image');
       qs.set('data->>slug', `eq.${slug}`);
       qs.set('limit', '1');
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/articles?${qs.toString()}`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/articles?${qs.toString()}`, {
         headers: {
           apikey: SUPABASE_KEY,
           Authorization: `Bearer ${SUPABASE_KEY}`,
         },
         signal: AbortSignal.timeout(5000),
       });
-      if (res.ok) {
-        const rows = (await res.json()) as Array<{
+      if (response.ok) {
+        const rows = (await response.json()) as Array<{
           data?: ArticleData;
           cover_image?: string;
         }>;
@@ -170,11 +177,8 @@ export async function GET(request: Request): Promise<Response> {
     imageHeight: image.height,
   });
 
-  return new Response(html, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600',
-    },
-  });
+  res.status(200);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send(html);
 }
