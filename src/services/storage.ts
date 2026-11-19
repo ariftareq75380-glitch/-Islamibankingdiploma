@@ -280,13 +280,34 @@ export const StorageService = {
 
   // --- Admin Supabase Write & Delete Functions (Task 2 & Task 3) ---
 
-  async saveArticleToSupabase(article: Article): Promise<{ success: boolean; message: string }> {
+  async saveArticleToSupabase(article: Article, opts?: { allowPdfClear?: boolean }): Promise<{ success: boolean; message: string }> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       return { success: false, message: 'প্রথমে লগইন করুন' };
     }
 
-    const pdfUrl = article.pdfUrl || article.pdf_url || null;
+    let pdfUrl = article.pdfUrl || article.pdf_url || null;
+
+    // Never silently wipe a live PDF link: if this save carries no PDF URL,
+    // keep the one already stored on the row. Only an explicit detach
+    // (opts.allowPdfClear, set by the admin form's "remove PDF" action)
+    // may write NULL over an existing value. A brand-new article simply
+    // has no existing row, so pdfUrl stays null for it.
+    if (!pdfUrl && !opts?.allowPdfClear) {
+      try {
+        const { data: existing } = await supabase
+          .from('articles')
+          .select('pdf_url')
+          .eq('id', article.id)
+          .maybeSingle();
+        const existingPdfUrl = (existing as { pdf_url?: string | null } | null)?.pdf_url;
+        if (existingPdfUrl) {
+          pdfUrl = existingPdfUrl;
+        }
+      } catch {
+        // Leave pdfUrl as-is; the upsert below still runs and surfaces errors.
+      }
+    }
 
     const { error } = await supabase.from('articles').upsert({
       id: article.id,
@@ -400,9 +421,29 @@ export const StorageService = {
       return { success: false, message: 'প্রথমে লগইন করুন' };
     }
 
+    // Never silently wipe a live PDF link: if this save carries no file URL,
+    // keep the one already stored on the row (e.g. the edit form was opened
+    // from a stale list that had no file URL loaded).
+    let resourceToSave = resource;
+    if (!resource.pdfFileUrl) {
+      try {
+        const { data: existing } = await supabase
+          .from('resources')
+          .select('data')
+          .eq('id', resource.id)
+          .maybeSingle();
+        const existingFileUrl = (existing as { data?: { pdfFileUrl?: string } } | null)?.data?.pdfFileUrl;
+        if (existingFileUrl) {
+          resourceToSave = { ...resource, pdfFileUrl: existingFileUrl };
+        }
+      } catch {
+        // Leave the payload as-is; the upsert below still runs and surfaces errors.
+      }
+    }
+
     const { error } = await supabase.from('resources').upsert({
-      id: resource.id,
-      data: resource,
+      id: resourceToSave.id,
+      data: resourceToSave,
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
 

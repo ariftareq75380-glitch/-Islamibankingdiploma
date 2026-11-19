@@ -238,6 +238,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [artStatus, setArtStatus] = useState<'published' | 'draft'>('published');
   const [artFeatured, setArtFeatured] = useState<boolean>(false);
   const [artPdfUrl, setArtPdfUrl] = useState<string>('');
+  // True only when the owner deliberately detached the PDF with the form's
+  // "remove PDF" button. A merely-empty PDF field must NOT clear the live
+  // link on save (see saveArticleToSupabase).
+  const [artPdfRemoved, setArtPdfRemoved] = useState<boolean>(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState<boolean>(false);
   const [artPdfUploadProgress, setArtPdfUploadProgress] = useState<number | null>(null);
   const [isUploadingCover, setIsUploadingCover] = useState<boolean>(false);
@@ -434,6 +438,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       if (res.success && res.url) {
         setArtPdfUploadProgress(100);
         setArtPdfUrl(res.url);
+        setArtPdfRemoved(false);
         const successMsg = lang === 'bn' ? 'Supabase Storage "pdfs" বাকেটে PDF সফলভাবে আপলোড হয়েছে!' : 'PDF uploaded to Supabase Storage!';
         setFormSuccessMessage(successMsg);
         showToast(successMsg, 'success');
@@ -534,8 +539,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     e.preventDefault();
     setFormErrorMessage(null);
 
+    const existing = editingResourceId ? resources.find(r => r.id === editingResourceId) : null;
+    // Keep the loaded resource's file link when the field is empty (e.g. the
+    // form was opened from a stale list); a save must not drop the live PDF.
+    const effectiveFileUrl = resFileUrl || existing?.pdfFileUrl || '';
+
     // Validation: Require at least one valid source (direct file or Google Drive URL)
-    if (!resFileUrl && !resDriveUrl) {
+    if (!effectiveFileUrl && !resDriveUrl) {
       setFormErrorMessage(
         lang === 'bn' 
           ? 'অনুগ্রহ করে সরাসরি একটি পিডিএফ ফাইল আপলোড করুন অথবা একটি গুগল ড্রাইভ লিংক প্রদান করুন।'
@@ -547,7 +557,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const topicsArray = resKeyTopics.split(',').map(s => s.trim()).filter(Boolean);
     const tagsArray = resTags.split(',').map(s => s.trim()).filter(Boolean);
 
-    const existing = editingResourceId ? resources.find(r => r.id === editingResourceId) : null;
     const resourcePayload: PdfResource = {
       id: editingResourceId || `resource-${Date.now()}`,
       title: resTitle,
@@ -563,7 +572,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       category: resCategory,
       categoryBn: resCategory === 'Solved-Answer' ? 'সমাধানকৃত প্রশ্নপত্র' : 'প্রশ্নপত্র ও সহায়িকা',
       tags: tagsArray,
-      pdfFileUrl: resFileUrl,
+      pdfFileUrl: effectiveFileUrl,
       googleDriveUrl: resDriveUrl || undefined,
       fileSize: resFileSize,
       pageCount: resPageCount,
@@ -664,6 +673,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setArtCoverImage(art.coverImage || '/images/banner_bangladesh_banking_1793322325377.webp');
     setArtFeatured(art.featured === true);
     setArtPdfUrl(art.pdfUrl || art.pdf_url || '');
+    setArtPdfRemoved(false);
     setArtStatus(art.status || (art.isDraft ? 'draft' : 'published'));
     setFormErrorMessage(null);
     setFormSuccessMessage(null);
@@ -709,15 +719,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       keywords: keywordsArray,
       coverImage: artCoverImage,
       featured: artFeatured,
-      pdfUrl: artPdfUrl || null,
-      pdf_url: artPdfUrl || null,
+      // Keep the loaded article's PDF when the field is empty; only an
+      // explicit "remove PDF" tap (artPdfRemoved) may clear it.
+      pdfUrl: artPdfUrl || (artPdfRemoved ? null : (existing?.pdfUrl || existing?.pdf_url || null)),
+      pdf_url: artPdfUrl || (artPdfRemoved ? null : (existing?.pdfUrl || existing?.pdf_url || null)),
       status: artStatus,
       isDraft: artStatus === 'draft',
       publishedDate: existing?.publishedDate || new Date().toISOString().split('T')[0],
       publishedAt: existing?.publishedAt || existing?.publishedDate || new Date().toISOString().split('T')[0]
     };
 
-    const result = await StorageService.saveArticleToSupabase(articlePayload);
+    const result = await StorageService.saveArticleToSupabase(articlePayload, { allowPdfClear: artPdfRemoved });
 
     if (!result.success) {
       setFormErrorMessage(result.message);
@@ -847,6 +859,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setArtCoverImage('/images/banner_bangladesh_banking_1793322325377.webp');
     setArtFeatured(false);
     setArtPdfUrl('');
+    setArtPdfRemoved(false);
     setArtStatus('published');
     setFormErrorMessage(null);
     setFormSuccessMessage(null);
@@ -892,6 +905,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
     return true;
   });
+
+  // Article open in the edit form (if any) and the PDF already attached to it.
+  // Used to show the owner what is attached before saving, even when the
+  // form's PDF field itself is empty.
+  const editingArticleForForm = editingArticleId ? articles.find(a => a.id === editingArticleId) : null;
+  const existingFormPdfUrl = editingArticleForForm?.pdfUrl || editingArticleForForm?.pdf_url || '';
 
   // Import Backup JSON
   const handleImportJsonFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2311,11 +2330,60 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </a>
                     <button
                       type="button"
-                      onClick={() => setArtPdfUrl('')}
+                      onClick={() => { setArtPdfUrl(''); setArtPdfRemoved(true); }}
                       className="text-stone-400 hover:text-red-600 p-1"
                       title="মুছুন"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* PDF already attached to the article being edited: show it even
+                    when the form's PDF field is empty, so a save never silently
+                    detaches it. */}
+                {!artPdfUrl && editingArticleId && !existingFormPdfUrl && (
+                  <div className="text-[11px] text-stone-500 bg-white p-2.5 rounded-lg border border-stone-200">
+                    কোনো PDF সংযুক্ত নেই
+                  </div>
+                )}
+                {!artPdfUrl && existingFormPdfUrl && !artPdfRemoved && (
+                  <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-stone-200">
+                    <FileText className="w-6 h-6 text-emerald-800 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-semibold text-emerald-800">সংযুক্ত PDF (আগে থেকে আছে — সেভ করলে থেকে যাবে)</div>
+                      <div className="text-[10px] text-stone-500 font-mono truncate">{existingFormPdfUrl.split('/').pop()?.split('?')[0] || existingFormPdfUrl}</div>
+                    </div>
+                    <a
+                      href={existingFormPdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1 text-stone-400 hover:text-emerald-800"
+                      title="দেখুন"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setArtPdfRemoved(true)}
+                      className="text-stone-400 hover:text-red-600 p-1"
+                      title="PDF সরান"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+                {!artPdfUrl && existingFormPdfUrl && artPdfRemoved && (
+                  <div className="flex items-center gap-3 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                    <div className="flex-1 min-w-0 text-[11px] font-medium text-amber-800">
+                      সেভ করলে সংযুক্ত PDF টি সরিয়ে ফেলা হবে।
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setArtPdfRemoved(false); setArtPdfUrl(existingFormPdfUrl); }}
+                      className="px-2.5 py-1 bg-white border border-amber-300 rounded-lg text-amber-800 text-[11px] font-semibold cursor-pointer"
+                    >
+                      ফিরিয়ে আনুন
                     </button>
                   </div>
                 )}
