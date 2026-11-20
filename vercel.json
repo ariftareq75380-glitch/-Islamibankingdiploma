@@ -41,6 +41,28 @@
       "destination": "/api/og?slug=:slug"
     },
     {
+      "source": "/faq",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|googlebot|Bingbot|bingbot).*"
+        }
+      ],
+      "destination": "/api/og?faq=1"
+    },
+    {
+      "source": "/faq/",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|googlebot|Bingbot|bingbot).*"
+        }
+      ],
+      "destination": "/api/og?faq=1"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "/api/sitemap"
     },

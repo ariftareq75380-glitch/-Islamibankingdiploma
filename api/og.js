@@ -14,9 +14,18 @@
  * function: the rewrite only matches crawler User-Agents, and everyone else
  * gets the SPA shell.
  *
+ * The same function also serves /faq to search crawlers (vercel.json
+ * rewrites /faq for Googlebot/Bingbot to /api/og?faq=1). It returns the
+ * FAQ page's own title and FAQPage JSON-LD built from the shared FAQ data
+ * (src/data/faq.json — the same source FaqSection.tsx renders), with the
+ * questions and answers visible in the body so the markup matches what a
+ * visitor sees.
+ *
  * Plain JavaScript on purpose: no TypeScript transpilation step is involved
  * in building this function.
  */
+
+import faqData from '../src/data/faq.json';
 
 const SITE_URL = 'https://islamibankingdiploma-4f7m.vercel.app';
 const SUPABASE_URL = 'https://cdgkjgjltlrihipnvpxb.supabase.co';
@@ -119,6 +128,51 @@ function buildArticleJsonLd({ title, description, pageUrl, imageUrl, author, dat
   return json;
 }
 
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
+ * Build the FAQPage JSON-LD for /faq from the shared FAQ data
+ * (src/data/faq.json — the same source FaqSection.tsx renders).
+ * Bengali is used: it is the site's default language and the version a
+ * first-load visitor sees. The JSON is escaped the same way as the
+ * Article JSON-LD so a `</script>` inside an answer can never break out.
+ */
+function buildFaqJsonLd() {
+  const json = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqData.map((item) => ({
+      '@type': 'Question',
+      name: item.questionBn,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answerBn,
+      },
+    })),
+  }).replace(/<\//g, '<\\/');
+  return json;
+}
+
+/**
+ * Visible FAQ content for the /faq crawler page, so the FAQPage markup is
+ * backed by the same questions and answers a visitor sees (Bengali, the
+ * site's default language). Newlines in answers become line breaks.
+ */
+function buildFaqBody() {
+  const items = faqData
+    .map(
+      (item) =>
+        `      <h2>${escapeHtml(item.questionBn)}</h2>\n      <p>${escapeHtml(item.answerBn).replace(/\n/g, '<br />')}</p>`,
+    )
+    .join('\n');
+  return `    <h1>ডিআইবি পরীক্ষা ও প্রস্তুতি সংক্রান্ত প্রশ্নোত্তরি</h1>\n${items}\n    <p><a href="${SITE_URL}/faq">FAQ | ইসলামী ব্যাংকিং ডিপ্লোমা</a></p>`;
+}
+
 function renderPage(options) {
   const t = escapeAttr(options.title);
   const d = escapeAttr(options.description);
@@ -131,6 +185,7 @@ function renderPage(options) {
   const jsonLd = options.jsonLd
     ? `    <script type="application/ld+json">\n${options.jsonLd}\n    </script>\n`
     : '';
+  const body = options.bodyHtml || `    <p><a href="${u}">${t}</a></p>`;
   return `<!doctype html>
 <html lang="bn">
   <head>
@@ -151,7 +206,7 @@ ${dims}    <meta name="twitter:card" content="summary_large_image" />
     <meta http-equiv="refresh" content="0; url=${u}" />
   </head>
   <body>
-    <p><a href="${u}">${t}</a></p>
+${body}
   </body>
 </html>
 `;
@@ -164,6 +219,31 @@ export default async function handler(req, res) {
       ? req.headers.host
       : 'islamibankingdiploma-4f7m.vercel.app';
   const url = new URL(rawUrl, `https://${host}`);
+
+  // /faq for search crawlers: FAQPage JSON-LD from the shared FAQ data.
+  // Title matches what the SPA sets for the faq tab; the description is the
+  // FAQ section's own Bengali intro line from FaqSection.tsx.
+  if (url.searchParams.get('faq') === '1') {
+    const html = renderPage({
+      title: 'FAQ | ইসলামী ব্যাংকিং ডিপ্লোমা',
+      description: trimDescription(
+        'আইবিবি ডিপ্লোমা ইন ইসলামিক ব্যাংকিং পরীক্ষা, পাস মার্ক, সিলেবাসের পরিবর্তন এবং চাকরির পাশাপাশি স্টাডি রুটিন সংক্রান্ত জরুরি প্রশ্নের উত্তর।',
+      ),
+      pageUrl: `${SITE_URL}/faq`,
+      ogType: 'website',
+      imageUrl: SITE_IMAGE,
+      imageWidth: SITE_IMAGE_WIDTH,
+      imageHeight: SITE_IMAGE_HEIGHT,
+      jsonLd: buildFaqJsonLd(),
+      bodyHtml: buildFaqBody(),
+    });
+    res.status(200);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(html);
+    return;
+  }
+
   const rawSlug = url.searchParams.get('slug') || '';
   const slug = SLUG_RE.test(rawSlug) ? rawSlug : '';
   const articleUrl = slug ? `${SITE_URL}/diploma/${slug}` : SITE_URL;
