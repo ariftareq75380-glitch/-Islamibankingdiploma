@@ -16,16 +16,16 @@
  *
  * The same function also serves /faq to search crawlers (vercel.json
  * rewrites /faq for Googlebot/Bingbot to /api/og?faq=1). It returns the
- * FAQ page's own title and FAQPage JSON-LD built from the shared FAQ data
- * (src/data/faq.json — the same source FaqSection.tsx renders), with the
- * questions and answers visible in the body so the markup matches what a
- * visitor sees.
+ * FAQ page's own title and FAQPage JSON-LD built from api/faqData.js —
+ * a plain JS module generated from src/data/faq.json, the same source
+ * FaqSection.tsx renders — with the questions and answers visible in
+ * the body so the markup matches what a visitor sees.
  *
  * Plain JavaScript on purpose: no TypeScript transpilation step is involved
  * in building this function.
  */
 
-import faqData from '../src/data/faq.json';
+import { faqData } from './faqData.js';
 
 const SITE_URL = 'https://islamibankingdiploma-4f7m.vercel.app';
 const SUPABASE_URL = 'https://cdgkjgjltlrihipnvpxb.supabase.co';
@@ -136,8 +136,8 @@ function escapeHtml(value) {
 }
 
 /**
- * Build the FAQPage JSON-LD for /faq from the shared FAQ data
- * (src/data/faq.json — the same source FaqSection.tsx renders).
+ * Build the FAQPage JSON-LD for /faq from api/faqData.js (generated from
+ * src/data/faq.json — the same source FaqSection.tsx renders).
  * Bengali is used: it is the site's default language and the version a
  * first-load visitor sees. The JSON is escaped the same way as the
  * Article JSON-LD so a `</script>` inside an answer can never break out.

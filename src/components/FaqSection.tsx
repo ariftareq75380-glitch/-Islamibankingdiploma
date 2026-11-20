@@ -13,8 +13,8 @@ interface FaqItem {
   answerEn: string;
 }
 
-// Shared data source (src/data/faq.json) — also read server-side by api/og.js
-// for the FAQPage JSON-LD served to search crawlers on /faq.
+// Shared data source (src/data/faq.json) — the server copy (api/faqData.js)
+// is generated from this file by scripts/sync-faq-data.mjs (prebuild).
 const faqData: FaqItem[] = faqDataJson as FaqItem[];
 
 interface FaqSectionProps {
