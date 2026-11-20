@@ -857,6 +857,43 @@ export const StorageService = {
     }
   },
 
+  // --- Article "helpful" reactions (degrades silently) ---
+  // Counts live in public.article_reaction_counts, created by
+  // supabase/migrations/20261120_article_reactions.sql (must be run once
+  // in the Supabase SQL Editor — a code deploy cannot create
+  // tables/policies). Until that migration is applied every call below
+  // fails safely: the button still works from localStorage and the count
+  // line is hidden instead of showing a wrong number.
+  // A count of 0 means the table exists but nobody has reacted yet.
+  async getArticleHelpfulCount(slug: string): Promise<number | null> {
+    if (!slug) return null;
+    try {
+      const { data, error } = await supabase
+        .from('article_reaction_counts')
+        .select('helpful_count')
+        .eq('article_slug', slug)
+        .maybeSingle();
+      if (error) return null; // table not created yet — hide the count
+      return data ? Number(data.helpful_count) || 0 : 0;
+    } catch {
+      return null;
+    }
+  },
+
+  // Adds 1 to the article's helpful count via the
+  // increment_article_helpful RPC and returns the new count, or null
+  // when the function is not available yet (SQL not run).
+  async incrementArticleHelpful(slug: string): Promise<number | null> {
+    if (!slug) return null;
+    try {
+      const { data, error } = await supabase.rpc('increment_article_helpful', { p_slug: slug });
+      if (error) return null;
+      return typeof data === 'number' ? data : null;
+    } catch {
+      return null;
+    }
+  },
+
   // --- Daily quiz (Supabase-backed, degrades silently) ---
   // Counts live in two tables created by
   // supabase/migrations/20261119_quiz.sql (must be run once in the

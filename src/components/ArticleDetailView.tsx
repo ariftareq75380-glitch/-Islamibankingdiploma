@@ -24,6 +24,7 @@ import { Article, PdfResource } from '../types';
 import { updateSEOMetadata } from '../utils/seo';
 import { isHtmlContent, sanitizeHtmlForRender } from '../utils/richText';
 import { PdfCoverPreview } from './PdfCoverPreview';
+import { ArticleReactions } from './ArticleReactions';
 import { StorageService } from '../services/storage';
 import { hasRealPdfFile, resourceKeyForPdfUrl } from '../utils/pdfUtils';
 import { toBengaliNumerals } from '../utils/dateUtils';
@@ -452,6 +453,11 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
           );
         })()}
       </div>
+
+      {/* "Was this helpful?" reaction — directly under the article body,
+          before the attached PDF. Degrades gracefully until the reactions
+          SQL is run (button works from localStorage, count hidden). */}
+      <ArticleReactions slug={article.slug} lang={lang} />
 
       {/* Attached PDF Resource — placed AFTER the body text so visitors
           read the article first, then see the PDF with an inline preview. */}
