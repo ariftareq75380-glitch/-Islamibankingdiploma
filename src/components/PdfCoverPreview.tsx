@@ -47,8 +47,9 @@ export const PdfCoverPreview: React.FC<PdfCoverPreviewProps> = ({ pdfUrl, title,
   useEffect(() => {
     let cancelled = false;
     import('../utils/pdfCoverData')
-      .then((m) => {
-        if (!cancelled) setCoverImages(m.getPdfCoverImages(pdfUrl));
+      .then((m) => m.loadPdfCoverImages(pdfUrl))
+      .then((images) => {
+        if (!cancelled) setCoverImages(images);
       })
       .catch(() => {
         if (!cancelled) setCoverImages([]);

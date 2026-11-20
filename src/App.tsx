@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { 
   PdfResource, 
   Article, 
@@ -17,25 +17,40 @@ import { ResumeStudyBanner } from './components/ResumeStudyBanner';
 import { FeaturedCategories } from './components/FeaturedCategories';
 import { DiplomaExamSection } from './components/DiplomaExamSection';
 import { HighlightedArticlesSection, RecentArticlesSection } from './components/HomeArticleSections';
-import { ZakatCalculator } from './components/ZakatCalculator';
-import { PracticeMockTest } from './components/PracticeMockTest';
 import { DailyQuiz, QuizHomeCard } from './components/DailyQuiz';
-import { BookmarksView } from './components/BookmarksView';
 import { FaqSection } from './components/FaqSection';
 import { ResourceFilters } from './components/ResourceFilters';
 import { PdfCard } from './components/PdfCard';
-import { PdfViewerModal } from './components/PdfViewerModal';
 import { ArticlesSection } from './components/ArticlesSection';
-import { ArticleModal } from './components/ArticleModal';
 import { ArticleDetailView } from './components/ArticleDetailView';
-import { ContentEditorModal } from './components/ContentEditorModal';
-import { AdminPanel } from './components/AdminPanel';
-import { WordPressArchitectureModal } from './components/WordPressArchitectureModal';
-import { InformationalPages } from './components/InformationalPages';
 import { AdPlacement } from './components/AdPlacement';
 import { Footer } from './components/Footer';
-import { IslamicCalendarModal } from './components/IslamicCalendarModal';
-import { PrayerTimesModal } from './components/PrayerTimesModal';
+
+// Lazily loaded: these are only shown on demand (admin panel, editor,
+// modals, tab views), so their code stays out of the initial bundle
+// every visitor downloads. The admin/editor path alone pulls in the
+// TipTap/ProseMirror editor (~1 MB of library code), so keeping it out
+// of the first load is the biggest single INP / total-blocking-time win.
+// All of them are named exports, hence the .then(m => ({ default: ... }))
+// wrappers. Each renders behind a Suspense boundary below.
+const ZakatCalculator = lazy(() => import('./components/ZakatCalculator').then((m) => ({ default: m.ZakatCalculator })));
+const PracticeMockTest = lazy(() => import('./components/PracticeMockTest').then((m) => ({ default: m.PracticeMockTest })));
+const BookmarksView = lazy(() => import('./components/BookmarksView').then((m) => ({ default: m.BookmarksView })));
+const PdfViewerModal = lazy(() => import('./components/PdfViewerModal').then((m) => ({ default: m.PdfViewerModal })));
+const ContentEditorModal = lazy(() => import('./components/ContentEditorModal').then((m) => ({ default: m.ContentEditorModal })));
+const AdminPanel = lazy(() => import('./components/AdminPanel').then((m) => ({ default: m.AdminPanel })));
+const WordPressArchitectureModal = lazy(() => import('./components/WordPressArchitectureModal').then((m) => ({ default: m.WordPressArchitectureModal })));
+const InformationalPages = lazy(() => import('./components/InformationalPages').then((m) => ({ default: m.InformationalPages })));
+const IslamicCalendarModal = lazy(() => import('./components/IslamicCalendarModal').then((m) => ({ default: m.IslamicCalendarModal })));
+const PrayerTimesModal = lazy(() => import('./components/PrayerTimesModal').then((m) => ({ default: m.PrayerTimesModal })));
+
+// Shown while a lazily loaded tab view downloads its chunk.
+const LazyViewFallback = () => (
+  <div className="max-w-2xl mx-auto px-4 py-24 text-center font-bengali">
+    <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-700" />
+    <p className="text-base font-bold text-stone-900">লোড হচ্ছে…</p>
+  </div>
+);
 import { updateSEOMetadata } from './utils/seo';
 import { supabase } from './utils/supabase';
 import { normalizeSearchText, searchTextMatches } from './utils/searchNormalize';
@@ -816,10 +831,12 @@ export default function App() {
 
         {/* 2. DEDICATED PRACTICE & MOCK TEST MODE */}
         {activeTab === 'mock-test' && (
-          <PracticeMockTest
-            lang={lang}
-            onBackToLibrary={() => setActiveTab('pdf-library')}
-          />
+          <Suspense fallback={<LazyViewFallback />}>
+            <PracticeMockTest
+              lang={lang}
+              onBackToLibrary={() => setActiveTab('pdf-library')}
+            />
+          </Suspense>
         )}
 
         {/* 2b. DAILY QUIZ */}
@@ -832,17 +849,19 @@ export default function App() {
 
         {/* 3. DEDICATED BOOKMARKS VIEW */}
         {activeTab === 'bookmarks-view' && (
-          <BookmarksView
-            resources={resources}
-            bookmarks={bookmarks}
-            onToggleBookmark={handleToggleBookmark}
-            onPreview={handlePreviewResource}
-            onDownloadIncrement={handleDownloadIncrement}
-            completedIds={completedIds}
-            onToggleComplete={handleToggleComplete}
-            onBackToLibrary={() => setActiveTab('pdf-library')}
-            lang={lang}
-          />
+          <Suspense fallback={<LazyViewFallback />}>
+            <BookmarksView
+              resources={resources}
+              bookmarks={bookmarks}
+              onToggleBookmark={handleToggleBookmark}
+              onPreview={handlePreviewResource}
+              onDownloadIncrement={handleDownloadIncrement}
+              completedIds={completedIds}
+              onToggleComplete={handleToggleComplete}
+              onBackToLibrary={() => setActiveTab('pdf-library')}
+              lang={lang}
+            />
+          </Suspense>
         )}
 
         {/* 4. DEDICATED FAQ SECTION */}
@@ -988,16 +1007,20 @@ export default function App() {
 
         {/* 7. INFORMATIONAL & LEGAL PAGES */}
         {(activeTab === 'about' || activeTab === 'contact' || activeTab === 'privacy' || activeTab === 'disclaimer') && (
-          <InformationalPages
-            page={activeTab}
-            settings={settings}
-            lang={lang}
-          />
+          <Suspense fallback={<LazyViewFallback />}>
+            <InformationalPages
+              page={activeTab}
+              settings={settings}
+              lang={lang}
+            />
+          </Suspense>
         )}
 
         {/* 8. ZAKAT CALCULATOR VIEW */}
         {activeTab === 'zakat-calculator' && (
-          <ZakatCalculator lang={lang} onNavigateUrl={handleNavigateUrl} settings={settings} />
+          <Suspense fallback={<LazyViewFallback />}>
+            <ZakatCalculator lang={lang} onNavigateUrl={handleNavigateUrl} settings={settings} />
+          </Suspense>
         )}
 
         {/* 8. 404 NOT FOUND VIEW */}
@@ -1158,72 +1181,87 @@ export default function App() {
       {/* MODALS */}
       {/* 1. PDF Viewer Modal */}
       {selectedPdfForPreview && (
-        <PdfViewerModal
-          resource={selectedPdfForPreview}
-          onClose={() => setSelectedPdfForPreview(null)}
-          onDownloadIncrement={handleDownloadIncrement}
-          isBookmarked={bookmarks.includes(selectedPdfForPreview.id)}
-          onToggleBookmark={handleToggleBookmark}
-          allResources={resources}
-          onSelectRelated={(r) => handlePreviewResource(r)}
-          lang={lang}
-        />
+        <Suspense fallback={null}>
+          <PdfViewerModal
+            resource={selectedPdfForPreview}
+            onClose={() => setSelectedPdfForPreview(null)}
+            onDownloadIncrement={handleDownloadIncrement}
+            isBookmarked={bookmarks.includes(selectedPdfForPreview.id)}
+            onToggleBookmark={handleToggleBookmark}
+            allResources={resources}
+            onSelectRelated={(r) => handlePreviewResource(r)}
+            lang={lang}
+          />
+        </Suspense>
       )}
 
       {/* 2. Content Writer / Editor Modal (Keywords, Thumbnails & Distinct Slug URL) */}
-      <ContentEditorModal
-        isOpen={isContentEditorOpen}
-        onClose={() => setIsContentEditorOpen(false)}
-        onArticleSaved={(savedArticle) => {
-          loadAllData();
-          handleOpenArticle(savedArticle);
-        }}
-        existingArticle={editingArticleForEditor}
-        lang={lang}
-      />
+      {/* Guarded by isContentEditorOpen so the editor chunk only downloads when actually opened. */}
+      {isContentEditorOpen && (
+        <Suspense fallback={null}>
+          <ContentEditorModal
+            isOpen={isContentEditorOpen}
+            onClose={() => setIsContentEditorOpen(false)}
+            onArticleSaved={(savedArticle) => {
+              loadAllData();
+              handleOpenArticle(savedArticle);
+            }}
+            existingArticle={editingArticleForEditor}
+            lang={lang}
+          />
+        </Suspense>
+      )}
 
       {/* 3. Admin Panel Modal (Supabase Auth Protected) */}
       {isAdminOpen && (
-        <AdminPanel
-          resources={resources}
-          articles={articles}
-          settings={settings}
-          onRefreshData={loadAllData}
-          onClose={() => {
-            setIsAdminOpen(false);
-            if (activeTab === 'admin' || activeTab === 'login') {
-              setActiveTab('home');
-              if (typeof window !== 'undefined') window.history.pushState(null, '', '/');
-            }
-          }}
-          lang={lang}
-          onAuthChange={(auth) => setIsAdminAuthenticated(auth)}
-          onPreviewResource={handlePreviewResource}
-        />
+        <Suspense fallback={null}>
+          <AdminPanel
+            resources={resources}
+            articles={articles}
+            settings={settings}
+            onRefreshData={loadAllData}
+            onClose={() => {
+              setIsAdminOpen(false);
+              if (activeTab === 'admin' || activeTab === 'login') {
+                setActiveTab('home');
+                if (typeof window !== 'undefined') window.history.pushState(null, '', '/');
+              }
+            }}
+            lang={lang}
+            onAuthChange={(auth) => setIsAdminAuthenticated(auth)}
+            onPreviewResource={handlePreviewResource}
+          />
+        </Suspense>
       )}
 
       {/* 4. WordPress Architecture Blueprint Modal */}
       {isBlueprintOpen && (
-        <WordPressArchitectureModal
-          onClose={() => setIsBlueprintOpen(false)}
-          lang={lang}
-        />
+        <Suspense fallback={null}>
+          <WordPressArchitectureModal
+            onClose={() => setIsBlueprintOpen(false)}
+            lang={lang}
+          />
+        </Suspense>
       )}
 
       {/* 5. Islamic & Bengali Calendar Utility Modal */}
       {isCalendarModalOpen && (
-        <IslamicCalendarModal
-          onClose={() => setIsCalendarModalOpen(false)}
-          lang={lang}
-        />
+        <Suspense fallback={null}>
+          <IslamicCalendarModal
+            onClose={() => setIsCalendarModalOpen(false)}
+            lang={lang}
+          />
+        </Suspense>
       )}
 
       {/* 6. Bangladesh District-wise Hanafi Prayer Times Modal */}
       {isPrayerModalOpen && (
-        <PrayerTimesModal
-          onClose={() => setIsPrayerModalOpen(false)}
-          lang={lang}
-        />
+        <Suspense fallback={null}>
+          <PrayerTimesModal
+            onClose={() => setIsPrayerModalOpen(false)}
+            lang={lang}
+          />
+        </Suspense>
       )}
 
       {/* Footer */}
