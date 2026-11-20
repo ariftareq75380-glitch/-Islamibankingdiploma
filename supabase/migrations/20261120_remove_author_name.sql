@@ -1,0 +1,1 @@
+update public.articles set data = (data || '{"author": "Admin"}'::jsonb) - 'authorDesignation' where data->>'author' in ('Muhammad Arifur Rahman', 'মুহাম্মদ আরিফুর রহমান', 'Mohammad Arifur Rahman', 'Mohammad Arifur Rahman, CSBIB Research Fellow');

@@ -309,8 +309,10 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
             {(article.author || 'লেখক').charAt(0)}
           </div>
           <div>
-            <div className="font-bold text-stone-900 text-sm">{article.author || 'মুহাম্মদ আরিফুর রহমান'}</div>
-            <div className="text-xs text-stone-500">{article.authorDesignation || 'ইসলামিক ব্যাংকিং গবেষক'}</div>
+            <div className="font-bold text-stone-900 text-sm">{article.author || 'Admin'}</div>
+            {article.authorDesignation && (
+              <div className="text-xs text-stone-500">{article.authorDesignation}</div>
+            )}
           </div>
           {/* Real read count from Supabase (hidden until analytics is set up) */}
           {viewCount !== null && (

@@ -151,7 +151,7 @@ export const InformationalPages: React.FC<InformationalPagesProps> = ({
                     required
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    placeholder={lang === 'bn' ? 'যেমন: মোহাম্মদ আরিফুর রহমান' : 'e.g. Arifur Rahman'}
+                    placeholder={lang === 'bn' ? 'যেমন: আব্দুল্লাহ আল মামুন' : 'e.g. Abdullah Al Mamun'}
                     className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-900 focus:outline-emerald-800"
                   />
                 </div>

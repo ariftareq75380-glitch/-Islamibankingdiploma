@@ -111,8 +111,8 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
   const [urlPrefix, setUrlPrefix] = useState<'diploma' | 'articles'>('diploma');
   
   // Author
-  const [author, setAuthor] = useState('মুহাম্মদ আরিফুর রহমান');
-  const [authorDesignation, setAuthorDesignation] = useState('সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+  const [author, setAuthor] = useState('Admin');
+  const [authorDesignation, setAuthorDesignation] = useState('');
 
   // Content
   const [summaryBn, setSummaryBn] = useState('');
@@ -145,8 +145,8 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
         setIsSlugManual(true);
         setCategoryBn(existingArticle.categoryBn || 'ডিআইবি পার্ট-১ ও মূলনীতি');
         setCategoryEn(existingArticle.category || 'Diploma in Islamic Banking (Part 1)');
-        setAuthor(existingArticle.author || 'মুহাম্মদ আরিফুর রহমান');
-        setAuthorDesignation(existingArticle.authorDesignation || 'সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+        setAuthor(existingArticle.author || 'Admin');
+        setAuthorDesignation(existingArticle.authorDesignation || '');
         setSummaryBn(existingArticle.summaryBn || existingArticle.summary || '');
         setContentMarkdownBn(existingArticle.contentMarkdownBn || '');
         setContentMarkdownEn(existingArticle.contentMarkdownEn || '');
@@ -164,8 +164,8 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
         setIsSlugManual(false);
         setCategoryBn('ডিআইবি পার্ট-১ ও মূলনীতি');
         setCategoryEn('Diploma in Islamic Banking (Part 1)');
-        setAuthor('মুহাম্মদ আরিফুর রহমান');
-        setAuthorDesignation('সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+        setAuthor('Admin');
+        setAuthorDesignation('');
         setSummaryBn('');
         setContentMarkdownBn('');
         setContentMarkdownEn('');
@@ -293,8 +293,8 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
       title: titleEn || titleBn,
       titleBn: titleBn,
       slug: finalSlug,
-      author: author || 'মুহাম্মদ আরিফুর রহমান',
-      authorDesignation: authorDesignation || 'সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর',
+      author: author || 'Admin',
+      authorDesignation: authorDesignation || '',
       publishedDate: existingArticle?.publishedDate || new Date().toISOString().split('T')[0],
       readTime: calculatedReadTime,
       category: categoryEn,
@@ -928,8 +928,10 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                       {(author || 'লেখক').charAt(0)}
                     </div>
                     <div>
-                      <div className="font-bold text-stone-900">{author || 'মুহাম্মদ আরিফুর রহমান'}</div>
-                      <div className="text-[11px]">{authorDesignation || 'ডিআইবি মেন্টর'}</div>
+                      <div className="font-bold text-stone-900">{author || 'Admin'}</div>
+                      {authorDesignation && (
+                        <div className="text-[11px]">{authorDesignation}</div>
+                      )}
                     </div>
                   </div>
 

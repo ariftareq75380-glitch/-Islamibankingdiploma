@@ -223,8 +223,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [artTitle, setArtTitle] = useState('');
   const [artTitleBn, setArtTitleBn] = useState('');
-  const [artAuthor, setArtAuthor] = useState('Mohammad Arifur Rahman');
-  const [artAuthorDesignation, setArtAuthorDesignation] = useState('Senior Islamic Banking Specialist & DIB Mentor');
+  const [artAuthor, setArtAuthor] = useState('Admin');
+  const [artAuthorDesignation, setArtAuthorDesignation] = useState('');
   const [artCategory, setArtCategory] = useState('Diploma in Islamic Banking (Part 1)');
   const [artCategoryBn, setArtCategoryBn] = useState('ডিআইবি পার্ট-১ ও মূলনীতি');
   const [artSummary, setArtSummary] = useState('');
@@ -660,8 +660,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setArtTitle(art.title || '');
     setArtTitleBn(art.titleBn || art.title || '');
     setArtSlug(art.slug || '');
-    setArtAuthor(art.author || 'মুহাম্মদ আরিফুর রহমান');
-    setArtAuthorDesignation(art.authorDesignation || 'সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+    setArtAuthor(art.author || 'Admin');
+    setArtAuthorDesignation(art.authorDesignation || '');
     setArtCategory(art.category || 'Diploma in Islamic Banking (Part 1)');
     setArtCategoryBn(art.categoryBn || 'ডিআইবি পার্ট-১ ও মূলনীতি');
     setArtSummary(art.summary || '');
@@ -845,8 +845,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setEditingArticleId(null);
     setArtTitle('');
     setArtTitleBn('');
-    setArtAuthor('মুহাম্মদ আরিফুর রহমান');
-    setArtAuthorDesignation('সিনিয়র ইসলামিক ব্যাংকিং স্পেশালিস্ট ও ডিআইবি মেন্টর');
+    setArtAuthor('Admin');
+    setArtAuthorDesignation('');
     setArtCategory('Diploma in Islamic Banking (Part 1)');
     setArtCategoryBn('ডিআইবি পার্ট-১ ও মূলনীতি');
     setArtSummary('');
