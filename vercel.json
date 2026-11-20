@@ -35,7 +35,7 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*(WhatsApp|whatsapp|facebookexternalhit|FacebookExternalHit|Twitterbot|twitterbot|TelegramBot|telegrambot|LinkedInBot|linkedinbot|Slackbot|slackbot).*"
+          "value": ".*(WhatsApp|whatsapp|facebookexternalhit|FacebookExternalHit|Twitterbot|twitterbot|TelegramBot|telegrambot|LinkedInBot|linkedinbot|Slackbot|slackbot|Googlebot|googlebot|Bingbot|bingbot).*"
         }
       ],
       "destination": "/api/og?slug=:slug"

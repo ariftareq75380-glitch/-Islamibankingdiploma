@@ -7,8 +7,12 @@
  * from those crawlers to this function, which returns a minimal HTML document
  * carrying the article's own title, description and cover image.
  *
- * Humans and Googlebot never reach this function: the rewrite only matches
- * social-crawler User-Agents, and everyone else gets the SPA shell.
+ * Search crawlers (Googlebot, Bingbot) are rewritten here too, for the same
+ * reason: they must see the article's own title, canonical and Article +
+ * BreadcrumbList JSON-LD in the raw HTML, instead of the identical homepage
+ * shell every article would otherwise serve. Humans never reach this
+ * function: the rewrite only matches crawler User-Agents, and everyone else
+ * gets the SPA shell.
  *
  * Plain JavaScript on purpose: no TypeScript transpilation step is involved
  * in building this function.
@@ -64,6 +68,57 @@ function pickImage(cover) {
   return { url: SITE_IMAGE, width: SITE_IMAGE_WIDTH, height: SITE_IMAGE_HEIGHT };
 }
 
+/**
+ * Build the Article + BreadcrumbList JSON-LD for one article, mirroring the
+ * client-side schema in src/utils/seo.ts (same breadcrumb trail, same
+ * author default). datePublished comes only from the article's real date —
+ * if the article has no date, the field is omitted rather than invented.
+ * The JSON is escaped so a `</script>` inside a title or description can
+ * never break out of the script tag.
+ */
+function buildArticleJsonLd({ title, description, pageUrl, imageUrl, author, datePublished }) {
+  const article = {
+    '@type': 'Article',
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': pageUrl,
+    },
+    headline: title,
+    description,
+    image: [imageUrl],
+    author: {
+      '@type': 'Person',
+      name: author || 'Admin',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Islami Banking Diploma',
+    },
+  };
+  if (datePublished) {
+    article.datePublished = datePublished;
+    article.dateModified = datePublished;
+  }
+  const breadcrumb = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'হোম', item: `${SITE_URL}/` },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'ডিপ্লোমা ইন ইসলামিক ব্যাংকিং (DIB)',
+        item: `${SITE_URL}/diploma`,
+      },
+      { '@type': 'ListItem', position: 3, name: title, item: pageUrl },
+    ],
+  };
+  const json = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [article, breadcrumb],
+  }).replace(/<\//g, '<\\/');
+  return json;
+}
+
 function renderPage(options) {
   const t = escapeAttr(options.title);
   const d = escapeAttr(options.description);
@@ -73,6 +128,9 @@ function renderPage(options) {
     options.imageWidth && options.imageHeight
       ? `    <meta property="og:image:width" content="${options.imageWidth}" />\n    <meta property="og:image:height" content="${options.imageHeight}" />\n    <meta property="og:image:type" content="image/jpeg" />\n`
       : '';
+  const jsonLd = options.jsonLd
+    ? `    <script type="application/ld+json">\n${options.jsonLd}\n    </script>\n`
+    : '';
   return `<!doctype html>
 <html lang="bn">
   <head>
@@ -80,7 +138,7 @@ function renderPage(options) {
     <title>${t}</title>
     <meta name="description" content="${d}" />
     <link rel="canonical" href="${u}" />
-    <meta property="og:title" content="${t}" />
+${jsonLd}    <meta property="og:title" content="${t}" />
     <meta property="og:description" content="${d}" />
     <meta property="og:type" content="${options.ogType}" />
     <meta property="og:url" content="${u}" />
@@ -145,6 +203,22 @@ export default async function handler(req, res) {
   );
   const image = pickImage(article && article.coverImage);
 
+  // Article + BreadcrumbList JSON-LD for search crawlers. The schema
+  // description uses the full summary (the meta description above is the
+  // trimmed 125-char version). Only emitted when a real article was found.
+  const jsonLd = article
+    ? buildArticleJsonLd({
+        title,
+        description: ((article.summaryBn || article.summary) || SITE_DESCRIPTION)
+          .trim()
+          .replace(/\s+/g, ' '),
+        pageUrl: articleUrl,
+        imageUrl: image.url,
+        author: article.author,
+        datePublished: article.publishedDate || article.publishedAt || '',
+      })
+    : '';
+
   const html = renderPage({
     title,
     description,
@@ -153,6 +227,7 @@ export default async function handler(req, res) {
     imageUrl: image.url,
     imageWidth: image.width,
     imageHeight: image.height,
+    jsonLd,
   });
 
   res.status(200);
