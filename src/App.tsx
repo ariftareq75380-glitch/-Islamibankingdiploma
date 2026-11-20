@@ -784,7 +784,7 @@ export default function App() {
                   resources={publishedResources}
                 />
 
-                {/* 2. Highlighted Section: up to five articles where featured is true; hidden if none */}
+                {/* 2. Highlighted Section: up to six articles where featured is true; hidden if none */}
                 <HighlightedArticlesSection
                   articles={publishedArticles}
                   onOpenArticle={handleOpenArticle}
