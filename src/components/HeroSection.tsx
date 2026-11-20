@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, X, GraduationCap, ArrowRight, FileText } from 'lucide-react';
-import { PdfResource, ActiveTab } from '../types';
+import { PdfResource, Article, ActiveTab } from '../types';
+import { normalizeSearchText, searchTextMatches } from '../utils/searchNormalize';
 
 interface HeroSectionProps {
   searchQuery: string;
@@ -11,10 +12,12 @@ interface HeroSectionProps {
   setSelectedCourse: (course: string) => void;
   onExploreClick: () => void;
   onNavigateTab?: (tab: ActiveTab) => void;
+  onOpenArticle?: (art: Article) => void;
   totalResourcesCount: number;
   totalArticlesCount: number;
   lang: 'bn' | 'en';
   resources?: PdfResource[];
+  articles?: Article[];
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -24,8 +27,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   setSelectedYear,
   onExploreClick,
   onNavigateTab,
+  onOpenArticle,
   lang,
-  resources = []
+  resources = [],
+  articles = []
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,12 +42,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     { label: lang === 'bn' ? 'মুদারাবা ও মুশারাকা' : 'Mudaraba & Musharaka', action: () => { setSearchQuery('Mudaraba'); onExploreClick(); } },
   ];
 
-  // Search Autocomplete Suggestions logic
+  // Search Autocomplete Suggestions logic.
+  // The query is normalized (Bengali digits -> Latin digits, lowercase)
+  // so a code number such as 104 matches in either digit system.
+  // Suggestions cover topics, articles AND pdf resources: articles used
+  // to be left out entirely, which is why searching "১০৪"/"104" found
+  // nothing even though the 104 book's title contains the code.
   const autocompleteSuggestions = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = normalizeSearchText(searchQuery.trim());
     if (!q || q.length < 1) return [];
 
-    const suggestions: { title: string; type: 'subject' | 'year' | 'paper'; queryToSet: string; badge: string }[] = [];
+    const suggestions: { title: string; type: 'subject' | 'year' | 'paper' | 'article'; queryToSet: string; badge: string; article?: Article }[] = [];
 
     // Check predefined popular topics
     const topics = [
@@ -57,7 +67,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     ];
 
     topics.forEach(t => {
-      if (t.nameBn.toLowerCase().includes(q) || t.nameEn.toLowerCase().includes(q) || t.query.toLowerCase().includes(q)) {
+      if (searchTextMatches(t.nameBn, q) || searchTextMatches(t.nameEn, q) || searchTextMatches(t.query, q)) {
         suggestions.push({
           title: lang === 'bn' ? t.nameBn : t.nameEn,
           type: 'subject',
@@ -67,10 +77,30 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       }
     });
 
+    // Check actual articles (title / summary / tags / keywords)
+    articles.forEach(art => {
+      const titleMatch = searchTextMatches(art.title, q) || searchTextMatches(art.titleBn, q);
+      const summaryMatch = searchTextMatches(art.summary, q) || searchTextMatches(art.summaryBn, q);
+      const tagMatch = (art.tags || []).some(t => searchTextMatches(t, q));
+      const keywordMatch = (art.keywords || []).some(k => searchTextMatches(k, q));
+      if (titleMatch || summaryMatch || tagMatch || keywordMatch) {
+        const title = lang === 'bn' ? (art.titleBn || art.title) : (art.title || art.titleBn);
+        if (!suggestions.some(s => s.title === title)) {
+          suggestions.push({
+            title,
+            type: 'article',
+            queryToSet: title,
+            badge: lang === 'bn' ? 'আর্টিকেল' : 'Article',
+            article: art
+          });
+        }
+      }
+    });
+
     // Check actual PDF resources
     resources.forEach(res => {
-      const titleMatch = res.title.toLowerCase().includes(q) || res.titleBn.toLowerCase().includes(q);
-      const subjectMatch = res.subject.toLowerCase().includes(q) || res.subjectBn.toLowerCase().includes(q);
+      const titleMatch = searchTextMatches(res.title, q) || searchTextMatches(res.titleBn, q);
+      const subjectMatch = searchTextMatches(res.subject, q) || searchTextMatches(res.subjectBn, q);
       if (titleMatch || subjectMatch) {
         if (!suggestions.some(s => s.title === (lang === 'bn' ? res.titleBn : res.title))) {
           suggestions.push({
@@ -84,7 +114,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     });
 
     return suggestions.slice(0, 6);
-  }, [searchQuery, lang, resources]);
+  }, [searchQuery, lang, resources, articles]);
 
   // Click outside listener for autocomplete dropdown
   useEffect(() => {
@@ -97,9 +127,31 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelectSuggestion = (item: { queryToSet: string }) => {
+  const handleSelectSuggestion = (item: { queryToSet: string; article?: Article }) => {
+    // An article suggestion opens the article directly; other
+    // suggestions set the query and open the PDF library as before.
+    if (item.article && onOpenArticle) {
+      setIsFocused(false);
+      onOpenArticle(item.article);
+      return;
+    }
     setSearchQuery(item.queryToSet);
     setIsFocused(false);
+    onExploreClick();
+  };
+
+  // Enter / "অনুসন্ধান" button: if the query matches exactly one article
+  // and nothing else, open that article directly (e.g. typing "১০৪" or
+  // "104" goes straight to the 104 book). Otherwise keep the previous
+  // behaviour and open the PDF library with the query applied.
+  const handleSearchSubmit = () => {
+    setIsFocused(false);
+    const articleOnly = autocompleteSuggestions.filter(s => s.type === 'article');
+    const others = autocompleteSuggestions.filter(s => s.type !== 'article');
+    if (articleOnly.length === 1 && others.length === 0 && articleOnly[0].article && onOpenArticle) {
+      onOpenArticle(articleOnly[0].article);
+      return;
+    }
     onExploreClick();
   };
 
@@ -151,8 +203,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        setIsFocused(false);
-                        onExploreClick();
+                        handleSearchSubmit();
                       }
                     }}
                     placeholder={lang === 'bn' ? 'বিষয়, প্রশ্ন বা কি-ওয়ার্ড লিখে খুঁজুন...' : 'Search subjects, past questions or topics...'}
@@ -169,8 +220,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   )}
                   <button
                     onClick={() => {
-                      setIsFocused(false);
-                      onExploreClick();
+                      handleSearchSubmit();
                     }}
                     className="shrink-0 px-3.5 sm:px-5 py-2 sm:py-2.5 bg-[#047857] hover:bg-[#065f46] text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
                   >

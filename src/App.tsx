@@ -38,6 +38,7 @@ import { IslamicCalendarModal } from './components/IslamicCalendarModal';
 import { PrayerTimesModal } from './components/PrayerTimesModal';
 import { updateSEOMetadata } from './utils/seo';
 import { supabase } from './utils/supabase';
+import { normalizeSearchText, searchTextMatches } from './utils/searchNormalize';
 
 import { 
   FileText, 
@@ -577,16 +578,16 @@ export default function App() {
   // Multi-facet filtering engine for all PDF resources
   const filteredResources = useMemo(() => {
     return resources.filter((item) => {
-      // 1. Text Search Query
+      // 1. Text Search Query (normalized: Bengali digits match Latin digits)
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const titleBnMatch = item.titleBn.toLowerCase().includes(query);
-        const titleEnMatch = item.title.toLowerCase().includes(query);
-        const descMatch = item.description.toLowerCase().includes(query) || item.descriptionBn.toLowerCase().includes(query);
-        const subjectMatch = item.subject.toLowerCase().includes(query) || item.subjectBn.toLowerCase().includes(query);
-        const tagMatch = item.tags.some(t => t.toLowerCase().includes(query));
-        const keyTopicMatch = item.keyTopics?.some(k => k.toLowerCase().includes(query));
-        const yearMatch = item.examYear.includes(query);
+        const query = normalizeSearchText(searchQuery.trim());
+        const titleBnMatch = searchTextMatches(item.titleBn, query);
+        const titleEnMatch = searchTextMatches(item.title, query);
+        const descMatch = searchTextMatches(item.description, query) || searchTextMatches(item.descriptionBn, query);
+        const subjectMatch = searchTextMatches(item.subject, query) || searchTextMatches(item.subjectBn, query);
+        const tagMatch = item.tags.some(t => searchTextMatches(t, query));
+        const keyTopicMatch = item.keyTopics?.some(k => searchTextMatches(k, query));
+        const yearMatch = searchTextMatches(item.examYear, query);
 
         if (!titleBnMatch && !titleEnMatch && !descMatch && !subjectMatch && !tagMatch && !keyTopicMatch && !yearMatch) {
           return false;
@@ -778,10 +779,12 @@ export default function App() {
                   setSelectedCourse={setSelectedCourse}
                   onExploreClick={() => handleNavigateUrl('/pdf-library')}
                   onNavigateTab={(tab) => handleSelectTabWithFilter(tab)}
+                  onOpenArticle={handleOpenArticle}
                   totalResourcesCount={publishedResources.length}
                   totalArticlesCount={publishedArticles.length}
                   lang={lang}
                   resources={publishedResources}
+                  articles={publishedArticles}
                 />
 
                 {/* 2. Highlighted Section: up to six articles where featured is true; hidden if none */}

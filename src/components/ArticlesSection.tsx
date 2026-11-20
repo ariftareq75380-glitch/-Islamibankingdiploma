@@ -17,6 +17,7 @@ import {
   Eye
 } from 'lucide-react';
 import { StorageService } from '../services/storage';
+import { normalizeSearchText, searchTextMatches } from '../utils/searchNormalize';
 
 export const VALID_ARTICLE_MENU_CATEGORIES = [
   'dib-part-1',
@@ -125,13 +126,13 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({
     if (!searchQuery.trim()) {
       return categoryFilteredArticles;
     }
-    const q = searchQuery.toLowerCase().trim();
+    const q = normalizeSearchText(searchQuery.trim());
     return categoryFilteredArticles.filter((art) => {
-      const matchTitle = (art.title && art.title.toLowerCase().includes(q)) || (art.titleBn && art.titleBn.toLowerCase().includes(q));
-      const matchSummary = (art.summary && art.summary.toLowerCase().includes(q)) || (art.summaryBn && art.summaryBn.toLowerCase().includes(q));
-      const matchAuthor = art.author && art.author.toLowerCase().includes(q);
-      const matchTags = art.tags && art.tags.some(t => t.toLowerCase().includes(q));
-      const matchKeywords = art.keywords && art.keywords.some(k => k.toLowerCase().includes(q));
+      const matchTitle = searchTextMatches(art.title, q) || searchTextMatches(art.titleBn, q);
+      const matchSummary = searchTextMatches(art.summary, q) || searchTextMatches(art.summaryBn, q);
+      const matchAuthor = searchTextMatches(art.author, q);
+      const matchTags = art.tags && art.tags.some(t => searchTextMatches(t, q));
+      const matchKeywords = art.keywords && art.keywords.some(k => searchTextMatches(k, q));
       return matchTitle || matchSummary || matchAuthor || matchTags || matchKeywords;
     });
   }, [categoryFilteredArticles, searchQuery]);
