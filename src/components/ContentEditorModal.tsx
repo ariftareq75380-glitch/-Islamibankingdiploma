@@ -819,6 +819,8 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                         setCategoryEn('Diploma in Islamic Banking (Part 1)');
                       } else if (e.target.value.includes('পার্ট-২')) {
                         setCategoryEn('Diploma in Islamic Banking (Part 2)');
+                      } else if (e.target.value.includes('নিয়োগ')) {
+                        setCategoryEn('Job Circulars');
                       } else {
                         setCategoryEn('Islamic Banking Insights');
                       }
@@ -830,6 +832,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
                     <option value="ইসলামী ব্যাংকিং গবেষণা">ইসলামী ব্যাংকিং গবেষণা</option>
                     <option value="ফিকহুল মুআমালাত ও ফতোয়া">ফিকহুল মুআমালাত ও ফতোয়া</option>
                     <option value="কুরআন-হাদিস অর্থনীতি">কুরআন-হাদিস অর্থনীতি</option>
+                    <option value="নিয়োগ বিজ্ঞপ্তি">নিয়োগ বিজ্ঞপ্তি</option>
                   </select>
                 </div>
 

@@ -264,6 +264,22 @@ export const Footer: React.FC<FooterProps> = ({
             </li>
             <li>
               <a
+                href="/job-circulars"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/job-circulars');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+                className="text-stone-300 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+              >
+                <span className="text-[#D4AF37]">›</span>
+                <span>নিয়োগ বিজ্ঞপ্তি</span>
+              </a>
+            </li>
+            <li>
+              <a
                 href="/quran-hadith"
                 onClick={(e) => {
                   e.preventDefault();

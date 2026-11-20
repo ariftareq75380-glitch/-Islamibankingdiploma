@@ -140,6 +140,7 @@ export type ActiveTab =
   | 'mock-test'
   | 'quiz'
   | 'faq'
+  | 'job-circulars'
   | 'bookmarks-view'
   | 'about' 
   | 'contact' 

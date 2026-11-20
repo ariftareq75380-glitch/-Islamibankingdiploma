@@ -17,6 +17,7 @@ import {
   EyeOff,
   GraduationCap,
   Building2,
+  Briefcase,
   Scale,
   CheckCircle2,
   HelpCircle,
@@ -202,6 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const primaryDesktopLinks = [
     { tab: 'home' as ActiveTab, labelBn: 'হোম', labelEn: 'Home' },
     { tab: 'previous-questions' as ActiveTab, labelBn: 'বিগত প্রশ্ন', labelEn: 'Past Papers' },
+    { tab: 'job-circulars' as ActiveTab, labelBn: 'নিয়োগ বিজ্ঞপ্তি', labelEn: 'Job Circulars' },
     { tab: 'mock-test' as ActiveTab, labelBn: 'মডেল টেস্ট', labelEn: 'Mock Test', isNew: true },
     { tab: 'quiz' as ActiveTab, labelBn: 'কুইজ', labelEn: 'Quiz', isNew: true },
     { tab: 'zakat-calculator' as ActiveTab, labelBn: 'যাকাত ক্যালকুলেটর', labelEn: 'Zakat Calculator' },
@@ -609,6 +611,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                       <div className="text-[10px] text-stone-500">
                         {lang === 'bn' ? 'উন্মুক্ত বই ও বিগত প্রশ্নপত্র পাঠাগার' : 'Open /pdf-library'}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                </button>
+
+                {/* Job Circulars Link */}
+                <button
+                  onClick={() => {
+                    handleNavigate('/job-circulars', 'job-circulars');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-between min-h-[42px] cursor-pointer text-stone-800 hover:bg-stone-50 border border-stone-200/80"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+                      <Briefcase className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-stone-900 leading-snug">
+                        {lang === 'bn' ? 'নিয়োগ বিজ্ঞপ্তি (Job Circulars)' : 'Job Circulars'}
+                      </div>
+                      <div className="text-[10px] text-stone-500">
+                        {lang === 'bn' ? 'ব্যাংক চাকরির চলমান নিয়োগ বিজ্ঞপ্তি' : 'Open /job-circulars'}
                       </div>
                     </div>
                   </div>

@@ -2153,6 +2153,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       else if (bn === 'ডিআইবি পার্ট-২ ও সমাধান') setArtCategory('Diploma in Islamic Banking (Part 2)');
                       else if (bn === 'ইসলামী অর্থনীতি ও ব্যাংকিং') setArtCategory('Islamic Economics & Banking');
                       else if (bn === 'ইসলামী প্রবন্ধ ও গবেষণা') setArtCategory('Islamic Essays & Research');
+                      else if (bn === 'নিয়োগ বিজ্ঞপ্তি') setArtCategory('Job Circulars');
                       else setArtCategory('Miscellaneous');
                     }}
                     className="w-full p-2 bg-white border border-stone-300 rounded-lg text-stone-900 text-xs font-bengali"
@@ -2161,6 +2162,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <option value="ডিআইবি পার্ট-২ ও সমাধান">ডিআইবি পার্ট-২ ও সমাধান</option>
                     <option value="ইসলামী অর্থনীতি ও ব্যাংকিং">ইসলামী অর্থনীতি ও ব্যাংকিং</option>
                     <option value="ইসলামী প্রবন্ধ ও গবেষণা">ইসলামী প্রবন্ধ ও গবেষণা</option>
+                    <option value="নিয়োগ বিজ্ঞপ্তি">নিয়োগ বিজ্ঞপ্তি</option>
                     <option value="বিবিধ ও সাধারণ">বিবিধ ও সাধারণ</option>
                   </select>
                 </div>

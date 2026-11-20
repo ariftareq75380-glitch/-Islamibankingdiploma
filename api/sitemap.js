@@ -44,6 +44,7 @@ const STATIC_URLS = [
   { loc: `${SITE_URL}/quran-hadith`, lastmod: '2026-10-31', changefreq: 'weekly', priority: '0.8' },
   { loc: `${SITE_URL}/fiqh-fatwa`, lastmod: '2026-10-31', changefreq: 'weekly', priority: '0.8' },
   { loc: `${SITE_URL}/articles`, lastmod: '2026-11-18', changefreq: 'daily', priority: '0.85' },
+  { loc: `${SITE_URL}/job-circulars`, lastmod: '2026-11-20', changefreq: 'daily', priority: '0.85' },
   { loc: `${SITE_URL}/faq`, lastmod: '2026-10-31', changefreq: 'monthly', priority: '0.7' },
   { loc: `${SITE_URL}/about`, lastmod: '2026-10-31', changefreq: 'monthly', priority: '0.6' },
   { loc: `${SITE_URL}/contact`, lastmod: '2026-10-31', changefreq: 'monthly', priority: '0.6' },

@@ -22,6 +22,7 @@ import { FaqSection } from './components/FaqSection';
 import { ResourceFilters } from './components/ResourceFilters';
 import { PdfCard } from './components/PdfCard';
 import { ArticlesSection } from './components/ArticlesSection';
+import { JobCircularsPage, JobCircularsHomeSection } from './components/JobCircularsSection';
 import { ArticleDetailView } from './components/ArticleDetailView';
 import { AdPlacement } from './components/AdPlacement';
 import { Footer } from './components/Footer';
@@ -388,6 +389,17 @@ export default function App() {
       return;
     }
 
+    if (pathname === 'job-circulars') {
+      setActiveTab('job-circulars');
+      setSelectedArticleForRead(null);
+      updateSEOMetadata({
+        title: 'নিয়োগ বিজ্ঞপ্তি | ইসলামী ব্যাংকিং ডিপ্লোমা',
+        description: 'ইসলামী ব্যাংক ও বাংলাদেশ ব্যাংকের চলমান নিয়োগ বিজ্ঞপ্তি — পদ, পদসংখ্যা, আবেদনের শেষ তারিখ ও অফিসিয়াল আবেদনের লিংকসহ এক নজরে।',
+        canonicalPath: '/job-circulars'
+      });
+      return;
+    }
+
     if (pathname === 'admin' || pathname === 'login') {
       setSelectedArticleForRead(null);
       // Protected route: check Supabase session
@@ -430,7 +442,7 @@ export default function App() {
     const validTabs: ActiveTab[] = [
       'home', 'banking', 'diploma', 'previous-questions', 'islamic-studies',
       'quran-hadith', 'fiqh-fatwa', 'pdf-library', 'articles', 'mock-test', 'quiz',
-      'faq', 'bookmarks-view', 'about', 'contact', 'privacy', 'disclaimer', 'wp-blueprint',
+      'faq', 'job-circulars', 'bookmarks-view', 'about', 'contact', 'privacy', 'disclaimer', 'wp-blueprint',
       'zakat-calculator', 'admin', 'login'
     ];
     if (validTabs.includes(pathname as ActiveTab)) {
@@ -512,6 +524,12 @@ export default function App() {
         title: 'আজকের কুইজ | ইসলামী ব্যাংকিং ডিপ্লোমা',
         description: 'প্রতিদিন ৩টি সহজ প্রশ্ন — ইসলাম, যাকাত ও ইসলামী ব্যাংকিং নিয়ে। সঠিক হলে অভিনন্দন, ভুল হলে সঠিক উত্তরটাই শিখে নিন।',
         canonicalPath: '/quiz'
+      });
+    } else if (tab === 'job-circulars') {
+      updateSEOMetadata({
+        title: 'নিয়োগ বিজ্ঞপ্তি | ইসলামী ব্যাংকিং ডিপ্লোমা',
+        description: 'ইসলামী ব্যাংক ও বাংলাদেশ ব্যাংকের চলমান নিয়োগ বিজ্ঞপ্তি — পদ, পদসংখ্যা, আবেদনের শেষ তারিখ ও অফিসিয়াল আবেদনের লিংকসহ এক নজরে।',
+        canonicalPath: '/job-circulars'
       });
     } else {
       updateSEOMetadata({
@@ -818,6 +836,14 @@ export default function App() {
                   lang={lang}
                 />
 
+                {/* 3b. Recent Job Circulars: up to 3 newest "নিয়োগ বিজ্ঞপ্তি" articles; honest empty-state line when none yet */}
+                <JobCircularsHomeSection
+                  articles={publishedArticles}
+                  onOpenArticle={handleOpenArticle}
+                  onNavigateUrl={handleNavigateUrl}
+                  lang={lang}
+                />
+
                 {/* 4. Three Category Cards: "ডিআইবি পরীক্ষা", "আর্টিকেলসমূহ", "পিডিএফ কর্নার" */}
                 <FeaturedCategories
                   onNavigateUrl={handleNavigateUrl}
@@ -869,6 +895,16 @@ export default function App() {
           <FaqSection
             lang={lang}
             onContactClick={() => setActiveTab('contact')}
+          />
+        )}
+
+        {/* 4b. JOB CIRCULARS LIST PAGE */}
+        {activeTab === 'job-circulars' && (
+          <JobCircularsPage
+            articles={publishedArticles}
+            onOpenArticle={handleOpenArticle}
+            onNavigateUrl={handleNavigateUrl}
+            lang={lang}
           />
         )}
 
